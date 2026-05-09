@@ -129,6 +129,12 @@ export class SpellBuilder {
                 }
             });
             
+            if (tile.description) {
+                document.getElementById('spell-description').value = tile.description;
+            } else {
+                document.getElementById('spell-description').value = '';
+            }
+            
             document.querySelectorAll('.spell-mod').forEach(input => {
                 const key = `spell-mod-val-${input.dataset.label}`;
                 if (tile.spellState[key] !== undefined) {
@@ -327,9 +333,13 @@ export class SpellBuilder {
             spellState[`spell-mod-val-${input.dataset.label}`] = input.value;
         });
 
+        const description = document.getElementById('spell-description').value.trim();
+
         const newSpell = {
             id: this.editingTileId || Date.now().toString(),
+            type: 'Gear',
             name,
+            description,
             colors: colors.slice(0, 2),
             dice: diceArray,
             tags: tagsArr.join(', '),

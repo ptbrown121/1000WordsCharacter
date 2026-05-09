@@ -292,12 +292,19 @@ function renderCards() {
         div.innerHTML = `
             <div class="tile-badges">
                 ${tile.colors.map(c => `<span class="badge" style="background:${COLOR_HEX[c]}; color:${c==='White'||c==='Yellow'?'black':'white'}">${c}</span>`).join('')}
-                <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost} XP</span>
+                ${tile.type ? `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">${tile.type.toUpperCase()}</span>` : `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">SKILL</span>`}
+                <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost !== undefined ? tile.xpCost : 0} XP</span>
             </div>
             <div class="tile-card-content">
                 <div class="tile-name">${tile.name}</div>
                 <div class="tile-tags">${tile.tags}</div>
                 <div class="tile-dice">${tile.dice.join(', ')}</div>
+                ${tile.description ? `
+                    <div style="margin-top: 0.5rem;">
+                        <button class="btn-details" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">Details ▼</button>
+                    </div>
+                    <div class="tile-description" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; font-style: italic; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; white-space: pre-wrap;">${tile.description}</div>
+                ` : ''}
             </div>
             ${tile.isBurnt 
                 ? `<button class="btn-unburn" title="Un-burn this tile">🔥 Restore</button>`
@@ -323,6 +330,21 @@ function renderCards() {
                 dataManager.updateTile(tile);
                 renderCards();
                 updatePoolPreview();
+            });
+        }
+
+        if (tile.description) {
+            const btnDetails = div.querySelector('.btn-details');
+            const descDiv = div.querySelector('.tile-description');
+            btnDetails.addEventListener('click', (e) => {
+                e.stopPropagation(); // prevent card selection
+                if (descDiv.style.display === 'none') {
+                    descDiv.style.display = 'block';
+                    btnDetails.innerText = 'Details ▲';
+                } else {
+                    descDiv.style.display = 'none';
+                    btnDetails.innerText = 'Details ▼';
+                }
             });
         }
 
@@ -542,7 +564,9 @@ function openModal(tile = null) {
     if (tile) {
         document.getElementById('modal-title').innerText = 'Edit Tile';
         document.getElementById('tile-id').value = tile.id;
+        document.getElementById('tile-type').value = tile.type || 'Skill';
         document.getElementById('tile-name').value = tile.name;
+        document.getElementById('tile-description').value = tile.description || '';
         document.getElementById('tile-dice').value = tile.dice.join(', ');
         if (tile.tags) {
             currentFormTags = tile.tags.split(',').map(t => t.trim()).filter(t => t);
@@ -557,6 +581,8 @@ function openModal(tile = null) {
     } else {
         document.getElementById('modal-title').innerText = 'Add Tile';
         document.getElementById('tile-id').value = '';
+        document.getElementById('tile-type').value = 'Skill';
+        document.getElementById('tile-description').value = '';
         els.tileXp.value = 0;
         els.btnDelete.style.display = 'none';
     }
@@ -592,7 +618,9 @@ function closeModal() {
 
 function saveTileFromForm() {
     const id = document.getElementById('tile-id').value;
+    const type = document.getElementById('tile-type').value;
     const name = document.getElementById('tile-name').value.trim();
+    const description = document.getElementById('tile-description').value.trim();
     const diceStr = document.getElementById('tile-dice').value.trim();
     const tags = currentFormTags.join(', ');
     const xpCost = parseInt(els.tileXp.value, 10) || 0;
@@ -612,7 +640,9 @@ function saveTileFromForm() {
 
     const tile = {
         id: id || null,
+        type,
         name,
+        description,
         colors: checkedColors,
         dice: diceArray,
         tags,

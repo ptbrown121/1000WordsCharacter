@@ -278,6 +278,17 @@
             <form id="tile-form">
                 <input type="hidden" id="tile-id">
                 
+                
+                <div class="form-group">
+                    <label>Tile Type</label>
+                    <select id="tile-type" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
+                        <option value="Skill">Skill</option>
+                        <option value="Gear">Gear</option>
+                        <option value="Trait">Trait</option>
+                        <option value="Story">Story</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label>Name / Keyword</label>
                     <input type="text" id="tile-name" required placeholder="e.g. stealth, eighteen claws">
@@ -343,6 +354,11 @@
                     <div id="selected-tags-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 30px;">
                         <!-- Tag pills go here -->
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Details / Extended Description (Optional)</label>
+                    <textarea id="tile-description" placeholder="Additional details..." rows="3" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
                 </div>
 
                 <div class="form-group">
@@ -582,6 +598,11 @@
                     <div class="form-group">
                         <label>Custom Narrative Tags (comma separated)</label>
                         <input type="text" id="spell-custom-tags" placeholder="e.g. fire, loud">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Details / Extended Description (Optional)</label>
+                        <textarea id="spell-description" placeholder="Additional details..." rows="3" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
                     </div>
                     
                     <div class="pool-summary">
