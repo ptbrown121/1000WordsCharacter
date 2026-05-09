@@ -300,8 +300,9 @@
 
                 <div class="form-group">
                     <label>Tags</label>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <select id="tag-select" style="flex: 1; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem; width: 100%;">
+                            <select id="tag-select" style="flex: 1; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.5rem; font-size: 1rem;">
                             <option value="">-- Select Tag --</option>
                             <optgroup label="Mechanics">
                                 <option value="Chain">Chain (Select to specify tile)</option>
@@ -331,8 +332,9 @@
                                 <option value="Custom">Custom...</option>
                             </optgroup>
                         </select>
-                        <input type="text" id="tag-custom-input" placeholder="Value..." style="display: none; flex: 1; padding: 0.5rem;">
                         <button type="button" id="btn-add-tag" class="btn btn-outline" style="padding: 0.5rem 1rem;">Add</button>
+                        </div>
+                        <input type="text" id="tag-custom-input" placeholder="Value..." style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
                     </div>
                     <div id="selected-tags-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 30px;">
                         <!-- Tag pills go here -->
