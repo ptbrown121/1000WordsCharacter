@@ -131,4 +131,9 @@ export class DataManager {
         }
         return false;
     }
+
+    clearState() {
+        this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        this.saveState();
+    }
 }

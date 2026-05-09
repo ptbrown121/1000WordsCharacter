@@ -1,8 +1,10 @@
 import { DataManager, COLOR_HEX, STAT_COLORS } from './data.js';
 import { PoolEngine } from './pool.js';
+import { SpellBuilder } from './spellBuilder.js';
 
 const dataManager = new DataManager();
 const poolEngine = new PoolEngine();
+let spellBuilder;
 
 // UI State
 let callTile = null; // single tile object
@@ -23,6 +25,7 @@ const els = {
     valSh: document.getElementById('val-sh'),
     valShMax: document.getElementById('val-sh-max'),
     btnRest: document.getElementById('btn-rest'),
+    btnNewChar: document.getElementById('btn-new-char'),
     statSelects: document.querySelectorAll('.stat-select'),
     cardContainer: document.getElementById('card-container'),
     btnAddTile: document.getElementById('btn-add-tile'),
@@ -65,6 +68,7 @@ const els = {
 
 // Initialize App
 function init() {
+    spellBuilder = new SpellBuilder(dataManager, renderAll);
     bindEvents();
     renderAll();
 }
@@ -97,6 +101,16 @@ function bindEvents() {
         dataManager.state.tiles.forEach(t => t.isBurnt = false);
         dataManager.saveState();
         renderAll();
+    });
+
+    // New Character Button
+    els.btnNewChar.addEventListener('click', () => {
+        if (confirm("WARNING: This will completely clear your current character! Are you sure you want to start a blank character?")) {
+            dataManager.clearState();
+            callTile = null;
+            burnTiles = [];
+            renderAll();
+        }
     });
 
     // Export/Import
@@ -318,7 +332,11 @@ function renderCards() {
         // Long press or right click to Edit
         div.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            openModal(tile);
+            if (tile.isSpell) {
+                spellBuilder.openWizard(tile);
+            } else {
+                openModal(tile);
+            }
         });
 
         els.cardContainer.appendChild(div);
