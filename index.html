@@ -176,7 +176,10 @@
             <section id="mosaic-section">
                 <div class="section-header">
                     <h2>Mosaic (Tiles)</h2>
-                    <button id="btn-add-tile" class="btn btn-primary">+ Add Tile</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="btn-add-tile" class="btn btn-primary">+ Add Tile</button>
+                        <button id="btn-add-spell" class="btn btn-primary" style="background: linear-gradient(135deg, #00b09b, #96c93d); color: #111;">+ Add Spell</button>
+                    </div>
                 </div>
                 <div class="card-grid" id="card-container">
                     <!-- Cards injected via JS -->
@@ -354,6 +357,246 @@
                     <button type="button" id="btn-modal-cancel" class="btn btn-outline">Cancel</button>
                     <button type="button" id="btn-modal-delete" class="btn btn-danger" style="display: none;">Delete</button>
                     <button type="submit" class="btn btn-primary">Save Tile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Spell Builder -->
+    <div id="spell-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 id="spell-modal-title">Spell Builder</h2>
+                <div id="spell-xp-badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold;">0 XP</div>
+            </div>
+            <form id="spell-form">
+                <input type="hidden" id="spell-id">
+                
+                <!-- Step 1: School & Action -->
+                <div class="wizard-step" id="spell-step-1">
+                    <h3>Step 1: Magic School & Action</h3>
+                    
+                    <div class="form-group">
+                        <label>Magic School (Skill Color)</label>
+                        <select id="spell-school" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                            <option value="Twist">Twist (Green/Purple)</option>
+                            <option value="Forge">Forge (Red/Orange)</option>
+                            <option value="Augur">Augur (Blue/Yellow)</option>
+                            <option value="Divergent">Divergent (Custom Colors) [+2 🗱]</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="spell-colors-group" style="display: none;">
+                        <label>Select 2 Colors</label>
+                        <div class="color-checkboxes">
+                            <label><input type="checkbox" value="Red" class="spell-color-cb"> Red</label>
+                            <label><input type="checkbox" value="Orange" class="spell-color-cb"> Orange</label>
+                            <label><input type="checkbox" value="Yellow" class="spell-color-cb"> Yellow</label>
+                            <label><input type="checkbox" value="Green" class="spell-color-cb"> Green</label>
+                            <label><input type="checkbox" value="Blue" class="spell-color-cb"> Blue</label>
+                            <label><input type="checkbox" value="Purple" class="spell-color-cb"> Purple</label>
+                            <label><input type="checkbox" value="Black" class="spell-color-cb"> Black</label>
+                            <label><input type="checkbox" value="White" class="spell-color-cb"> White</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Core Action</label>
+                        <select id="spell-action" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                            <optgroup label="Twist Actions">
+                                <option value="Move" data-xp="0">Move object (0🗱)</option>
+                                <option value="Shape" data-xp="3">Modify form/material (3🗱)</option>
+                                <option value="HealHarm" data-xp="2">Heal Harm (2🗱)</option>
+                                <option value="HealCrit" data-xp="2">Heal Crit (Tag + 2🗱)</option>
+                                <option value="HealBurn" data-xp="5">Heal burned tile (5🗱)</option>
+                                <option value="BuffSkill" data-xp="1">Buff skill by ▟ (1🗱)</option>
+                                <option value="BuffStat" data-xp="2">Buff stat by ▟ (2🗱)</option>
+                                <option value="ShapeBot" data-xp="5">Animate a Bot (5🗱)</option>
+                            </optgroup>
+                            <optgroup label="Augur Actions">
+                                <option value="ShowRange" data-xp="1">Show Range as vision (1🗱)</option>
+                                <option value="ShowMaterial" data-xp="2">Show material (2🗱)</option>
+                                <option value="ShowMind" data-xp="3">Show mind (3🗱)</option>
+                                <option value="Conceal" data-xp="0">Conceal/Give Hidden (0🗱)</option>
+                            </optgroup>
+                            <optgroup label="Forge Actions">
+                                <option value="HarmPool" data-xp="1">Harm Pool by ▟ (1🗱)</option>
+                                <option value="HarmSkill" data-xp="2">Harm Skill by ▟ (2🗱)</option>
+                                <option value="HarmStat" data-xp="4">Harm Stat by ▟ (4🗱)</option>
+                                <option value="GiveResource" data-xp="0">Give Resource (0🗱)</option>
+                                <option value="GiveHarm" data-xp="0">Give Harm (0🗱)</option>
+                                <option value="GiveTag" data-xp="0">Give/Deal Tag (Tag Cost)</option>
+                                <option value="GiveDicePool" data-xp="3">Give spell dice to pool (3🗱)</option>
+                                <option value="GiveDiceSkill" data-xp="5">Give spell dice as skill (5🗱)</option>
+                                <option value="DealCrit" data-xp="0">Deal Crit (Crit Cost)</option>
+                                <option value="TakeFlaw" data-xp="2">Take/Remove Flaw (2🗱)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 2: Damage/Tags -->
+                <div class="wizard-step" id="spell-step-2" style="display: none;">
+                    <h3>Step 2: Tags & Crits</h3>
+                    <div class="form-group">
+                        <label>Select Tag/Crit/Flaw to add</label>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <select id="spell-tag-select" class="spell-input" style="flex: 1; min-width: 150px; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                                <option value="" data-xp="0">-- Select --</option>
+                                <option value="Custom" data-xp="0">Custom...</option>
+                                <optgroup label="Spell Crits & Tags">
+                                    <option value="2 XP Crit/Tag" data-xp="2">2 XP Crit/Tag (e.g., DOWN) (+2🗱)</option>
+                                    <option value="3 XP Crit" data-xp="3">3 XP Crit (e.g., PAIN) (+3🗱)</option>
+                                    <option value="4 XP Crit/Tag" data-xp="4">4 XP Crit/Tag (e.g., BLEED) (+4🗱)</option>
+                                    <option value="Exotic Tag" data-xp="5">Exotic Tag (e.g., Cyber) (+5🗱)</option>
+                                    <option value="-2 XP Flaw" data-xp="-2">-2 XP Flaw (e.g., Bulky) (-2🗱)</option>
+                                    <option value="-4 XP Flaw" data-xp="-4">-4 XP Flaw (-4🗱)</option>
+                                </optgroup>
+                                <optgroup label="Standard Tags (+2 XP)">
+                                    <option value="Expert" data-xp="2">Expert</option>
+                                    <option value="Keen" data-xp="2">Keen</option>
+                                    <option value="Sharp" data-xp="2">Sharp</option>
+                                    <option value="Agile" data-xp="2">Agile</option>
+                                    <option value="Hidden" data-xp="2">Hidden</option>
+                                    <option value="Ironclad" data-xp="2">Ironclad</option>
+                                    <option value="Rugged" data-xp="2">Rugged</option>
+                                    <option value="Quick" data-xp="2">Quick</option>
+                                    <option value="Tough" data-xp="2">Tough</option>
+                                    <option value="Vital" data-xp="2">Vital</option>
+                                    <option value="Nimble" data-xp="2">Nimble</option>
+                                </optgroup>
+                                <optgroup label="Standard Flaws (-2 XP)">
+                                    <option value="Old" data-xp="-2">Old</option>
+                                    <option value="Primitive" data-xp="-2">Primitive</option>
+                                    <option value="Rare" data-xp="-2">Rare</option>
+                                    <option value="Risky" data-xp="-2">Risky</option>
+                                    <option value="Worn" data-xp="-2">Worn</option>
+                                    <option value="Hitch" data-xp="-2">Hitch</option>
+                                </optgroup>
+                            </select>
+                            <input type="text" id="spell-tag-custom-input" placeholder="Custom Tag..." style="display: none; flex: 1; padding: 0.8rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            <input type="number" id="spell-tag-custom-xp" value="2" style="display: none; width: 60px; padding: 0.8rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;" title="XP Cost">
+                            <button type="button" id="btn-spell-add-tag" class="btn btn-outline">Add</button>
+                        </div>
+                    </div>
+                    <div id="spell-tags-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 30px;">
+                        <!-- Tag pills go here -->
+                    </div>
+                </div>
+
+                <!-- Step 3: Range & Duration -->
+                <div class="wizard-step" id="spell-step-3" style="display: none;">
+                    <h3>Step 3: Range & Duration</h3>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label>Linear Range / Volume</label>
+                            <select id="spell-range" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                                <option value="-2">Touch (-2🗱)</option>
+                                <option value="-1">Close (-1🗱)</option>
+                                <option value="0" selected>Reach / Blam (0🗱)</option>
+                                <option value="1">Bang (1🗱)</option>
+                                <option value="2">Short / Boom / Cup (2🗱)</option>
+                                <option value="3">Chest (3🗱)</option>
+                                <option value="4">Blast / Cart (4🗱)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label>Duration</label>
+                            <select id="spell-duration" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                                <option value="-3">Sustain (-3🗱)</option>
+                                <option value="-2">Rite (-2🗱)</option>
+                                <option value="-1" selected>Instant (-1🗱)</option>
+                                <option value="0">1 minute (0🗱)</option>
+                                <option value="1">5 minutes (1🗱)</option>
+                                <option value="2">15 minutes (2🗱)</option>
+                                <option value="3">1 hour (3🗱)</option>
+                                <option value="4">6 hours (4🗱)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Modifiers -->
+                <div class="wizard-step" id="spell-step-4" style="display: none;">
+                    <h3>Step 4: Modifiers</h3>
+                    <div class="form-group color-checkboxes" style="grid-template-columns: 1fr;">
+                        <label style="justify-content: space-between;">
+                            <span>Has 'and' or 'or' (+1🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="1" data-label="And/Or" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Tag-swapping (+2🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="2" data-label="Tag-swapping" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Crit-swapping (+3🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="3" data-label="Crit-swapping" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Temp ally / Special defense (+4🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="4" data-label="Special Defense" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <hr style="border-color: var(--glass-border); margin: 0.5rem 0;">
+                        <label style="justify-content: space-between;">
+                            <span>Slightly limited (-1🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="-1" data-label="Slightly limited" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Saps (1 EN to cast) (-2🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="-2" data-label="Saps" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Tires (1 RX to cast) / Very limited (-3🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="-3" data-label="Tires/Very limited" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Drains (1 HP to cast) (-4🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="-4" data-label="Drains" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Insanely niche (-5🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="-5" data-label="Insanely niche" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <label style="justify-content: space-between;">
+                            <span>Witch (requires mote/burn) (-6🗱)</span>
+                            <input type="number" class="spell-mod" data-xp="-6" data-label="Witch" value="0" min="0" style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.3rem; border-radius: 4px;">
+                        </label>
+                        <hr style="border-color: var(--glass-border); margin: 0.5rem 0;">
+                        <label style="justify-content: space-between;">
+                            <span>NOT Chained to Spellcast Skill (-2🗱)</span>
+                            <input type="checkbox" id="spell-unchained" value="-2">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Step 5: Finalize -->
+                <div class="wizard-step" id="spell-step-5" style="display: none;">
+                    <h3>Step 5: Finalize Spell</h3>
+                    <div class="form-group">
+                        <label>Spell Name</label>
+                        <input type="text" id="spell-name" required placeholder="e.g. Primal Burst">
+                    </div>
+                    <div class="form-group">
+                        <label>Base Dice</label>
+                        <input type="text" id="spell-dice" required value="d4" placeholder="e.g. d4, d6">
+                    </div>
+                    <div class="form-group">
+                        <label>Custom Narrative Tags (comma separated)</label>
+                        <input type="text" id="spell-custom-tags" placeholder="e.g. fire, loud">
+                    </div>
+                    
+                    <div class="pool-summary">
+                        <p id="spell-preview-desc" style="font-style: italic; color: var(--text-secondary); margin-bottom: 0.5rem;">Preview description here.</p>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="justify-content: space-between;">
+                    <button type="button" id="btn-spell-prev" class="btn btn-outline" style="visibility: hidden;">Back</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" id="btn-spell-cancel" class="btn btn-outline">Cancel</button>
+                        <button type="button" id="btn-spell-next" class="btn btn-primary">Next</button>
+                        <button type="button" id="btn-spell-delete" class="btn btn-danger" style="display: none;">Delete</button>
+                        <button type="submit" id="btn-spell-save" class="btn btn-action" style="display: none; width: auto; margin-top: 0;">Save Spell</button>
+                    </div>
                 </div>
             </form>
         </div>
