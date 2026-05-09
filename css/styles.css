@@ -355,10 +355,11 @@ header {
 }
 
 .tile-badges {
-    font-size: 1.1rem;
-    font-weight: 700;
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
     margin-bottom: 0.5rem;
-    text-transform: capitalize;
+    z-index: 2;
 }
 
 .tile-card.selected-burn {
@@ -386,14 +387,7 @@ header {
     font-style: italic;
 }
 
-.tile-badges {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    display: flex;
-    gap: 0.3rem;
-    z-index: 2;
-}
+
 
 .badge {
     font-size: 0.6rem;
