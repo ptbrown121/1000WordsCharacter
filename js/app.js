@@ -29,6 +29,7 @@ const els = {
     statSelects: document.querySelectorAll('.stat-select'),
     cardContainer: document.getElementById('card-container'),
     btnAddTile: document.getElementById('btn-add-tile'),
+    searchTiles: document.getElementById('search-tiles'),
     modal: document.getElementById('tile-modal'),
     form: document.getElementById('tile-form'),
     btnCancel: document.getElementById('btn-modal-cancel'),
@@ -138,6 +139,11 @@ function bindEvents() {
             updateShadowMax();
         });
     });
+
+    // Search
+    if (els.searchTiles) {
+        els.searchTiles.addEventListener('input', () => renderCards());
+    }
 
     // Modal
     els.btnAddTile.addEventListener('click', () => openModal());
@@ -275,7 +281,19 @@ function updateXpTracker() {
 
 function renderCards() {
     els.cardContainer.innerHTML = '';
-    dataManager.state.tiles.forEach(tile => {
+    
+    let searchTerm = '';
+    if (els.searchTiles) {
+        searchTerm = els.searchTiles.value.toLowerCase().trim();
+    }
+    
+    const filteredTiles = dataManager.state.tiles.filter(tile => {
+        if (!searchTerm) return true;
+        const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.tags || ''} ${tile.description || ''}`.toLowerCase();
+        return searchableText.includes(searchTerm);
+    });
+
+    filteredTiles.forEach(tile => {
         const div = document.createElement('div');
         div.className = 'tile-card';
         

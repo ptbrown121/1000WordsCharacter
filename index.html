@@ -174,12 +174,15 @@
         <div class="main-columns">
             <!-- Left Column: Mosaic (Cards) -->
             <section id="mosaic-section">
-                <div class="section-header">
-                    <h2>Mosaic (Tiles)</h2>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button id="btn-add-tile" class="btn btn-primary">+ Add Tile</button>
-                        <button id="btn-add-spell" class="btn btn-primary" style="background: linear-gradient(135deg, #00b09b, #96c93d); color: #111;">+ Add Spell</button>
+                <div class="section-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Mosaic (Tiles)</h2>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="btn-add-tile" class="btn btn-primary">+ Add Tile</button>
+                            <button id="btn-add-spell" class="btn btn-primary" style="background: linear-gradient(135deg, #00b09b, #96c93d); color: #111;">+ Add Spell</button>
+                        </div>
                     </div>
+                    <input type="text" id="search-tiles" placeholder="Search by name, color, type, or tags..." style="width: 100%; padding: 0.8rem; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); font-size: 1rem;">
                 </div>
                 <div class="card-grid" id="card-container">
                     <!-- Cards injected via JS -->
