@@ -1,0 +1,51 @@
+{
+  "name": "Arcturus the Shadowmage",
+  "xpEarned": 75,
+  "hp": 12,
+  "en": 8,
+  "rx": 15,
+  "stats": {
+    "BODY": "d4",
+    "POWER": "d8",
+    "SOUL": "d6",
+    "FOCUS": "d6",
+    "MIND": "d8",
+    "SPEED": "d4",
+    "Id": "0",
+    "Qi": "0"
+  },
+  "tiles": [
+    {
+      "id": "tile-arcane-blast",
+      "name": "Arcane Blast",
+      "colors": ["Red", "Blue"],
+      "dice": ["d8", "d6"],
+      "tags": "Keen, Custom (Costs 1 EN)",
+      "xpCost": 15
+    },
+    {
+      "id": "tile-shadow-cloak",
+      "name": "Shadow Cloak",
+      "colors": ["Black", "Green"],
+      "dice": ["d6", "d4"],
+      "tags": "Hidden, Risky",
+      "xpCost": 5
+    },
+    {
+      "id": "tile-assassination-strike",
+      "name": "Assassination Strike",
+      "colors": ["Red", "Black"],
+      "dice": ["d10"],
+      "tags": "Chain Shadow Cloak, Sharp, Vital",
+      "xpCost": 18
+    },
+    {
+      "id": "tile-aegis-shield",
+      "name": "Aegis Shield",
+      "colors": ["Yellow", "Blue"],
+      "dice": ["d6", "d6", "d4"],
+      "tags": "Ironclad, Quick, Custom (Costs 2 HP)",
+      "xpCost": 17
+    }
+  ]
+}

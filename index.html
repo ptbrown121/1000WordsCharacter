@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1000 WORDS Card Manager</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="glass-panel">
+        <div class="header-top">
+            <div style="display: flex; gap: 1rem; align-items: center; width: 100%;">
+                <input type="text" id="char-name" value="Hero Name" style="font-size: 1.5rem; background: transparent; border: none; color: white; width: 250px;">
+                <button id="btn-rest" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.9rem;">🏕️ Rest & Reset</button>
+                <div class="header-actions" style="margin-left: auto;">
+                    <button id="btn-export" class="btn btn-outline" title="Export Character">⬇️ Export</button>
+                    <label for="file-import" class="btn btn-outline" title="Import Character">⬆️ Import</label>
+                    <input type="file" id="file-import" accept=".json" style="display: none;">
+                </div>
+            </div>
+        </div>
+        <div class="resource-pools">
+            <div class="pool" style="--pool-color: #fff">
+                <label>XP</label>
+                <div style="display: flex; align-items: center;">
+                    <input type="number" id="val-xp-earned" value="75" style="width: 4rem;">
+                    <span style="font-weight: bold; margin: 0 0.5rem;">/</span>
+                    <span id="val-xp-spent" style="font-weight: bold; font-size: 1.2rem;">0</span>
+                    <span style="font-size: 0.8rem; margin-left: 0.3rem;">Spent</span>
+                </div>
+            </div>
+            <div class="pool" style="--pool-color: var(--color-hp)">
+                <label>Health (HP)</label>
+                <div style="display: flex; align-items: center; gap: 0.2rem;">
+                    <input type="number" id="val-hp" value="10">
+                    <span>/</span>
+                    <input type="number" id="val-hp-max" value="10">
+                </div>
+            </div>
+            <div class="pool" style="--pool-color: var(--color-en)">
+                <label>Energy (EN)</label>
+                <div style="display: flex; align-items: center; gap: 0.2rem;">
+                    <input type="number" id="val-en" value="10">
+                    <span>/</span>
+                    <input type="number" id="val-en-max" value="10">
+                </div>
+            </div>
+            <div class="pool" style="--pool-color: var(--color-rx)">
+                <label>Reflex (RX)</label>
+                <div style="display: flex; align-items: center; gap: 0.2rem;">
+                    <input type="number" id="val-rx" value="10">
+                    <span>/</span>
+                    <input type="number" id="val-rx-max" value="10">
+                </div>
+            </div>
+            <div class="pool" style="--pool-color: #888">
+                <label>Shadow (SH)</label>
+                <div style="display: flex; align-items: center; gap: 0.2rem;">
+                    <input type="number" id="val-sh" value="0">
+                    <span>/</span>
+                    <span id="val-sh-max" style="font-weight: bold; font-size: 1.2rem; min-width: 2rem; text-align: center;">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="stats-section" class="glass-panel">
+            <h2>Stats & Attributes</h2>
+            <div class="stats-grid">
+                <!-- Core Stats -->
+                <div class="stat-box" data-color="Red">
+                    <span class="stat-name">BODY</span>
+                    <select class="stat-select" data-stat="BODY">
+                        <option value="0">None</option>
+                        <option value="d3" selected>d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+                <div class="stat-box" data-color="Orange">
+                    <span class="stat-name">POWER</span>
+                    <select class="stat-select" data-stat="POWER">
+                        <option value="0">None</option>
+                        <option value="d3" selected>d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+                <div class="stat-box" data-color="Yellow">
+                    <span class="stat-name">SOUL</span>
+                    <select class="stat-select" data-stat="SOUL">
+                        <option value="0">None</option>
+                        <option value="d3" selected>d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+                <div class="stat-box" data-color="Green">
+                    <span class="stat-name">FOCUS</span>
+                    <select class="stat-select" data-stat="FOCUS">
+                        <option value="0">None</option>
+                        <option value="d3" selected>d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+                <div class="stat-box" data-color="Blue">
+                    <span class="stat-name">MIND</span>
+                    <select class="stat-select" data-stat="MIND">
+                        <option value="0">None</option>
+                        <option value="d3" selected>d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+                <div class="stat-box" data-color="Purple">
+                    <span class="stat-name">SPEED</span>
+                    <select class="stat-select" data-stat="SPEED">
+                        <option value="0">None</option>
+                        <option value="d3" selected>d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+                <!-- Optional Stats -->
+                <div class="stat-box optional-stat" data-color="Black">
+                    <span class="stat-name">Id (Opt)</span>
+                    <select class="stat-select" data-stat="Id">
+                        <option value="0" selected>None</option>
+                        <option value="d3">d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+                <div class="stat-box optional-stat" data-color="White">
+                    <span class="stat-name">Qi (Opt)</span>
+                    <select class="stat-select" data-stat="Qi">
+                        <option value="0" selected>None</option>
+                        <option value="d3">d3</option>
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12">d12</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <div class="main-columns">
+            <!-- Left Column: Mosaic (Cards) -->
+            <section id="mosaic-section">
+                <div class="section-header">
+                    <h2>Mosaic (Tiles)</h2>
+                    <button id="btn-add-tile" class="btn btn-primary">+ Add Tile</button>
+                </div>
+                <div class="card-grid" id="card-container">
+                    <!-- Cards injected via JS -->
+                </div>
+            </section>
+
+            <!-- Right Column: Action Dashboard -->
+            <section id="action-dashboard" class="glass-panel">
+                <h2>The Call (Dice Pool)</h2>
+                
+                <div class="call-colors">
+                    <label>GM Call Colors:</label>
+                    <div class="color-selectors">
+                        <select id="call-color-1">
+                            <option value="">-- None --</option>
+                            <option value="Red">Red (BODY)</option>
+                            <option value="Orange">Orange (POWER)</option>
+                            <option value="Yellow">Yellow (SOUL)</option>
+                            <option value="Green">Green (FOCUS)</option>
+                            <option value="Blue">Blue (MIND)</option>
+                            <option value="Purple">Purple (SPEED)</option>
+                            <option value="Black">Black (Id)</option>
+                            <option value="White">White (Qi)</option>
+                        </select>
+                        <select id="call-color-2">
+                            <option value="">-- None --</option>
+                            <option value="Red">Red (BODY)</option>
+                            <option value="Orange">Orange (POWER)</option>
+                            <option value="Yellow">Yellow (SOUL)</option>
+                            <option value="Green">Green (FOCUS)</option>
+                            <option value="Blue">Blue (MIND)</option>
+                            <option value="Purple">Purple (SPEED)</option>
+                            <option value="Black">Black (Id)</option>
+                            <option value="White">White (Qi)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pool-tiles">
+                    <div class="tile-dropzone" id="call-tile-zone">
+                        <span>Select 1 Call Tile</span>
+                        <div id="call-tile-container"></div>
+                    </div>
+                    <div class="tile-dropzone" id="burn-tile-zone">
+                        <span>Select Burn Tiles (Same Color)</span>
+                        <div id="burn-tiles-container"></div>
+                    </div>
+                    <p class="hint-text">Click a card in your Mosaic to add/remove it from the pool.</p>
+                </div>
+
+                <div style="margin-top: 1rem; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 8px;">
+                    <label style="font-size: 0.9rem; margin-bottom: 0.3rem; display: block;">Extra Dice (EN/SH spent, GM Bonus):</label>
+                    <input type="text" id="extra-dice-input" placeholder="e.g. d6, d4" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 6px;">
+                </div>
+
+                <div class="pool-summary">
+                    <h3>Current Pool</h3>
+                    <div id="pool-dice-display">Select colors/tiles to build pool.</div>
+                    <div id="pool-adds-display">Adds (Keep): 2</div>
+                </div>
+
+                <div class="roll-modes">
+                    <div class="mode-toggle">
+                        <label><input type="radio" name="roll-mode" value="virtual" checked> Virtual Roll</label>
+                        <label><input type="radio" name="roll-mode" value="manual"> Manual Input</label>
+                    </div>
+
+                    <!-- Virtual Mode -->
+                    <div id="virtual-roll-section">
+                        <button id="btn-roll" class="btn btn-action">Roll Dice</button>
+                    </div>
+
+                    <!-- Manual Mode -->
+                    <div id="manual-roll-section" style="display: none;">
+                        <p class="hint-text">Enter rolled values (comma separated) for each die size:</p>
+                        <div id="manual-inputs-container">
+                            <!-- Injected by JS -->
+                        </div>
+                        <button id="btn-calculate" class="btn btn-action">Calculate Optimal</button>
+                    </div>
+                </div>
+
+                <div id="roll-results" class="results-panel" style="display: none;">
+                    <h3>Result</h3>
+                    <div class="result-total" id="result-total">--</div>
+                    <div class="result-details" id="result-details"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal for Adding/Editing Tiles -->
+    <div id="tile-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <h2 id="modal-title">Add Tile</h2>
+            <form id="tile-form">
+                <input type="hidden" id="tile-id">
+                
+                <div class="form-group">
+                    <label>Name / Keyword</label>
+                    <input type="text" id="tile-name" required placeholder="e.g. stealth, eighteen claws">
+                </div>
+
+                <div class="form-group">
+                    <label>Colors (Pick 2)</label>
+                    <div class="color-checkboxes">
+                        <label><input type="checkbox" value="Red" class="color-cb"> Red</label>
+                        <label><input type="checkbox" value="Orange" class="color-cb"> Orange</label>
+                        <label><input type="checkbox" value="Yellow" class="color-cb"> Yellow</label>
+                        <label><input type="checkbox" value="Green" class="color-cb"> Green</label>
+                        <label><input type="checkbox" value="Blue" class="color-cb"> Blue</label>
+                        <label><input type="checkbox" value="Purple" class="color-cb"> Purple</label>
+                        <label><input type="checkbox" value="Black" class="color-cb"> Black</label>
+                        <label><input type="checkbox" value="White" class="color-cb"> White</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Dice (comma separated, e.g., d4, d6)</label>
+                    <input type="text" id="tile-dice" required placeholder="d4">
+                </div>
+
+                <div class="form-group">
+                    <label>Tags</label>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <select id="tag-select" style="flex: 1; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.5rem;">
+                            <option value="">-- Select Tag --</option>
+                            <optgroup label="Mechanics">
+                                <option value="Chain">Chain (Select to specify tile)</option>
+                            </optgroup>
+                            <optgroup label="Bonus (+▟)">
+                                <option value="Expert">Expert (+▟ to check)</option>
+                                <option value="Keen">Keen (+▟ to attack)</option>
+                                <option value="Sharp">Sharp (+▟ to damage)</option>
+                                <option value="Agile">Agile (+▟ evasion)</option>
+                                <option value="Hidden">Hidden (+▟ vs detection)</option>
+                                <option value="Ironclad">Ironclad (+▟ soak)</option>
+                                <option value="Rugged">Rugged (+▟ grit)</option>
+                                <option value="Quick">Quick (+▟ RF)</option>
+                                <option value="Tough">Tough (+▟ HP)</option>
+                                <option value="Vital">Vital (+▟ EN)</option>
+                                <option value="Nimble">Nimble (+▟ to Walk)</option>
+                            </optgroup>
+                            <optgroup label="Flaws">
+                                <option value="Old">Old (-3 grit)</option>
+                                <option value="Primitive">Primitive (-3 damage)</option>
+                                <option value="Rare">Rare (repairs double each Break)</option>
+                                <option value="Risky">Risky (take 1 HP / rolled 1)</option>
+                                <option value="Worn">Worn (-3 attack)</option>
+                                <option value="Hitch">Hitch</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="Custom">Custom...</option>
+                            </optgroup>
+                        </select>
+                        <input type="text" id="tag-custom-input" placeholder="Value..." style="display: none; flex: 1; padding: 0.5rem;">
+                        <button type="button" id="btn-add-tag" class="btn btn-outline" style="padding: 0.5rem 1rem;">Add</button>
+                    </div>
+                    <div id="selected-tags-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 30px;">
+                        <!-- Tag pills go here -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>XP Cost</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" id="tile-xp" value="0" style="flex: 1;">
+                        <button type="button" id="btn-estimate-xp" class="btn btn-outline" style="padding: 0.5rem 1rem;">Auto-Estimate</button>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="btn-modal-cancel" class="btn btn-outline">Cancel</button>
+                    <button type="button" id="btn-modal-delete" class="btn btn-danger" style="display: none;">Delete</button>
+                    <button type="submit" class="btn btn-primary">Save Tile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/data.js" type="module"></script>
+    <script src="js/pool.js" type="module"></script>
+    <script src="js/app.js" type="module"></script>
+</body>
+</html>
