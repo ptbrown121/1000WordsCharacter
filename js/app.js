@@ -47,6 +47,7 @@ const els = {
     
     callColor1: document.getElementById('call-color-1'),
     callColor2: document.getElementById('call-color-2'),
+    autoFilterCall: document.getElementById('auto-filter-call'),
     poolDiceDisplay: document.getElementById('pool-dice-display'),
     poolAddsDisplay: document.getElementById('pool-adds-display'),
     
@@ -163,9 +164,12 @@ function bindEvents() {
         let rxTiles = 0;
         
         dataManager.state.tiles.forEach(t => {
-            if (t.colors.includes('Red') || t.colors.includes('Orange')) hpTiles++;
-            if (t.colors.includes('Yellow') || t.colors.includes('Green')) enTiles++;
-            if (t.colors.includes('Blue') || t.colors.includes('Purple')) rxTiles++;
+            if (t.colors.includes('Red')) hpTiles++;
+            if (t.colors.includes('Orange')) hpTiles++;
+            if (t.colors.includes('Yellow')) enTiles++;
+            if (t.colors.includes('Green')) enTiles++;
+            if (t.colors.includes('Blue')) rxTiles++;
+            if (t.colors.includes('Purple')) rxTiles++;
         });
         
         dataManager.state.hpMax = bodySteps + powerSteps + hpTiles;
@@ -277,8 +281,9 @@ function bindEvents() {
     });
 
     // Dashboard Actions
-    els.callColor1.addEventListener('change', updatePoolPreview);
-    els.callColor2.addEventListener('change', updatePoolPreview);
+    els.callColor1.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
+    els.callColor2.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
+    els.autoFilterCall.addEventListener('change', renderCards);
     els.extraDiceInput.addEventListener('input', updatePoolPreview);
 
     els.radioModes.forEach(r => {
@@ -353,10 +358,26 @@ function renderCards() {
         searchTerm = els.searchTiles.value.toLowerCase().trim();
     }
     
+    let activeCallColors = [];
+    if (els.autoFilterCall && els.autoFilterCall.checked) {
+        if (els.callColor1.value) activeCallColors.push(els.callColor1.value);
+        if (els.callColor2.value) activeCallColors.push(els.callColor2.value);
+    }
+    
     const filteredTiles = dataManager.state.tiles.filter(tile => {
-        if (!searchTerm) return true;
-        const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.tags || ''} ${tile.description || ''}`.toLowerCase();
-        return searchableText.includes(searchTerm);
+        // Text Search
+        if (searchTerm) {
+            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.tags || ''} ${tile.description || ''}`.toLowerCase();
+            if (!searchableText.includes(searchTerm)) return false;
+        }
+        
+        // Auto-Filter by Call Colors
+        if (activeCallColors.length > 0) {
+            const hasMatchingColor = tile.colors.some(c => activeCallColors.includes(c));
+            if (!hasMatchingColor) return false;
+        }
+        
+        return true;
     });
 
     filteredTiles.forEach(tile => {
