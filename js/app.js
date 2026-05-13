@@ -18,12 +18,16 @@ const els = {
     valXpSpent: document.getElementById('val-xp-spent'),
     valHp: document.getElementById('val-hp'),
     valHpMax: document.getElementById('val-hp-max'),
+    hpTempBadge: document.getElementById('hp-temp-badge'),
     valEn: document.getElementById('val-en'),
     valEnMax: document.getElementById('val-en-max'),
+    enTempBadge: document.getElementById('en-temp-badge'),
     valRx: document.getElementById('val-rx'),
     valRxMax: document.getElementById('val-rx-max'),
+    rxTempBadge: document.getElementById('rx-temp-badge'),
     valSh: document.getElementById('val-sh'),
     valShMax: document.getElementById('val-sh-max'),
+    shTempBadge: document.getElementById('sh-temp-badge'),
     btnRest: document.getElementById('btn-rest'),
     btnNewChar: document.getElementById('btn-new-char'),
     btnCalcXp: document.getElementById('btn-calc-xp'),
@@ -67,7 +71,25 @@ const els = {
     resultDetails: document.getElementById('result-details'),
 
     btnExport: document.getElementById('btn-export'),
-    fileImport: document.getElementById('file-import')
+    fileImport: document.getElementById('file-import'),
+
+    // Vital Modal
+    vitalModal: document.getElementById('vital-modal'),
+    vitalModalTitle: document.getElementById('vital-modal-title'),
+    vitalModalKey: document.getElementById('vital-modal-key'),
+    vitalPermInput: document.getElementById('vital-perm-input'),
+    vitalTempInput: document.getElementById('vital-temp-input'),
+    btnVitalCancel: document.getElementById('btn-vital-cancel'),
+    btnVitalSave: document.getElementById('btn-vital-save'),
+
+    // Journal
+    btnAddJournal: document.getElementById('btn-add-journal'),
+    journalContainer: document.getElementById('journal-entries-container'),
+
+    // Info
+    btnInfo: document.getElementById('btn-info'),
+    infoModal: document.getElementById('info-modal'),
+    btnInfoClose: document.getElementById('btn-info-close')
 };
 
 // Math Utilities
@@ -114,21 +136,51 @@ function bindEvents() {
         updateXpTracker();
     });
 
+    // Info Modal
+    els.btnInfo.addEventListener('click', () => els.infoModal.classList.add('active'));
+    els.btnInfoClose.addEventListener('click', () => els.infoModal.classList.remove('active'));
+    els.infoModal.addEventListener('click', (e) => {
+        if (e.target === els.infoModal) els.infoModal.classList.remove('active');
+    });
+
     els.valHp.addEventListener('change', (e) => dataManager.updateResource('hp', e.target.value));
-    els.valHpMax.addEventListener('change', (e) => { dataManager.state.hpMax = e.target.value; dataManager.saveState(); });
     els.valEn.addEventListener('change', (e) => dataManager.updateResource('en', e.target.value));
-    els.valEnMax.addEventListener('change', (e) => { dataManager.state.enMax = e.target.value; dataManager.saveState(); });
     els.valRx.addEventListener('change', (e) => dataManager.updateResource('rx', e.target.value));
-    els.valRxMax.addEventListener('change', (e) => { dataManager.state.rxMax = e.target.value; dataManager.saveState(); });
     els.valSh.addEventListener('change', (e) => { dataManager.state.sh = e.target.value; dataManager.saveState(); });
+
+    // Vital Edit Buttons
+    document.querySelectorAll('.btn-edit-vital').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const key = btn.dataset.vital; // hp, en, or rx
+            const labels = { hp: 'Health (HP)', en: 'Energy (EN)', rx: 'Reflex (RX)', sh: 'Shadow (SH)' };
+            els.vitalModalTitle.innerText = `Edit ${labels[key]} Bonuses`;
+            els.vitalModalKey.value = key;
+            els.vitalPermInput.value = dataManager.state[key + 'Perm'] || 0;
+            els.vitalTempInput.value = dataManager.state[key + 'Temp'] || 0;
+            els.vitalModal.classList.add('active');
+        });
+    });
+
+    els.btnVitalCancel.addEventListener('click', () => {
+        els.vitalModal.classList.remove('active');
+    });
+
+    els.btnVitalSave.addEventListener('click', () => {
+        const key = els.vitalModalKey.value;
+        dataManager.state[key + 'Perm'] = parseInt(els.vitalPermInput.value, 10) || 0;
+        dataManager.state[key + 'Temp'] = parseInt(els.vitalTempInput.value, 10) || 0;
+        dataManager.saveState();
+        els.vitalModal.classList.remove('active');
+        renderAll();
+    });
 
     // Rest Button
     els.btnRest.addEventListener('click', () => {
         if (!confirm("Rest and recover all resources? This will un-burn all tiles.")) return;
-        dataManager.state.hp = dataManager.state.hpMax;
-        dataManager.state.en = dataManager.state.enMax;
-        dataManager.state.rx = dataManager.state.rxMax;
-        dataManager.state.sh = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles);
+        dataManager.state.hp = (dataManager.state.hpMax || 0) + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
+        dataManager.state.en = (dataManager.state.enMax || 0) + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
+        dataManager.state.rx = (dataManager.state.rxMax || 0) + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
+        dataManager.state.sh = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles) + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
         dataManager.state.tiles.forEach(t => t.isBurnt = false);
         dataManager.saveState();
         renderAll();
@@ -173,13 +225,18 @@ function bindEvents() {
         });
         
         dataManager.state.hpMax = bodySteps + powerSteps + hpTiles;
-        dataManager.state.hp = dataManager.state.hpMax;
+        dataManager.state.hp = dataManager.state.hpMax + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
         
         dataManager.state.enMax = soulSteps + focusSteps + enTiles;
-        dataManager.state.en = dataManager.state.enMax;
+        dataManager.state.en = dataManager.state.enMax + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
         
         dataManager.state.rxMax = mindSteps + speedSteps + rxTiles;
-        dataManager.state.rx = dataManager.state.rxMax;
+        dataManager.state.rx = dataManager.state.rxMax + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
+        
+        // Shadow
+        const shBase = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles);
+        const shEffMax = shBase + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
+        dataManager.state.sh = shEffMax;
         
         dataManager.saveState();
         renderAll();
@@ -301,18 +358,113 @@ function bindEvents() {
 
     els.btnRoll.addEventListener('click', executeVirtualRoll);
     els.btnCalculate.addEventListener('click', executeManualCalculate);
+
+    // Journal
+    els.btnAddJournal.addEventListener('click', () => {
+        if (!dataManager.state.journal) dataManager.state.journal = [];
+        const title = prompt('Enter a title for this journal entry:', 'Session Notes');
+        if (!title) return;
+        dataManager.state.journal.push({
+            id: Date.now().toString(),
+            title: title,
+            content: ''
+        });
+        dataManager.saveState();
+        renderJournal();
+    });
 }
 
+function renderJournal() {
+    const container = els.journalContainer;
+    const entries = dataManager.state.journal || [];
+    
+    if (entries.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No journal entries yet. Click "+ New Entry" to get started.</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    entries.forEach((entry, idx) => {
+        const div = document.createElement('div');
+        div.className = 'journal-entry';
+        div.innerHTML = `
+            <div class="journal-entry-header">
+                <h3>${entry.title}</h3>
+                <div class="journal-actions">
+                    <button class="btn-rename-journal" title="Rename">✏️</button>
+                    <button class="btn-toggle-journal" title="Expand/Collapse">▼</button>
+                    <button class="btn-delete-journal" title="Delete">🗑️</button>
+                </div>
+            </div>
+            <div class="journal-entry-body" style="display: none;">
+                <textarea placeholder="Write your notes here...">${entry.content || ''}</textarea>
+            </div>
+        `;
+
+        const header = div.querySelector('.journal-entry-header');
+        const body = div.querySelector('.journal-entry-body');
+        const toggleBtn = div.querySelector('.btn-toggle-journal');
+        
+        // Toggle expand/collapse
+        header.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-rename-journal') || e.target.closest('.btn-delete-journal')) return;
+            const isOpen = body.style.display !== 'none';
+            body.style.display = isOpen ? 'none' : 'block';
+            toggleBtn.innerText = isOpen ? '▼' : '▲';
+        });
+        
+        // Auto-save on typing
+        const textarea = div.querySelector('textarea');
+        textarea.addEventListener('input', () => {
+            entry.content = textarea.value;
+            dataManager.saveState();
+        });
+        
+        // Rename
+        div.querySelector('.btn-rename-journal').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newTitle = prompt('Rename this entry:', entry.title);
+            if (newTitle) {
+                entry.title = newTitle;
+                dataManager.saveState();
+                renderJournal();
+            }
+        });
+        
+        // Delete
+        div.querySelector('.btn-delete-journal').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!confirm(`Delete journal entry "${entry.title}"?`)) return;
+            dataManager.state.journal.splice(idx, 1);
+            dataManager.saveState();
+            renderJournal();
+        });
+        
+        container.appendChild(div);
+    });
+}
 function renderAll() {
     els.charName.innerText = dataManager.state.name;
     els.valXpEarned.value = dataManager.state.xpEarned || 75;
     els.valHp.value = dataManager.state.hp ?? 0;
-    els.valHpMax.value = dataManager.state.hpMax ?? 0;
+    
+    // Calculate effective max = base max + perm + temp
+    const hpEffMax = (dataManager.state.hpMax ?? 0) + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
+    const enEffMax = (dataManager.state.enMax ?? 0) + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
+    const rxEffMax = (dataManager.state.rxMax ?? 0) + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
+    
+    els.valHpMax.innerText = hpEffMax;
     els.valEn.value = dataManager.state.en ?? 0;
-    els.valEnMax.value = dataManager.state.enMax ?? 0;
+    els.valEnMax.innerText = enEffMax;
     els.valRx.value = dataManager.state.rx ?? 0;
-    els.valRxMax.value = dataManager.state.rxMax ?? 0;
+    els.valRxMax.innerText = rxEffMax;
     els.valSh.value = dataManager.state.sh || 0;
+
+    // Temp badges
+    renderTempBadge(els.hpTempBadge, dataManager.state.hpTemp);
+    renderTempBadge(els.enTempBadge, dataManager.state.enTemp);
+    renderTempBadge(els.rxTempBadge, dataManager.state.rxTemp);
+    renderTempBadge(els.shTempBadge, dataManager.state.shTemp);
 
     // Apply stat values and dynamic borders
     els.statSelects.forEach(sel => {
@@ -326,11 +478,24 @@ function renderAll() {
     updatePoolPreview();
     updateXpTracker();
     updateShadowMax();
+    renderJournal();
+}
+
+function renderTempBadge(badgeEl, tempVal) {
+    const val = parseInt(tempVal, 10) || 0;
+    if (val > 0) {
+        badgeEl.innerText = `+${val} Temp`;
+        badgeEl.style.display = 'inline-block';
+    } else {
+        badgeEl.style.display = 'none';
+    }
 }
 
 function updateShadowMax() {
-    const shMax = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles);
-    els.valShMax.innerText = shMax;
+    const shBase = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles);
+    const shEffMax = shBase + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
+    els.valShMax.innerText = shEffMax;
+    renderTempBadge(els.shTempBadge, dataManager.state.shTemp);
 }
 
 function updateXpTracker() {

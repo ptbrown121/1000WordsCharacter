@@ -25,11 +25,19 @@ const DEFAULT_STATE = {
     xpEarned: 75,
     hp: 0,
     hpMax: 0,
+    hpTemp: 0,
+    hpPerm: 0,
     en: 0,
     enMax: 0,
+    enTemp: 0,
+    enPerm: 0,
     rx: 0,
     rxMax: 0,
+    rxTemp: 0,
+    rxPerm: 0,
     sh: 0,
+    shTemp: 0,
+    shPerm: 0,
     stats: {
         'BODY': '',
         'POWER': '',
@@ -40,7 +48,8 @@ const DEFAULT_STATE = {
         'Id': '',
         'Qi': ''
     },
-    tiles: [] // { id, name, colors: [], dice: [], tags: '', xpCost: 0 }
+    tiles: [], // { id, name, colors: [], dice: [], tags: '', xpCost: 0 }
+    journal: [] // { id, title, content }
 };
 
 export class DataManager {
@@ -52,7 +61,14 @@ export class DataManager {
         const saved = localStorage.getItem('1000words_state');
         if (saved) {
             try {
-                return JSON.parse(saved);
+                const state = JSON.parse(saved);
+                // Migrate missing fields from DEFAULT_STATE
+                for (const key of Object.keys(DEFAULT_STATE)) {
+                    if (state[key] === undefined) {
+                        state[key] = JSON.parse(JSON.stringify(DEFAULT_STATE[key]));
+                    }
+                }
+                return state;
             } catch (e) {
                 console.error("Failed to parse saved state", e);
             }
@@ -116,6 +132,11 @@ export class DataManager {
                 if (newState.enMax === undefined) newState.enMax = newState.en || 10;
                 if (newState.rxMax === undefined) newState.rxMax = newState.rx || 10;
                 if (newState.sh === undefined) newState.sh = 0;
+                // Vital bonuses backward compat
+                ['hpTemp','hpPerm','enTemp','enPerm','rxTemp','rxPerm','shTemp','shPerm'].forEach(k => {
+                    if (newState[k] === undefined) newState[k] = 0;
+                });
+                if (!newState.journal) newState.journal = [];
                 
                 newState.tiles.forEach(t => {
                     if (t.xpCost === undefined) t.xpCost = 0;

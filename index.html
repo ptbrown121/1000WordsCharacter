@@ -18,6 +18,7 @@
                     <button id="btn-export" class="btn btn-outline" title="Export Character">⬇️ Export</button>
                     <label for="file-import" class="btn btn-outline" title="Import Character">⬆️ Import</label>
                     <input type="file" id="file-import" accept=".json" style="display: none;">
+                    <button id="btn-info" class="btn btn-outline" title="How to Use">ℹ️ Info</button>
                 </div>
             </div>
         </div>
@@ -36,24 +37,30 @@
                 <div style="display: flex; align-items: center; gap: 0.2rem;">
                     <input type="number" id="val-hp" value="0">
                     <span>/</span>
-                    <input type="number" id="val-hp-max" value="0">
+                    <span id="val-hp-max" style="font-weight: bold; font-size: 1.2rem; min-width: 2rem; text-align: center;">0</span>
+                    <button class="btn-edit-vital" data-vital="hp" title="Edit HP Bonuses" style="background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.1rem;">⚙️</button>
                 </div>
+                <span id="hp-temp-badge" class="temp-badge" style="display: none;"></span>
             </div>
             <div class="pool" style="--pool-color: var(--color-en)">
                 <label>Energy (EN)</label>
                 <div style="display: flex; align-items: center; gap: 0.2rem;">
                     <input type="number" id="val-en" value="0">
                     <span>/</span>
-                    <input type="number" id="val-en-max" value="0">
+                    <span id="val-en-max" style="font-weight: bold; font-size: 1.2rem; min-width: 2rem; text-align: center;">0</span>
+                    <button class="btn-edit-vital" data-vital="en" title="Edit EN Bonuses" style="background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.1rem;">⚙️</button>
                 </div>
+                <span id="en-temp-badge" class="temp-badge" style="display: none;"></span>
             </div>
             <div class="pool" style="--pool-color: var(--color-rx)">
                 <label>Reflex (RX)</label>
                 <div style="display: flex; align-items: center; gap: 0.2rem;">
                     <input type="number" id="val-rx" value="0">
                     <span>/</span>
-                    <input type="number" id="val-rx-max" value="0">
+                    <span id="val-rx-max" style="font-weight: bold; font-size: 1.2rem; min-width: 2rem; text-align: center;">0</span>
+                    <button class="btn-edit-vital" data-vital="rx" title="Edit RX Bonuses" style="background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.1rem;">⚙️</button>
                 </div>
+                <span id="rx-temp-badge" class="temp-badge" style="display: none;"></span>
             </div>
             <div class="pool" style="--pool-color: #888">
                 <label>Shadow (SH)</label>
@@ -61,7 +68,9 @@
                     <input type="number" id="val-sh" value="0">
                     <span>/</span>
                     <span id="val-sh-max" style="font-weight: bold; font-size: 1.2rem; min-width: 2rem; text-align: center;">0</span>
+                    <button class="btn-edit-vital" data-vital="sh" title="Edit SH Bonuses" style="background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.1rem;">⚙️</button>
                 </div>
+                <span id="sh-temp-badge" class="temp-badge" style="display: none;"></span>
             </div>
         </div>
     </header>
@@ -220,6 +229,17 @@
             </section>
         </div>
     </main>
+
+    <!-- Journal Section -->
+    <section id="journal-section" class="glass-panel" style="margin: 2rem 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">📓 Journal</h2>
+            <button id="btn-add-journal" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.85rem;">+ New Entry</button>
+        </div>
+        <div id="journal-entries-container">
+            <p style="color: var(--text-secondary); font-style: italic;">No journal entries yet. Click "+ New Entry" to get started.</p>
+        </div>
+    </section>
 
     <!-- Modal for Adding/Editing Tiles -->
     <div id="tile-modal" class="modal">
@@ -570,6 +590,90 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Vital Modifier Modal -->
+    <div id="vital-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 400px;">
+            <h2 id="vital-modal-title">Edit Bonuses</h2>
+            <input type="hidden" id="vital-modal-key">
+            <div class="form-group">
+                <label>Permanent Bonus</label>
+                <input type="number" id="vital-perm-input" value="0" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">Added to the auto-calculated base max permanently.</p>
+            </div>
+            <div class="form-group">
+                <label>Temporary Bonus</label>
+                <input type="number" id="vital-temp-input" value="0" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">Temporary increase (e.g. buff spell). Shows a badge when active.</p>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="btn-vital-cancel" class="btn btn-outline">Cancel</button>
+                <button type="button" id="btn-vital-save" class="btn btn-action" style="width: auto; margin-top: 0;">Save</button>
+            </div>
+        </div>
+    </div>
+    <!-- Info / Help Modal -->
+    <div id="info-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin: 0;">📖 How to Use This Sheet</h2>
+                <button id="btn-info-close" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
+            </div>
+
+            <div style="color: var(--text-secondary); line-height: 1.7; font-size: 0.95rem;">
+                <h3 style="color: var(--text-primary); margin-top: 0;">🧑‍🎤 Getting Started</h3>
+                <p>Click your character's name at the top left to rename them. Set your starting <strong>XP</strong> in the header (default is 75 for a new character).</p>
+
+                <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+
+                <h3 style="color: var(--text-primary);">📊 Stats & Attributes</h3>
+                <p>Each attribute (BODY, POWER, SOUL, etc.) accepts a <strong>comma-separated list of dice</strong>. For example, type <code style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.3rem; border-radius: 3px;">d6, d8</code> to assign two dice to that stat.</p>
+                <ul style="padding-left: 1.2rem;">
+                    <li><strong>Auto-Calculate XP</strong> — Totals the XP cost of all your attributes and tiles.</li>
+                    <li><strong>Auto-Calculate Vitals</strong> — Sets your HP, EN, RX, and SH max values based on your attributes and tile colors, then fills your current values to match.</li>
+                </ul>
+
+                <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+
+                <h3 style="color: var(--text-primary);">🧩 Mosaic (Tiles)</h3>
+                <p>Tiles represent your character's skills, gear, traits, and story elements. Click <strong>+ Add Tile</strong> to create one, or <strong>+ Add Spell</strong> to use the guided spell builder.</p>
+                <ul style="padding-left: 1.2rem;">
+                    <li><strong>Colors</strong> determine which dice pool a tile contributes to and which vitals it boosts.</li>
+                    <li><strong>Tags</strong> add mechanical effects (Chain, Hitch, Expert, etc.).</li>
+                    <li><strong>✏️ Edit</strong> on any card lets you update it later to spend more XP.</li>
+                    <li><strong>🔥 Burn</strong> marks a tile as spent for the session. Use <strong>🏕️ Rest</strong> to un-burn all tiles.</li>
+                </ul>
+                <p>Use the <strong>search bar</strong> to filter tiles by name, color, type, or tags.</p>
+
+                <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+
+                <h3 style="color: var(--text-primary);">🎲 The Call (Dice Pool)</h3>
+                <p>When the GM calls for a roll, select 1–2 <strong>Call Colors</strong>. Your matching stat dice are automatically added to the pool. Then:</p>
+                <ol style="padding-left: 1.2rem;">
+                    <li><strong>Click a tile</strong> in your Mosaic to set it as the <strong>Call Tile</strong> (first click) or <strong>Burn Tile</strong> (second click).</li>
+                    <li>Add any extra dice from spending Energy or Shadow in the Extra Dice field.</li>
+                    <li>Choose <strong>Virtual Roll</strong> to let the app roll for you, or <strong>Manual Input</strong> to enter physical dice results.</li>
+                </ol>
+                <p>The <strong>Auto-Filter</strong> checkbox (on by default) will hide tiles that don't match the called colors.</p>
+
+                <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+
+                <h3 style="color: var(--text-primary);">❤️ Vitals & Bonuses</h3>
+                <p>HP, EN, RX, and SH track your character's resources. The current value (left) is editable — adjust it as you take damage or spend energy.</p>
+                <p>Click the <strong>⚙️ gear icon</strong> next to any vital's max to set <strong>Permanent</strong> or <strong>Temporary</strong> bonuses. Temp bonuses show a golden badge as a reminder.</p>
+
+                <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+
+                <h3 style="color: var(--text-primary);">💾 Saving & Sharing</h3>
+                <p>Your character is <strong>auto-saved</strong> to your browser's local storage. Use <strong>⬇️ Export</strong> to download a JSON file you can share or back up, and <strong>⬆️ Import</strong> to load one.</p>
+
+                <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+
+                <h3 style="color: var(--text-primary);">📓 Journal</h3>
+                <p>Scroll to the bottom to find the <strong>Journal</strong> section. Create named entries for session notes, adventure logs, or anything else. Entries auto-save as you type and are included in exports.</p>
+            </div>
         </div>
     </div>
 
