@@ -68,105 +68,47 @@
 
     <main>
         <section id="stats-section" class="glass-panel">
-            <h2>Stats & Attributes</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin: 0;">Stats & Attributes</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="btn-calc-xp" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Auto-Calculate XP</button>
+                    <button id="btn-calc-vitals" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Auto-Calculate Vitals</button>
+                </div>
+            </div>
             <div class="stats-grid">
                 <!-- Core Stats -->
                 <div class="stat-box" data-color="Red">
                     <span class="stat-name">BODY</span>
-                    <select class="stat-select" data-stat="BODY">
-                        <option value="0">None</option>
-                        <option value="d3" selected>d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="BODY" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Orange">
                     <span class="stat-name">POWER</span>
-                    <select class="stat-select" data-stat="POWER">
-                        <option value="0">None</option>
-                        <option value="d3" selected>d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="POWER" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Yellow">
                     <span class="stat-name">SOUL</span>
-                    <select class="stat-select" data-stat="SOUL">
-                        <option value="0">None</option>
-                        <option value="d3" selected>d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="SOUL" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Green">
                     <span class="stat-name">FOCUS</span>
-                    <select class="stat-select" data-stat="FOCUS">
-                        <option value="0">None</option>
-                        <option value="d3" selected>d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="FOCUS" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Blue">
                     <span class="stat-name">MIND</span>
-                    <select class="stat-select" data-stat="MIND">
-                        <option value="0">None</option>
-                        <option value="d3" selected>d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="MIND" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Purple">
                     <span class="stat-name">SPEED</span>
-                    <select class="stat-select" data-stat="SPEED">
-                        <option value="0">None</option>
-                        <option value="d3" selected>d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="SPEED" placeholder="e.g. d6, d8">
                 </div>
                 <!-- Optional Stats -->
                 <div class="stat-box optional-stat" data-color="Black">
                     <span class="stat-name">Id (Opt)</span>
-                    <select class="stat-select" data-stat="Id">
-                        <option value="0" selected>None</option>
-                        <option value="d3">d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="Id" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box optional-stat" data-color="White">
                     <span class="stat-name">Qi (Opt)</span>
-                    <select class="stat-select" data-stat="Qi">
-                        <option value="0" selected>None</option>
-                        <option value="d3">d3</option>
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12">d12</option>
-                    </select>
+                    <input type="text" class="stat-select stat-input" data-stat="Qi" placeholder="e.g. d6, d8">
                 </div>
             </div>
         </section>

@@ -23,22 +23,22 @@ export const COLOR_HEX = {
 const DEFAULT_STATE = {
     name: 'Hero Name',
     xpEarned: 75,
-    hp: 10,
-    hpMax: 10,
-    en: 10,
-    enMax: 10,
-    rx: 10,
-    rxMax: 10,
+    hp: 0,
+    hpMax: 0,
+    en: 0,
+    enMax: 0,
+    rx: 0,
+    rxMax: 0,
     sh: 0,
     stats: {
-        'BODY': 'd3',
-        'POWER': 'd3',
-        'SOUL': 'd3',
-        'FOCUS': 'd3',
-        'MIND': 'd3',
-        'SPEED': 'd3',
-        'Id': '0',
-        'Qi': '0'
+        'BODY': '',
+        'POWER': '',
+        'SOUL': '',
+        'FOCUS': '',
+        'MIND': '',
+        'SPEED': '',
+        'Id': '',
+        'Qi': ''
     },
     tiles: [] // { id, name, colors: [], dice: [], tags: '', xpCost: 0 }
 };

@@ -26,6 +26,8 @@ const els = {
     valShMax: document.getElementById('val-sh-max'),
     btnRest: document.getElementById('btn-rest'),
     btnNewChar: document.getElementById('btn-new-char'),
+    btnCalcXp: document.getElementById('btn-calc-xp'),
+    btnCalcVitals: document.getElementById('btn-calc-vitals'),
     statSelects: document.querySelectorAll('.stat-select'),
     cardContainer: document.getElementById('card-container'),
     btnAddTile: document.getElementById('btn-add-tile'),
@@ -66,6 +68,33 @@ const els = {
     btnExport: document.getElementById('btn-export'),
     fileImport: document.getElementById('file-import')
 };
+
+// Math Utilities
+const DIE_STEPS = { 'd4': 1, 'd6': 2, 'd8': 3, 'd10': 4, 'd12': 5, 'd14': 6, 'd16': 7 };
+const BASE_XP = { 'd4': 1, 'd6': 3, 'd8': 6, 'd10': 10, 'd12': 15, 'd14': 21, 'd16': 28 };
+
+function parseDiceString(str) {
+    if (!str) return [];
+    return str.split(',').map(s => s.trim().toLowerCase()).filter(s => DIE_STEPS[s]);
+}
+
+function calcAttributeXP(diceArray) {
+    let xp = 0;
+    let index = 0;
+    for (let die of diceArray) {
+        xp += BASE_XP[die] + index;
+        index++;
+    }
+    return xp;
+}
+
+function calcAttributeSteps(diceArray) {
+    let steps = 0;
+    for (let die of diceArray) {
+        steps += DIE_STEPS[die];
+    }
+    return steps;
+}
 
 // Initialize App
 function init() {
@@ -112,6 +141,39 @@ function bindEvents() {
             burnTiles = [];
             renderAll();
         }
+    });
+
+    // Auto-Calculate Buttons
+    els.btnCalcXp.addEventListener('click', updateXpTracker);
+
+    els.btnCalcVitals.addEventListener('click', () => {
+        // Calc HP: BODY, POWER, Red, Orange
+        const bodySteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['BODY']));
+        const powerSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['POWER']));
+        let hpTiles = 0;
+        
+        // Calc EN: SOUL, FOCUS, Yellow, Green
+        const soulSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['SOUL']));
+        const focusSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['FOCUS']));
+        let enTiles = 0;
+        
+        // Calc RX: MIND, SPEED, Blue, Purple
+        const mindSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['MIND']));
+        const speedSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['SPEED']));
+        let rxTiles = 0;
+        
+        dataManager.state.tiles.forEach(t => {
+            if (t.colors.includes('Red') || t.colors.includes('Orange')) hpTiles++;
+            if (t.colors.includes('Yellow') || t.colors.includes('Green')) enTiles++;
+            if (t.colors.includes('Blue') || t.colors.includes('Purple')) rxTiles++;
+        });
+        
+        dataManager.state.hpMax = bodySteps + powerSteps + hpTiles;
+        dataManager.state.enMax = soulSteps + focusSteps + enTiles;
+        dataManager.state.rxMax = mindSteps + speedSteps + rxTiles;
+        
+        dataManager.saveState();
+        renderAll();
     });
 
     // Export/Import
@@ -265,9 +327,8 @@ function updateXpTracker() {
     let spent = 0;
     
     // 1. Stats XP
-    Object.values(dataManager.state.stats).forEach(die => {
-        const cost = poolEngine.calculateOptimalXpCost([die]);
-        spent += cost;
+    Object.values(dataManager.state.stats).forEach(str => {
+        spent += calcAttributeXP(parseDiceString(str));
     });
     
     // 2. Tiles XP
@@ -317,12 +378,11 @@ function renderCards() {
                 <div class="tile-name">${tile.name}</div>
                 <div class="tile-tags">${tile.tags}</div>
                 <div class="tile-dice">${tile.dice.join(', ')}</div>
-                ${tile.description ? `
-                    <div style="margin-top: 0.5rem;">
-                        <button class="btn-details" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">Details ▼</button>
-                    </div>
-                    <div class="tile-description" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; font-style: italic; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; white-space: pre-wrap;">${tile.description}</div>
-                ` : ''}
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                    <button class="btn-edit-tile" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">✏️ Edit</button>
+                    ${tile.description ? `<button class="btn-details" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">Details ▼</button>` : ''}
+                </div>
+                ${tile.description ? `<div class="tile-description" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; font-style: italic; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; white-space: pre-wrap;">${tile.description}</div>` : ''}
             </div>
             ${tile.isBurnt 
                 ? `<button class="btn-unburn" title="Un-burn this tile">🔥 Restore</button>`
@@ -350,6 +410,16 @@ function renderCards() {
                 updatePoolPreview();
             });
         }
+
+        const btnEdit = div.querySelector('.btn-edit-tile');
+        btnEdit.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (tile.isSpell) {
+                spellBuilder.openWizard(tile);
+            } else {
+                openModal(tile);
+            }
+        });
 
         if (tile.description) {
             const btnDetails = div.querySelector('.btn-details');

@@ -13,8 +13,15 @@ export class PoolEngine {
             else if (d === 'd8') steps += 3;
             else if (d === 'd10') steps += 4;
             else if (d === 'd12') steps += 5;
+            else if (d === 'd14') steps += 6;
+            else if (d === 'd16') steps += 7;
         });
         return steps;
+    }
+
+    parseDiceString(str) {
+        if (!str) return [];
+        return str.split(',').map(s => s.trim().toLowerCase());
     }
 
     calculateOptimalXpCost(diceArray) {
@@ -69,8 +76,8 @@ export class PoolEngine {
         let shMax = 0;
         
         // 1. Stats Id and Qi steps
-        if (stats['Id']) shMax += this.calculateSteps([stats['Id']]);
-        if (stats['Qi']) shMax += this.calculateSteps([stats['Qi']]);
+        if (stats['Id']) shMax += this.calculateSteps(this.parseDiceString(stats['Id']));
+        if (stats['Qi']) shMax += this.calculateSteps(this.parseDiceString(stats['Qi']));
         
         // 2. Black and White boxes on tiles
         tiles.forEach(t => {
@@ -108,9 +115,12 @@ export class PoolEngine {
             // Find stats matching this color
             for (const [stat, statColor] of Object.entries(STAT_COLORS)) {
                 if (statColor === color) {
-                    const die = stats[stat];
-                    if (die && die !== '0') {
-                        pool.push({ source: `Stat (${stat})`, die });
+                    const diceString = stats[stat];
+                    if (diceString) {
+                        const parsed = this.parseDiceString(diceString);
+                        parsed.forEach(die => {
+                            pool.push({ source: `Stat (${stat})`, die });
+                        });
                     }
                 }
             }
