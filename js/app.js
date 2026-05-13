@@ -169,8 +169,13 @@ function bindEvents() {
         });
         
         dataManager.state.hpMax = bodySteps + powerSteps + hpTiles;
+        dataManager.state.hp = dataManager.state.hpMax;
+        
         dataManager.state.enMax = soulSteps + focusSteps + enTiles;
+        dataManager.state.en = dataManager.state.enMax;
+        
         dataManager.state.rxMax = mindSteps + speedSteps + rxTiles;
+        dataManager.state.rx = dataManager.state.rxMax;
         
         dataManager.saveState();
         renderAll();
@@ -296,12 +301,12 @@ function bindEvents() {
 function renderAll() {
     els.charName.innerText = dataManager.state.name;
     els.valXpEarned.value = dataManager.state.xpEarned || 75;
-    els.valHp.value = dataManager.state.hp;
-    els.valHpMax.value = dataManager.state.hpMax || 10;
-    els.valEn.value = dataManager.state.en;
-    els.valEnMax.value = dataManager.state.enMax || 10;
-    els.valRx.value = dataManager.state.rx;
-    els.valRxMax.value = dataManager.state.rxMax || 10;
+    els.valHp.value = dataManager.state.hp ?? 0;
+    els.valHpMax.value = dataManager.state.hpMax ?? 0;
+    els.valEn.value = dataManager.state.en ?? 0;
+    els.valEnMax.value = dataManager.state.enMax ?? 0;
+    els.valRx.value = dataManager.state.rx ?? 0;
+    els.valRxMax.value = dataManager.state.rxMax ?? 0;
     els.valSh.value = dataManager.state.sh || 0;
 
     // Apply stat values and dynamic borders
