@@ -1,23 +1,115 @@
 import { STAT_COLORS, VALID_DICE } from './data.js';
 
+const CONTEXTUAL_TAG_BONUSES = {
+    expert: { name: 'Expert', context: 'action check', description: '+▟ to action checks using this tile' },
+    keen: { name: 'Keen', context: 'attack', description: '+▟ to attacks using this tile' },
+    sharp: { name: 'Sharp', context: 'damage / impact', description: '+▟ to damage or impact' },
+    agile: { name: 'Agile', context: 'evasion', description: '+▟ to evasion' },
+    hidden: { name: 'Hidden', context: 'vs detection', description: '+▟ against detection' },
+    ironclad: { name: 'Ironclad', context: 'soak', description: '+▟ to soak' },
+    rugged: { name: 'Rugged', context: 'grit', description: '+▟ to grit' }
+};
+
+const RESOURCE_COLORS = {
+    hp: ['Red', 'Orange'],
+    en: ['Green', 'Yellow'],
+    rx: ['Blue', 'Purple'],
+    sh: ['Black', 'White']
+};
+
+const RESOURCE_TAGS = {
+    tough: 'hp',
+    vital: 'en',
+    quick: 'rx'
+};
+
+const FLAW_TAGS = new Set(['old', 'primitive', 'rare', 'risky', 'worn', 'hitch']);
+const EXOTIC_TAGS = new Set(['bestial', 'celestial', 'cyber']);
+
+const DIE_STEPS = {
+    d3: 0,
+    d4: 1,
+    d6: 2,
+    d8: 3,
+    d10: 4,
+    d12: 5,
+    d14: 6,
+    d16: 7
+};
+
+function normalizeMechanicalTag(tag) {
+    return String(tag || '')
+        .replace(/^(build|detail|shield)\s*:\s*/i, '')
+        .trim()
+        .toLowerCase();
+}
+
+function getTagName(tag) {
+    if (tag && typeof tag === 'object') return tag.name || '';
+    return String(tag || '');
+}
+
+function normalizeTagForLimit(tag) {
+    return String(tag || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+}
+
 export class PoolEngine {
     constructor() {
         this.baseKeeps = 2;
     }
 
     calculateSteps(diceArray) {
-        let steps = 0;
-        diceArray.forEach(d => {
-            if (d === 'd3') steps += 0;
-            else if (d === 'd4') steps += 1;
-            else if (d === 'd6') steps += 2;
-            else if (d === 'd8') steps += 3;
-            else if (d === 'd10') steps += 4;
-            else if (d === 'd12') steps += 5;
-            else if (d === 'd14') steps += 6;
-            else if (d === 'd16') steps += 7;
-        });
-        return steps;
+        return diceArray.reduce((steps, die) => steps + (DIE_STEPS[die] || 0), 0);
+    }
+
+    classifyTagForLimit(tag) {
+        const name = getTagName(tag);
+        const normalized = normalizeTagForLimit(name);
+        const withoutPrefix = normalizeTagForLimit(normalized.replace(/^(detail|shield|crit)\s*:\s*/i, ''));
+        const hasBuildPrefix = /^build\s*:/i.test(normalized);
+
+        if (!normalized) {
+            return { name, counts: false, reason: 'blank' };
+        }
+
+        if (hasBuildPrefix) {
+            return { name, counts: true, reason: 'Build tags count' };
+        }
+
+        if (/^(range|duration)\s*:/i.test(normalized) || /^(range|duration)\s*:/i.test(withoutPrefix)) {
+            return { name, counts: false, reason: 'Range/Duration tags do not count' };
+        }
+
+        if (withoutPrefix.includes('flaw') || FLAW_TAGS.has(withoutPrefix) || withoutPrefix.startsWith('hitch')) {
+            return { name, counts: false, reason: 'Flaw tags do not count' };
+        }
+
+        if (withoutPrefix.includes('exotic') || EXOTIC_TAGS.has(withoutPrefix)) {
+            return { name, counts: false, reason: 'Exotic tags do not count' };
+        }
+
+        return { name, counts: true, reason: 'Counts against tag limit' };
+    }
+
+    calculateTagLimit(diceArray, tagsArray = []) {
+        const limit = this.calculateSteps(diceArray);
+        const details = tagsArray.map(tag => this.classifyTagForLimit(tag));
+        const countableTags = details.filter(tag => tag.counts);
+        const exemptTags = details.filter(tag => !tag.counts && tag.reason !== 'blank');
+        const count = countableTags.length;
+
+        return {
+            limit,
+            count,
+            overage: Math.max(0, count - limit),
+            valid: count <= limit,
+            countableTags,
+            exemptTags,
+            details
+        };
     }
 
     parseDiceString(str) {
@@ -29,14 +121,13 @@ export class PoolEngine {
     }
 
     calculateOptimalXpCost(diceArray) {
-        const stepsMap = {'d3':0, 'd4':1, 'd6':2, 'd8':3, 'd10':4, 'd12':5};
-        const sortedDice = [...diceArray].sort((a,b) => (stepsMap[b] || 0) - (stepsMap[a] || 0));
+        const sortedDice = [...diceArray].sort((a,b) => (DIE_STEPS[b] || 0) - (DIE_STEPS[a] || 0));
         
         let totalXp = 0;
         let existingDiceCount = 0;
         
         for (const die of sortedDice) {
-            const targetSteps = stepsMap[die] || 0;
+            const targetSteps = DIE_STEPS[die] || 0;
             if (targetSteps === 0) continue; 
             
             // Add a d4
@@ -76,21 +167,31 @@ export class PoolEngine {
         return Math.max(0, xp);
     }
 
-    calculateShadowMax(stats, tiles) {
-        let shMax = 0;
-        
-        // 1. Stats Id and Qi steps
-        if (stats['Id']) shMax += this.calculateSteps(this.parseDiceString(stats['Id']));
-        if (stats['Qi']) shMax += this.calculateSteps(this.parseDiceString(stats['Qi']));
-        
-        // 2. Black and White boxes on tiles
-        tiles.forEach(t => {
-            t.colors.forEach(c => {
-                if (c === 'Black' || c === 'White') shMax += 1;
+    calculateResourceMaxes(tiles = []) {
+        const maxes = { hp: 0, en: 0, rx: 0, sh: 0 };
+
+        tiles.forEach(tile => {
+            const colors = tile.colors || [];
+            Object.entries(RESOURCE_COLORS).forEach(([resource, resourceColors]) => {
+                colors.forEach(color => {
+                    if (resourceColors.includes(color)) maxes[resource] += 1;
+                });
+            });
+
+            const tileSteps = this.calculateSteps(tile.dice || []);
+            const tags = tile.tags ? tile.tags.split(',').map(normalizeMechanicalTag) : [];
+            tags.forEach(tag => {
+                const resource = RESOURCE_TAGS[tag];
+                if (resource) maxes[resource] += tileSteps;
             });
         });
-        
-        return shMax;
+
+        return maxes;
+    }
+
+    calculateShadowMax(statsOrTiles, maybeTiles) {
+        const tiles = Array.isArray(statsOrTiles) ? statsOrTiles : (maybeTiles || []);
+        return this.calculateResourceMaxes(tiles).sh;
     }
 
     /**
@@ -101,20 +202,40 @@ export class PoolEngine {
      * @param {Array<Object>} burnTiles 
      * @param {Array<Object>} allTiles 
      * @param {Array<string>} extraDice
-     * @returns {Object} { dice: Array, adds: number, flatBonus: number, error: string }
+     * @param {Object} options
+     * @returns {Object} { dice: Array, adds: number, flatBonus: number, tagBonuses: Array, chainOptions: Array, error: string }
      */
-    compilePool(callColors, stats, callTile, burnTiles, allTiles, extraDice = []) {
+    compilePool(callColors, stats, callTile, burnTiles, allTiles, extraDice = [], options = {}) {
         let pool = [];
         let adds = 2; // Base keep is 2;
         let flatBonus = 0;
+        let tagBonuses = [];
+        let chainOptions = [];
         let error = null;
+        const activeCallColors = callColors.filter(Boolean);
+        const disabledChainIds = options.disabledChainIds || new Set();
+        const isChainDisabled = (chainId) => {
+            if (disabledChainIds instanceof Set) return disabledChainIds.has(chainId);
+            if (Array.isArray(disabledChainIds)) return disabledChainIds.includes(chainId);
+            return false;
+        };
 
-        if (callColors.length === 0) {
-            return { dice: pool, adds, flatBonus, error: "Select at least 1 color for the Call." };
+        if (activeCallColors.length === 0) {
+            return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: "Select at least 1 color for the Call." };
         }
 
+        const getSharedCallColors = (...tiles) => {
+            if (tiles.some(tile => !tile)) return [];
+
+            return activeCallColors.filter(color =>
+                tiles.every(tile => (tile.colors || []).includes(color))
+            );
+        };
+
+        const hasSharedCallColor = (...tiles) => getSharedCallColors(...tiles).length > 0;
+
         // 1. Add Stat Dice matching the Call Colors
-        callColors.forEach(color => {
+        activeCallColors.forEach(color => {
             if (!color) return;
             // Find stats matching this color
             for (const [stat, statColor] of Object.entries(STAT_COLORS)) {
@@ -130,18 +251,23 @@ export class PoolEngine {
             }
         });
 
-        const bonusTags = ['expert', 'keen', 'agile', 'sharp', 'hidden', 'ironclad', 'rugged'];
-
         // Recursive resolution for call tiles and chains
         const resolveTile = (tile, isCallTile, visitedIds) => {
             if (!tile || visitedIds.has(tile.id)) return;
             visitedIds.add(tile.id);
+
+            if (tile.isBurnt) {
+                error = `Tile '${tile.name}' is burnt and cannot be called.`;
+                return;
+            }
             
             // Color check
-            const matchesCall = callColors.some(c => tile.colors.includes(c));
+            const matchesCall = activeCallColors.some(c => tile.colors.includes(c));
             if (!matchesCall) {
                 if (isCallTile) {
                     error = `Call Tile '${tile.name}' does not match any Call Colors.`;
+                } else {
+                    error = `Chained Tile '${tile.name}' does not match any Call Colors.`;
                 }
                 return;
             }
@@ -155,39 +281,93 @@ export class PoolEngine {
             // Parse tags
             const tags = tile.tags ? tile.tags.split(',').map(t => t.trim().toLowerCase()) : [];
             
-            // Flat bonuses
-            const hasBonusTag = tags.some(t => bonusTags.includes(t));
-            if (hasBonusTag) {
-                flatBonus += this.calculateSteps(tile.dice);
-            }
+            // Contextual tag bonuses are surfaced for user selection.
+            tags.forEach((tag, index) => {
+                const normalizedTag = normalizeMechanicalTag(tag);
+                const bonusRule = CONTEXTUAL_TAG_BONUSES[normalizedTag];
+                if (!bonusRule) return;
+
+                const steps = this.calculateSteps(tile.dice);
+                if (steps <= 0) return;
+
+                tagBonuses.push({
+                    id: `${tile.id}:${normalizedTag}:${index}`,
+                    tag: bonusRule.name,
+                    sourceTileId: tile.id,
+                    sourceTileName: tile.name,
+                    steps,
+                    context: bonusRule.context,
+                    description: bonusRule.description
+                });
+            });
 
             // Chain tags
-            tags.forEach(tag => {
+            for (let index = 0; index < tags.length; index++) {
+                const tag = tags[index];
                 if (tag.startsWith('chain ')) {
                     const targetName = tag.replace('chain ', '').trim();
-                    const targetTile = allTiles.find(t => t.name.toLowerCase() === targetName);
-                    if (targetTile) {
-                        resolveTile(targetTile, false, visitedIds);
+                    const chainId = `${tile.id}:chain:${index}:${targetName.toLowerCase()}`;
+                    const targetTile = allTiles.find(t => (t.name || '').toLowerCase() === targetName);
+                    const disabled = isChainDisabled(chainId);
+                    const chainOption = {
+                        id: chainId,
+                        sourceTileId: tile.id,
+                        sourceTileName: tile.name,
+                        targetTileId: targetTile?.id || null,
+                        targetTileName: targetTile?.name || targetName,
+                        targetFound: Boolean(targetTile),
+                        enabled: !disabled,
+                        status: disabled ? 'suppressed' : 'active'
+                    };
+                    chainOptions.push(chainOption);
+
+                    if (disabled) continue;
+
+                    if (!targetTile) {
+                        chainOption.status = 'missing';
+                        error = `Chain target '${targetName}' was not found.`;
+                        return;
                     }
+
+                    if (targetTile.isBurnt) {
+                        chainOption.status = 'blocked';
+                        error = `Chain target '${targetTile.name}' is burnt and cannot be called.`;
+                        return;
+                    }
+
+                    if (!hasSharedCallColor(tile, targetTile)) {
+                        chainOption.status = 'blocked';
+                        error = `Chain from '${tile.name}' to '${targetTile.name}' must share one selected Call color.`;
+                        return;
+                    }
+
+                    resolveTile(targetTile, false, visitedIds);
+                    if (error) return;
                 }
-            });
+            }
         };
 
         // 2. Validate and Add Call Tile (with chains)
         if (callTile) {
             resolveTile(callTile, true, new Set());
-            if (error) return { dice: pool, adds, flatBonus, error };
+            if (error) return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error };
         }
 
         // 3. Validate and Add Burn Tiles (Burn tiles do NOT trigger tags)
         if (burnTiles && burnTiles.length > 0) {
-            const commonColors = burnTiles.reduce((sharedColors, tile, index) => {
-                if (index === 0) return [...tile.colors];
-                return sharedColors.filter(color => tile.colors.includes(color));
-            }, []);
+            if (!callTile) {
+                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: "Select a Call Tile before adding Burn tiles." };
+            }
 
-            if (commonColors.length === 0) {
-                return { dice: pool, adds, flatBonus, error: "All Burn tiles must share at least one common color." };
+            const burntTile = burnTiles.find(tile => tile.isBurnt);
+            if (burntTile) {
+                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: `Burn tile '${burntTile.name}' is already burnt and cannot be used.` };
+            }
+
+            const sharedBurnColors = getSharedCallColors(callTile, ...burnTiles);
+
+            if (sharedBurnColors.length === 0) {
+                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: "Burn tiles must share one selected Call color with the Call Tile." };
             }
 
             burnTiles.forEach(bt => {
@@ -201,7 +381,7 @@ export class PoolEngine {
             extraDice.forEach(d => pool.push({ source: `Extra`, die: d }));
         }
 
-        return { dice: pool, adds, flatBonus, error: null };
+        return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: null };
     }
 
     rollDie(dieString) {

@@ -10,6 +10,12 @@ let spellBuilder;
 let callTile = null; // single tile object
 let burnTiles = [];  // array of tile objects
 let currentFormTags = []; // tags array for modal
+let selectedTagBonusIds = new Set();
+let disabledChainIds = new Set();
+let lastRollResult = null;
+let currentResolutionMode = 'action';
+let currentResolutionAssignments = {};
+let healingInCombat = false;
 
 // DOM Elements
 const els = {
@@ -47,6 +53,8 @@ const els = {
     tagCustomInput: document.getElementById('tag-custom-input'),
     btnAddTag: document.getElementById('btn-add-tag'),
     tagsContainer: document.getElementById('selected-tags-container'),
+    tileDice: document.getElementById('tile-dice'),
+    tileTagLimitStatus: document.getElementById('tile-tag-limit-status'),
     
     tileXp: document.getElementById('tile-xp'),
     btnEstimateXp: document.getElementById('btn-estimate-xp'),
@@ -57,6 +65,10 @@ const els = {
     autoFilterCall: document.getElementById('auto-filter-call'),
     poolDiceDisplay: document.getElementById('pool-dice-display'),
     poolAddsDisplay: document.getElementById('pool-adds-display'),
+    chainPanel: document.getElementById('chain-panel'),
+    chainOptions: document.getElementById('chain-options'),
+    tagBonusPanel: document.getElementById('tag-bonus-panel'),
+    tagBonusOptions: document.getElementById('tag-bonus-options'),
     
     callTileZone: document.getElementById('call-tile-container'),
     burnTilesZone: document.getElementById('burn-tiles-container'),
@@ -71,6 +83,7 @@ const els = {
     
     rollResults: document.getElementById('roll-results'),
     resultTotal: document.getElementById('result-total'),
+    resolutionControls: document.getElementById('resolution-controls'),
     resultDetails: document.getElementById('result-details'),
 
     btnExport: document.getElementById('btn-export'),
@@ -96,8 +109,59 @@ const els = {
 };
 
 // Math Utilities
-const DIE_STEPS = { 'd3': 0, 'd4': 1, 'd6': 2, 'd8': 3, 'd10': 4, 'd12': 5, 'd14': 6, 'd16': 7 };
 const BASE_XP = { 'd3': 0, 'd4': 1, 'd6': 3, 'd8': 6, 'd10': 10, 'd12': 15, 'd14': 21, 'd16': 28 };
+
+const RESOLUTION_MODES = {
+    action: {
+        label: 'Action',
+        options: [
+            { value: 'action', label: 'Roll' },
+            { value: 'unused', label: 'Unused' }
+        ]
+    },
+    attack: {
+        label: 'Attack',
+        options: [
+            { value: 'attack', label: 'Attack' },
+            { value: 'impact', label: 'Impact' },
+            { value: 'unused', label: 'Unused' }
+        ]
+    },
+    defense: {
+        label: 'Defense',
+        options: [
+            { value: 'evasion', label: 'Evasion' },
+            { value: 'grit', label: 'Grit' },
+            { value: 'unused', label: 'Unused' }
+        ]
+    },
+    healing: {
+        label: 'Healing',
+        options: [
+            { value: 'diagnosis', label: 'Diagnosis Roll' },
+            { value: 'heal_energy', label: 'Heal Energy (6)' },
+            { value: 'heal_health', label: 'Heal Health (8)' },
+            { value: 'heal_reflex', label: 'Heal Reflex (10)' },
+            { value: 'fading_crit', label: 'All Fading Crits (6)' },
+            { value: 'afire', label: 'Afire -> Down (4)' },
+            { value: 'sticky_crit', label: 'Sticky Crit (8)' },
+            { value: 'burned_tile', label: 'Burned Tile (10)' },
+            { value: 'wound', label: 'Wound (12)' },
+            { value: 'unused', label: 'Unused' }
+        ]
+    }
+};
+
+const HEALING_TARGETS = {
+    afire: { label: 'Afire -> Down', difficulty: 4, kind: 'count' },
+    heal_energy: { label: 'Energy', difficulty: 6, kind: 'resource' },
+    fading_crit: { label: 'All Fading Crits', difficulty: 6, kind: 'count' },
+    heal_health: { label: 'Health', difficulty: 8, kind: 'resource' },
+    sticky_crit: { label: 'Sticky Crit', difficulty: 8, kind: 'count' },
+    heal_reflex: { label: 'Reflex', difficulty: 10, kind: 'resource' },
+    burned_tile: { label: 'Burned Tile', difficulty: 10, kind: 'count' },
+    wound: { label: 'Wound', difficulty: 12, kind: 'count' }
+};
 
 function parseDiceInput(str) {
     if (!str || !str.trim()) return { dice: [], invalid: [] };
@@ -119,6 +183,57 @@ function parseDiceString(str) {
 
 function getDiceValidationMessage(label = 'Dice') {
     return `${label} must use only: d3, d4, d6, d8, d10, d12, d14, or d16.`;
+}
+
+function summarizeTagLimitExemptions(tagLimit) {
+    const exemptNames = tagLimit.exemptTags.map(tag => tag.name).filter(Boolean);
+    if (exemptNames.length === 0) return '';
+
+    const visibleNames = exemptNames.slice(0, 3).join(', ');
+    const remaining = exemptNames.length > 3 ? ` +${exemptNames.length - 3} more` : '';
+    return ` Exempt: ${visibleNames}${remaining}.`;
+}
+
+function formatTagLimitStatus(tagLimit) {
+    const exemptText = summarizeTagLimitExemptions(tagLimit);
+    if (tagLimit.valid) {
+        return `Tag limit: ${tagLimit.count}/${tagLimit.limit} countable tags.${exemptText}`;
+    }
+
+    return `Too many countable tags: ${tagLimit.count}/${tagLimit.limit}. Remove ${tagLimit.overage} or increase dice.${exemptText}`;
+}
+
+function tagLimitErrorMessage(subject, tagLimit) {
+    const countableNames = tagLimit.countableTags.map(tag => tag.name).filter(Boolean).join(', ');
+    const tagsText = countableNames ? ` Countable tags: ${countableNames}.` : '';
+    return `${subject} has ${tagLimit.count} countable tags, but its dice allow ${tagLimit.limit}. Remove ${tagLimit.overage} countable tag${tagLimit.overage === 1 ? '' : 's'} or increase its dice.${tagsText}`;
+}
+
+function renderTagLimitStatus(el, diceStr, tagsArray) {
+    if (!el) return null;
+
+    el.classList.remove('valid', 'invalid');
+
+    if (!diceStr.trim()) {
+        el.textContent = 'Enter dice to check the tag limit.';
+        return null;
+    }
+
+    const { dice, invalid } = parseDiceInput(diceStr);
+    if (invalid.length > 0) {
+        el.textContent = getDiceValidationMessage('Dice');
+        el.classList.add('invalid');
+        return null;
+    }
+
+    const tagLimit = poolEngine.calculateTagLimit(dice, tagsArray);
+    el.textContent = formatTagLimitStatus(tagLimit);
+    el.classList.add(tagLimit.valid ? 'valid' : 'invalid');
+    return tagLimit;
+}
+
+function renderTileTagLimitStatus() {
+    return renderTagLimitStatus(els.tileTagLimitStatus, els.tileDice.value, currentFormTags);
 }
 
 function escapeAttribute(value) {
@@ -158,14 +273,6 @@ function calcAttributeXP(diceArray) {
         index++;
     }
     return xp;
-}
-
-function calcAttributeSteps(diceArray) {
-    let steps = 0;
-    for (let die of diceArray) {
-        steps += DIE_STEPS[die];
-    }
-    return steps;
 }
 
 // Initialize App
@@ -237,7 +344,7 @@ function bindEvents() {
         dataManager.state.hp = (dataManager.state.hpMax || 0) + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
         dataManager.state.en = (dataManager.state.enMax || 0) + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
         dataManager.state.rx = (dataManager.state.rxMax || 0) + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
-        dataManager.state.sh = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles) + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
+        dataManager.state.sh = poolEngine.calculateShadowMax(dataManager.state.tiles) + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
         dataManager.state.tiles.forEach(t => t.isBurnt = false);
         dataManager.saveState();
         renderAll();
@@ -257,41 +364,18 @@ function bindEvents() {
     els.btnCalcXp.addEventListener('click', updateXpTracker);
 
     els.btnCalcVitals.addEventListener('click', () => {
-        // Calc HP: BODY, POWER, Red, Orange
-        const bodySteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['BODY']));
-        const powerSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['POWER']));
-        let hpTiles = 0;
-        
-        // Calc EN: SOUL, FOCUS, Yellow, Green
-        const soulSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['SOUL']));
-        const focusSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['FOCUS']));
-        let enTiles = 0;
-        
-        // Calc RX: MIND, SPEED, Blue, Purple
-        const mindSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['MIND']));
-        const speedSteps = calcAttributeSteps(parseDiceString(dataManager.state.stats['SPEED']));
-        let rxTiles = 0;
-        
-        dataManager.state.tiles.forEach(t => {
-            if (t.colors.includes('Red')) hpTiles++;
-            if (t.colors.includes('Orange')) hpTiles++;
-            if (t.colors.includes('Yellow')) enTiles++;
-            if (t.colors.includes('Green')) enTiles++;
-            if (t.colors.includes('Blue')) rxTiles++;
-            if (t.colors.includes('Purple')) rxTiles++;
-        });
-        
-        dataManager.state.hpMax = bodySteps + powerSteps + hpTiles;
+        const resourceMaxes = poolEngine.calculateResourceMaxes(dataManager.state.tiles);
+
+        dataManager.state.hpMax = resourceMaxes.hp;
         dataManager.state.hp = dataManager.state.hpMax + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
-        
-        dataManager.state.enMax = soulSteps + focusSteps + enTiles;
+
+        dataManager.state.enMax = resourceMaxes.en;
         dataManager.state.en = dataManager.state.enMax + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
-        
-        dataManager.state.rxMax = mindSteps + speedSteps + rxTiles;
+
+        dataManager.state.rxMax = resourceMaxes.rx;
         dataManager.state.rx = dataManager.state.rxMax + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
-        
-        // Shadow
-        const shBase = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles);
+
+        const shBase = resourceMaxes.sh;
         const shEffMax = shBase + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
         dataManager.state.sh = shEffMax;
         
@@ -393,6 +477,8 @@ function bindEvents() {
         saveTileFromForm();
     });
 
+    els.tileDice.addEventListener('input', renderTileTagLimitStatus);
+
     // XP Estimation
     els.btnEstimateXp.addEventListener('click', () => {
         const diceStr = document.getElementById('tile-dice').value.trim();
@@ -410,6 +496,60 @@ function bindEvents() {
     els.callColor2.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
     els.autoFilterCall.addEventListener('change', renderCards);
     els.extraDiceInput.addEventListener('input', updatePoolPreview);
+    els.chainOptions.addEventListener('change', (e) => {
+        if (!e.target.classList.contains('chain-cb')) return;
+
+        const chainId = e.target.dataset.chainId;
+        if (e.target.checked) {
+            disabledChainIds.delete(chainId);
+        } else {
+            disabledChainIds.add(chainId);
+        }
+        updatePoolPreview();
+    });
+    els.tagBonusOptions.addEventListener('change', (e) => {
+        if (!e.target.classList.contains('tag-bonus-cb')) return;
+
+        const bonusId = e.target.dataset.bonusId;
+        if (e.target.checked) {
+            selectedTagBonusIds.add(bonusId);
+        } else {
+            selectedTagBonusIds.delete(bonusId);
+        }
+        updatePoolPreview();
+    });
+
+    els.resolutionControls.addEventListener('change', (e) => {
+        if (!lastRollResult) return;
+
+        if (e.target.id === 'resolution-mode') {
+            currentResolutionMode = e.target.value;
+            currentResolutionAssignments = getDefaultResolutionAssignments(lastRollResult, currentResolutionMode);
+            renderResolution();
+            return;
+        }
+
+        if (e.target.classList.contains('resolution-die-select')) {
+            currentResolutionAssignments[e.target.dataset.rollId] = e.target.value;
+            renderResolution();
+            return;
+        }
+
+        if (e.target.id === 'healing-in-combat') {
+            healingInCombat = e.target.checked;
+            renderResolutionDetails();
+            return;
+        }
+
+        if (e.target.classList.contains('resolution-extra')) {
+            renderResolutionDetails();
+        }
+    });
+
+    els.resolutionControls.addEventListener('input', (e) => {
+        if (!lastRollResult || !e.target.classList.contains('resolution-extra')) return;
+        renderResolutionDetails();
+    });
 
     els.radioModes.forEach(r => {
         r.addEventListener('change', (e) => {
@@ -561,7 +701,7 @@ function renderTempBadge(badgeEl, tempVal) {
 }
 
 function updateShadowMax() {
-    const shBase = poolEngine.calculateShadowMax(dataManager.state.stats, dataManager.state.tiles);
+    const shBase = poolEngine.calculateShadowMax(dataManager.state.tiles);
     const shEffMax = shBase + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
     els.valShMax.innerText = shEffMax;
     renderTempBadge(els.shTempBadge, dataManager.state.shTemp);
@@ -747,6 +887,540 @@ function getExtraDice() {
     };
 }
 
+function getPoolOptions() {
+    return {
+        disabledChainIds: new Set(disabledChainIds)
+    };
+}
+
+function renderChainOptions(chainOptions = []) {
+    const validIds = new Set(chainOptions.map(chain => chain.id));
+    disabledChainIds = new Set(
+        Array.from(disabledChainIds).filter(id => validIds.has(id))
+    );
+
+    els.chainOptions.innerHTML = '';
+
+    if (chainOptions.length === 0) {
+        els.chainPanel.hidden = true;
+        return;
+    }
+
+    els.chainPanel.hidden = false;
+
+    chainOptions.forEach(chain => {
+        const option = document.createElement('label');
+        const isBlocked = chain.enabled && ['blocked', 'missing'].includes(chain.status);
+        option.className = `chain-option${isBlocked ? ' chain-blocked' : ''}`;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'chain-cb';
+        checkbox.dataset.chainId = chain.id;
+        checkbox.checked = !disabledChainIds.has(chain.id);
+
+        const main = document.createElement('span');
+        main.className = 'chain-main';
+
+        const title = document.createElement('span');
+        title.className = 'chain-title';
+        title.textContent = `${chain.sourceTileName} -> ${chain.targetTileName}`;
+
+        const context = document.createElement('span');
+        context.className = 'chain-context';
+        context.textContent = chain.enabled
+            ? 'Called with the source tile and grants its dice plus one Add'
+            : 'Suppressed for this roll';
+
+        const status = document.createElement('span');
+        status.className = `chain-status chain-status-${chain.status}`;
+        status.textContent = chain.enabled ? 'On' : 'Off';
+        if (chain.status === 'missing') status.textContent = 'Missing';
+        if (chain.status === 'blocked') status.textContent = 'Blocked';
+
+        main.appendChild(title);
+        main.appendChild(context);
+        option.appendChild(checkbox);
+        option.appendChild(main);
+        option.appendChild(status);
+        els.chainOptions.appendChild(option);
+    });
+}
+
+function getSelectedTagBonuses(tagBonuses = []) {
+    return tagBonuses.filter(bonus => selectedTagBonusIds.has(bonus.id));
+}
+
+function calculateSelectedTagBonus(tagBonuses = []) {
+    return getSelectedTagBonuses(tagBonuses)
+        .reduce((sum, bonus) => sum + bonus.steps, 0);
+}
+
+function renderTagBonusOptions(tagBonuses = []) {
+    const validIds = new Set(tagBonuses.map(bonus => bonus.id));
+    selectedTagBonusIds = new Set(
+        Array.from(selectedTagBonusIds).filter(id => validIds.has(id))
+    );
+
+    els.tagBonusOptions.innerHTML = '';
+
+    if (tagBonuses.length === 0) {
+        els.tagBonusPanel.hidden = true;
+        return;
+    }
+
+    els.tagBonusPanel.hidden = false;
+
+    tagBonuses.forEach(bonus => {
+        const option = document.createElement('label');
+        option.className = 'tag-bonus-option';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'tag-bonus-cb';
+        checkbox.dataset.bonusId = bonus.id;
+        checkbox.checked = selectedTagBonusIds.has(bonus.id);
+
+        const main = document.createElement('span');
+        main.className = 'tag-bonus-main';
+
+        const title = document.createElement('span');
+        title.className = 'tag-bonus-title';
+        title.textContent = `${bonus.tag} from ${bonus.sourceTileName}`;
+
+        const context = document.createElement('span');
+        context.className = 'tag-bonus-context';
+        context.textContent = bonus.description || bonus.context;
+
+        const steps = document.createElement('span');
+        steps.className = 'tag-bonus-steps';
+        steps.textContent = `+${bonus.steps}`;
+
+        main.appendChild(title);
+        main.appendChild(context);
+        option.appendChild(checkbox);
+        option.appendChild(main);
+        option.appendChild(steps);
+        els.tagBonusOptions.appendChild(option);
+    });
+}
+
+function getRollId(roll, index) {
+    return String(roll.id ?? index);
+}
+
+function getSortedRolls(result) {
+    return (result.originalRolls || [])
+        .map((roll, index) => ({ ...roll, rollId: getRollId(roll, index) }))
+        .sort((a, b) => b.val - a.val);
+}
+
+function getDefaultResolutionAssignments(result, mode) {
+    const assignments = {};
+    const sortedRolls = getSortedRolls(result);
+    const adds = result.adds || 2;
+
+    sortedRolls.forEach((roll, index) => {
+        let assignment = 'unused';
+
+        if (index < adds) {
+            if (mode === 'attack') {
+                assignment = index === adds - 1 && adds > 1 ? 'impact' : 'attack';
+            } else if (mode === 'defense') {
+                assignment = index === adds - 1 && adds > 1 ? 'grit' : 'evasion';
+            } else if (mode === 'healing') {
+                assignment = 'diagnosis';
+            } else {
+                assignment = 'action';
+            }
+        }
+
+        assignments[roll.rollId] = assignment;
+    });
+
+    return assignments;
+}
+
+function getAssignmentOptions(mode) {
+    return RESOLUTION_MODES[mode]?.options || RESOLUTION_MODES.action.options;
+}
+
+function getResolutionExtraValue(id) {
+    return document.getElementById(id)?.value ?? '';
+}
+
+function getResolutionNumber(id) {
+    const value = parseInt(getResolutionExtraValue(id), 10);
+    return Number.isFinite(value) ? value : null;
+}
+
+function getResolutionText(id) {
+    return getResolutionExtraValue(id).trim();
+}
+
+function getPrimaryBonusBucket(mode) {
+    if (mode === 'attack') return 'attack';
+    if (mode === 'defense') return 'evasion';
+    if (mode === 'healing') return 'diagnosis';
+    return 'action';
+}
+
+function getResolutionBonusTotals(result, mode) {
+    const totals = { action: 0, attack: 0, impact: 0, evasion: 0, grit: 0, soak: 0, diagnosis: 0 };
+    const details = [];
+
+    (result.appliedTagBonuses || []).forEach(bonus => {
+        const context = (bonus.context || '').toLowerCase();
+        let bucket = null;
+
+        if (mode === 'action') {
+            bucket = 'action';
+        } else if (context.includes('attack')) {
+            bucket = mode === 'attack' ? 'attack' : null;
+        } else if (context.includes('damage') || context.includes('impact')) {
+            bucket = mode === 'attack' ? 'impact' : null;
+        } else if (context.includes('evasion') || context.includes('detection')) {
+            bucket = mode === 'defense' ? 'evasion' : null;
+        } else if (context.includes('grit')) {
+            bucket = mode === 'defense' ? 'grit' : null;
+        } else if (context.includes('soak')) {
+            bucket = mode === 'defense' ? 'soak' : null;
+        } else if (context.includes('action')) {
+            bucket = getPrimaryBonusBucket(mode);
+        }
+
+        if (!bucket) {
+            details.push(`${bonus.tag} from ${bonus.sourceTileName}: not used in ${RESOLUTION_MODES[mode].label.toLowerCase()} resolution`);
+            return;
+        }
+
+        totals[bucket] += bonus.steps;
+        details.push(`${bonus.tag} from ${bonus.sourceTileName}: +${bonus.steps} ${bucket}`);
+    });
+
+    totals[getPrimaryBonusBucket(mode)] += result.flatBonus || 0;
+    return { totals, details };
+}
+
+function calculateAssignedTotals(result) {
+    const totals = {};
+    let usedCount = 0;
+
+    (result.originalRolls || []).forEach((roll, index) => {
+        const rollId = getRollId(roll, index);
+        const assignment = currentResolutionAssignments[rollId] || 'unused';
+
+        if (assignment !== 'unused') usedCount += 1;
+        totals[assignment] = (totals[assignment] || 0) + roll.val;
+    });
+
+    return { totals, usedCount };
+}
+
+function renderResolutionModeOptions() {
+    return Object.entries(RESOLUTION_MODES).map(([value, mode]) => {
+        const selected = value === currentResolutionMode ? ' selected' : '';
+        return `<option value="${value}"${selected}>${mode.label}</option>`;
+    }).join('');
+}
+
+function renderResolutionExtraFields() {
+    if (currentResolutionMode === 'attack') {
+        return `
+            <div class="resolution-extra-grid">
+                <div class="resolution-field">
+                    <label for="target-evasion">Target Evasion</label>
+                    <input id="target-evasion" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('target-evasion'))}">
+                </div>
+                <div class="resolution-field">
+                    <label for="target-soak">Target Soak</label>
+                    <input id="target-soak" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('target-soak'))}">
+                </div>
+                <div class="resolution-field">
+                    <label for="target-grit">Target Grit</label>
+                    <input id="target-grit" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('target-grit'))}">
+                </div>
+                <div class="resolution-field">
+                    <label for="attack-crits">Crit Tags</label>
+                    <input id="attack-crits" class="resolution-extra" type="text" value="${escapeAttribute(getResolutionExtraValue('attack-crits'))}" placeholder="e.g. JOLT, DOWN">
+                </div>
+            </div>
+        `;
+    }
+
+    if (currentResolutionMode === 'defense') {
+        return `
+            <div class="resolution-extra-grid">
+                <div class="resolution-field">
+                    <label for="incoming-attack">Incoming Attack</label>
+                    <input id="incoming-attack" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('incoming-attack'))}">
+                </div>
+                <div class="resolution-field">
+                    <label for="incoming-impact">Incoming Impact</label>
+                    <input id="incoming-impact" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('incoming-impact'))}">
+                </div>
+                <div class="resolution-field">
+                    <label for="defense-soak">Other Soak</label>
+                    <input id="defense-soak" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('defense-soak'))}">
+                </div>
+                <div class="resolution-field">
+                    <label for="incoming-crits">Incoming Crit Tags</label>
+                    <input id="incoming-crits" class="resolution-extra" type="text" value="${escapeAttribute(getResolutionExtraValue('incoming-crits'))}" placeholder="e.g. BLEED, DOWN">
+                </div>
+            </div>
+        `;
+    }
+
+    if (currentResolutionMode === 'healing') {
+        return `
+            <div class="resolution-extra-grid">
+                <label class="resolution-field" style="justify-content: end;">
+                    <span>During Combat</span>
+                    <input id="healing-in-combat" type="checkbox"${healingInCombat ? ' checked' : ''}>
+                </label>
+            </div>
+        `;
+    }
+
+    return '';
+}
+
+function renderResolutionAssignments(result) {
+    const options = getAssignmentOptions(currentResolutionMode);
+    const validValues = new Set(options.map(option => option.value));
+
+    return (result.originalRolls || []).map((roll, index) => {
+        const rollId = getRollId(roll, index);
+        const assignment = validValues.has(currentResolutionAssignments[rollId])
+            ? currentResolutionAssignments[rollId]
+            : 'unused';
+        const optionHtml = options.map(option => {
+            const selected = option.value === assignment ? ' selected' : '';
+            return `<option value="${option.value}"${selected}>${option.label}</option>`;
+        }).join('');
+
+        return `
+            <div class="resolution-die-row">
+                <span class="resolution-die-main">
+                    <span class="resolution-die-value">${escapeAttribute(roll.die)} rolled ${roll.val}</span>
+                    <span class="resolution-die-source">${escapeAttribute(roll.source)}</span>
+                </span>
+                <select class="resolution-die-select" data-roll-id="${rollId}">
+                    ${optionHtml}
+                </select>
+            </div>
+        `;
+    }).join('');
+}
+
+function getHealingAssignments(result) {
+    const healing = {};
+
+    (result.originalRolls || []).forEach((roll, index) => {
+        const rollId = getRollId(roll, index);
+        const assignment = currentResolutionAssignments[rollId];
+        const target = HEALING_TARGETS[assignment];
+        if (!target) return;
+
+        if (!healing[assignment]) {
+            healing[assignment] = { ...target, amount: 0, count: 0 };
+        }
+
+        healing[assignment].count += 1;
+        healing[assignment].amount += roll.val;
+    });
+
+    return healing;
+}
+
+function renderBonusDetails(details) {
+    if (!details.length) return '';
+    return `<p><strong>Tag Bonuses:</strong><br>${details.map(detail => escapeAttribute(detail)).join('<br>')}</p>`;
+}
+
+function calculateResolutionSummary(result) {
+    const { totals, usedCount } = calculateAssignedTotals(result);
+    const bonusInfo = getResolutionBonusTotals(result, currentResolutionMode);
+    const bonuses = bonusInfo.totals;
+    const adds = result.adds || 2;
+    const warnings = [];
+
+    if (usedCount > adds) {
+        warnings.push(`Too many dice assigned: ${usedCount}/${adds}. Move ${usedCount - adds} die${usedCount - adds === 1 ? '' : 's'} to Unused.`);
+    }
+
+    if (currentResolutionMode === 'attack') {
+        const attackTotal = (totals.attack || 0) + bonuses.attack;
+        const impactTotal = (totals.impact || 0) + bonuses.impact;
+        const targetEvasion = getResolutionNumber('target-evasion');
+        const targetSoak = getResolutionNumber('target-soak') || 0;
+        const targetGrit = getResolutionNumber('target-grit') || 0;
+        const crits = getResolutionText('attack-crits');
+        const lines = [
+            `<p><strong>Attack:</strong> ${attackTotal} (${totals.attack || 0} dice + ${bonuses.attack} bonus)</p>`,
+            `<p><strong>Impact:</strong> ${impactTotal} HP (${totals.impact || 0} dice + ${bonuses.impact} bonus)</p>`
+        ];
+
+        if (targetEvasion !== null) {
+            const hit = attackTotal >= targetEvasion;
+            lines.push(`<p class="${hit ? 'resolution-success' : 'resolution-warning'}">${hit ? 'Hit' : 'Miss'} vs target evasion ${targetEvasion}.</p>`);
+
+            if (hit) {
+                const hpLoss = Math.max(0, impactTotal - targetSoak);
+                const critsApply = crits && hpLoss > targetGrit;
+                lines.push(`<p><strong>After Soak:</strong> ${hpLoss} HP (${impactTotal} impact - ${targetSoak} soak).</p>`);
+                lines.push(`<p><strong>Grit Check:</strong> ${targetGrit} grit ${hpLoss > targetGrit ? 'does not prevent crits' : 'prevents crits'}.</p>`);
+                if (crits) lines.push(`<p><strong>Crits:</strong> ${escapeAttribute(crits)} ${critsApply ? 'apply' : 'do not apply'}.</p>`);
+            }
+        }
+
+        return {
+            headline: `Attack ${attackTotal} / Impact ${impactTotal}`,
+            html: lines.join('') + renderBonusDetails(bonusInfo.details),
+            warnings
+        };
+    }
+
+    if (currentResolutionMode === 'defense') {
+        const evasionTotal = (totals.evasion || 0) + bonuses.evasion;
+        const gritTotal = (totals.grit || 0) + bonuses.grit;
+        const otherSoak = getResolutionNumber('defense-soak') || 0;
+        const soakTotal = otherSoak + bonuses.soak;
+        const incomingAttack = getResolutionNumber('incoming-attack');
+        const incomingImpact = getResolutionNumber('incoming-impact') || 0;
+        const incomingCrits = getResolutionText('incoming-crits');
+        const lines = [
+            `<p><strong>Evasion:</strong> ${evasionTotal} (${totals.evasion || 0} dice + ${bonuses.evasion} bonus)</p>`,
+            `<p><strong>Grit:</strong> ${gritTotal} (${totals.grit || 0} dice + ${bonuses.grit} bonus)</p>`,
+            `<p><strong>Soak:</strong> ${soakTotal} (${otherSoak} other + ${bonuses.soak} bonus)</p>`
+        ];
+
+        if (incomingAttack !== null) {
+            const missed = evasionTotal > incomingAttack;
+            lines.push(`<p class="${missed ? 'resolution-success' : 'resolution-warning'}">${missed ? 'Attack misses' : 'Attack hits'} vs incoming attack ${incomingAttack}.</p>`);
+
+            if (!missed) {
+                const hpLoss = Math.max(0, incomingImpact - soakTotal);
+                const critsApply = incomingCrits && hpLoss > gritTotal;
+                lines.push(`<p><strong>After Soak:</strong> ${hpLoss} HP (${incomingImpact} impact - ${soakTotal} soak).</p>`);
+                lines.push(`<p><strong>Grit Check:</strong> ${gritTotal} grit ${hpLoss > gritTotal ? 'does not prevent crits' : 'prevents crits'}.</p>`);
+                if (incomingCrits) lines.push(`<p><strong>Crits:</strong> ${escapeAttribute(incomingCrits)} ${critsApply ? 'apply' : 'do not apply'}.</p>`);
+            }
+        }
+
+        return {
+            headline: `Evasion ${evasionTotal} / Grit ${gritTotal}`,
+            html: lines.join('') + renderBonusDetails(bonusInfo.details),
+            warnings
+        };
+    }
+
+    if (currentResolutionMode === 'healing') {
+        const diagnosisTotal = (totals.diagnosis || 0) + bonuses.diagnosis;
+        const healingAssignments = getHealingAssignments(result);
+        const healingEntries = Object.values(healingAssignments);
+        const spareCount = healingEntries.reduce((sum, entry) => sum + entry.count, 0);
+        const baseDifficulty = healingEntries.reduce((max, entry) => Math.max(max, entry.difficulty), 0);
+        const difficulty = baseDifficulty + (spareCount * 2) + (healingInCombat ? 4 : 0);
+        const succeeds = spareCount > 0 && diagnosisTotal >= difficulty;
+        const lines = [
+            `<p><strong>Diagnosis:</strong> ${diagnosisTotal} (${totals.diagnosis || 0} dice + ${bonuses.diagnosis} bonus)</p>`
+        ];
+
+        if (spareCount === 0) {
+            lines.push('<p>No treatment dice assigned.</p>');
+        } else {
+            lines.push(`<p><strong>Difficulty:</strong> ${difficulty} (${baseDifficulty} base + ${spareCount * 2} assigned dice${healingInCombat ? ' + 4 combat' : ''}).</p>`);
+            lines.push(`<p class="${succeeds ? 'resolution-success' : 'resolution-warning'}">${succeeds ? 'Treatment succeeds' : 'Treatment fails'}.</p>`);
+            healingEntries.forEach(entry => {
+                if (entry.kind === 'resource') {
+                    lines.push(`<p><strong>${entry.label}:</strong> restore ${entry.amount} if successful.</p>`);
+                } else {
+                    lines.push(`<p><strong>${entry.label}:</strong> restore/reduce ${entry.count} if successful.</p>`);
+                }
+            });
+        }
+
+        return {
+            headline: `Diagnosis ${diagnosisTotal}`,
+            html: lines.join('') + renderBonusDetails(bonusInfo.details),
+            warnings
+        };
+    }
+
+    const actionTotal = (totals.action || 0) + bonuses.action;
+    return {
+        headline: String(actionTotal),
+        html: `<p><strong>Action Total:</strong> ${actionTotal} (${totals.action || 0} dice + ${bonuses.action} bonus)</p>${renderBonusDetails(bonusInfo.details)}`,
+        warnings
+    };
+}
+
+function renderRollGroups(result) {
+    const groups = {};
+    (result.originalRolls || []).forEach(r => {
+        if (!groups[r.source]) groups[r.source] = [];
+        groups[r.source].push(`<strong>${escapeAttribute(r.die)}:</strong> ${r.val}`);
+    });
+
+    return Object.entries(groups).map(([source, rolls]) => {
+        return `<div style="margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--glass-border);"><em>${escapeAttribute(source)}</em>: ${rolls.join(' | ')}</div>`;
+    }).join('');
+}
+
+function renderResolutionDetails() {
+    if (!lastRollResult) return;
+
+    const result = lastRollResult;
+    const summary = calculateResolutionSummary(result);
+    const haywireHtml = result.isHaywire
+        ? `<div style="color: #ff3333; font-weight: bold; margin: 10px 0; border: 1px dashed #ff3333; padding: 5px; background: rgba(255, 51, 51, 0.1);">HAYWIRE! More than half the dice rolled 1.</div>`
+        : '';
+
+    els.resultTotal.innerText = summary.headline;
+    els.resultDetails.innerHTML = `
+        ${haywireHtml}
+        <div style="margin-bottom: 0.5rem; color: #a0aab5;">
+            <p style="margin: 0; text-decoration: underline;">All Rolls by Source:</p>
+            ${renderRollGroups(result)}
+        </div>
+        <div class="resolution-summary">
+            ${summary.html}
+        </div>
+    `;
+}
+
+function renderResolution() {
+    if (!lastRollResult) return;
+
+    const result = lastRollResult;
+    const { usedCount } = calculateAssignedTotals(result);
+    const adds = result.adds || 2;
+    const summary = calculateResolutionSummary(result);
+    const warningHtml = summary.warnings.map(warning => `<p class="resolution-warning">${escapeAttribute(warning)}</p>`).join('');
+
+    els.resolutionControls.innerHTML = `
+        <div class="resolution-toolbar">
+            <div class="resolution-field">
+                <label for="resolution-mode">Resolution</label>
+                <select id="resolution-mode">${renderResolutionModeOptions()}</select>
+            </div>
+            <div class="resolution-field">
+                <label>Dice Used</label>
+                <div class="${usedCount > adds ? 'resolution-warning' : 'resolution-success'}">${usedCount}/${adds}</div>
+            </div>
+        </div>
+        ${renderResolutionExtraFields()}
+        <div class="resolution-assignments">
+            <label>Assign Rolled Dice</label>
+            ${renderResolutionAssignments(result)}
+        </div>
+        ${warningHtml}
+    `;
+
+    renderResolutionDetails();
+}
+
 function updatePoolPreview() {
     const c1 = els.callColor1.value;
     const c2 = els.callColor2.value;
@@ -760,25 +1434,32 @@ function updatePoolPreview() {
     if (extraDice.error) {
         els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${extraDice.error}</span>`;
         els.poolAddsDisplay.innerText = `Adds: --`;
+        renderChainOptions([]);
+        renderTagBonusOptions([]);
         if (document.querySelector('input[name="roll-mode"]:checked').value === 'manual') {
             els.manualInputsContainer.innerHTML = '';
         }
         return;
     }
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     
     if (res.error) {
         els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${res.error}</span>`;
         els.poolAddsDisplay.innerText = `Adds: --`;
+        renderChainOptions(res.chainOptions || []);
+        renderTagBonusOptions([]);
     } else {
         if (res.dice.length === 0) {
             els.poolDiceDisplay.innerText = 'No dice in pool.';
         } else {
             els.poolDiceDisplay.innerText = res.dice.map(d => d.die).join(' + ');
         }
+        renderChainOptions(res.chainOptions || []);
+        renderTagBonusOptions(res.tagBonuses || []);
+        const selectedTagBonus = calculateSelectedTagBonus(res.tagBonuses || []);
         let addsText = `Adds (Keep): ${res.adds}`;
-        if (res.flatBonus > 0) addsText += ` | Bonus: +${res.flatBonus}`;
+        if ((res.tagBonuses || []).length > 0) addsText += ` | Tag Bonus: +${selectedTagBonus}`;
         els.poolAddsDisplay.innerText = addsText;
     }
 
@@ -797,7 +1478,7 @@ function renderManualInputs() {
     const extraDice = getExtraDice();
     if (extraDice.error) return;
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     if (res.error || res.dice.length === 0) return;
 
     res.dice.forEach((dObj, idx) => {
@@ -821,7 +1502,7 @@ function executeVirtualRoll() {
         return;
     }
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     
     if (res.error || res.dice.length === 0) {
         alert(res.error || "No dice to roll.");
@@ -830,8 +1511,10 @@ function executeVirtualRoll() {
 
     const rolled = poolEngine.rollPool(res.dice);
     const result = poolEngine.calculateOptimalTotal(rolled, res.adds);
-    result.total += res.flatBonus;
-    result.flatBonus = res.flatBonus;
+    const appliedTagBonuses = getSelectedTagBonuses(res.tagBonuses || []);
+    result.adds = res.adds;
+    result.flatBonus = res.flatBonus || 0;
+    result.appliedTagBonuses = appliedTagBonuses;
     showResults(result);
     processBurns();
 }
@@ -867,11 +1550,17 @@ function executeManualCalculate() {
         return;
     }
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
+    if (res.error || res.dice.length === 0) {
+        alert(res.error || "No dice to calculate.");
+        return;
+    }
 
     const result = poolEngine.calculateOptimalTotal(rolled, res.adds);
-    result.total += res.flatBonus;
-    result.flatBonus = res.flatBonus;
+    const appliedTagBonuses = getSelectedTagBonuses(res.tagBonuses || []);
+    result.adds = res.adds;
+    result.flatBonus = res.flatBonus || 0;
+    result.appliedTagBonuses = appliedTagBonuses;
     showResults(result);
     processBurns();
 }
@@ -891,40 +1580,12 @@ function processBurns() {
 }
 
 function showResults(result) {
+    lastRollResult = result;
+    currentResolutionMode = 'action';
+    currentResolutionAssignments = getDefaultResolutionAssignments(result, currentResolutionMode);
+    healingInCombat = false;
     els.rollResults.style.display = 'block';
-    els.resultTotal.innerText = result.total;
-    
-    // Group all rolls by source
-    const groups = {};
-    result.originalRolls.forEach(r => {
-        if (!groups[r.source]) groups[r.source] = [];
-        groups[r.source].push(`<strong>${r.die}:</strong> ${r.val}`);
-    });
-    const allRollsStr = Object.entries(groups).map(([source, rolls]) => {
-        return `<div style="margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--glass-border);"><em>${source}</em>: ${rolls.join(' | ')}</div>`;
-    }).join('');
-
-    const keepStr = result.kept.map(k => `[${k.val}]`).join(' + ');
-    
-    let haywireHtml = '';
-    if (result.isHaywire) {
-        haywireHtml = `<div style="color: #ff3333; font-weight: bold; margin: 10px 0; border: 1px dashed #ff3333; padding: 5px; background: rgba(255, 51, 51, 0.1);">⚠️ HAYWIRE! (More than half the dice rolled 1)</div>`;
-    }
-    
-    let bonusHtml = '';
-    if (result.flatBonus > 0) {
-        bonusHtml = `<p><strong>Bonus:</strong> +${result.flatBonus} (From Tags)</p>`;
-    }
-
-    els.resultDetails.innerHTML = `
-        ${haywireHtml}
-        <div style="margin-bottom: 0.5rem; color: #a0aab5;">
-            <p style="margin: 0; text-decoration: underline;">All Rolls by Source:</p>
-            ${allRollsStr}
-        </div>
-        <p><strong>Optimal Kept:</strong> ${keepStr}</p>
-        ${bonusHtml}
-    `;
+    renderResolution();
 }
 
 // Modal Form Logic
@@ -995,6 +1656,8 @@ function renderFormTags() {
         div.appendChild(removeBtn);
         els.tagsContainer.appendChild(div);
     });
+
+    renderTileTagLimitStatus();
 }
 
 function closeModal() {
@@ -1020,6 +1683,13 @@ function saveTileFromForm() {
     const { dice: diceArray, invalid } = parseDiceInput(diceStr);
     if (invalid.length > 0 || diceArray.length === 0) {
         alert(getDiceValidationMessage('Tile dice'));
+        return;
+    }
+
+    const tagLimit = poolEngine.calculateTagLimit(diceArray, currentFormTags);
+    renderTileTagLimitStatus();
+    if (!tagLimit.valid) {
+        alert(tagLimitErrorMessage('This tile', tagLimit));
         return;
     }
 

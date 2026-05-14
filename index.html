@@ -203,6 +203,16 @@
                     <div id="pool-adds-display">Adds (Keep): 2</div>
                 </div>
 
+                <div id="chain-panel" class="chain-panel" hidden>
+                    <h3>Chain Calls</h3>
+                    <div id="chain-options" class="chain-options"></div>
+                </div>
+
+                <div id="tag-bonus-panel" class="tag-bonus-panel" hidden>
+                    <h3>Available Tag Bonuses</h3>
+                    <div id="tag-bonus-options" class="tag-bonus-options"></div>
+                </div>
+
                 <div class="roll-modes">
                     <div class="mode-toggle">
                         <label><input type="radio" name="roll-mode" value="virtual" checked> Virtual Roll</label>
@@ -227,6 +237,7 @@
                 <div id="roll-results" class="results-panel" style="display: none;">
                     <h3>Result</h3>
                     <div class="result-total" id="result-total">--</div>
+                    <div id="resolution-controls" class="resolution-controls"></div>
                     <div class="result-details" id="result-details"></div>
                 </div>
             </section>
@@ -327,6 +338,7 @@
                     <div id="selected-tags-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 30px;">
                         <!-- Tag pills go here -->
                     </div>
+                    <div id="tile-tag-limit-status" class="tag-limit-status"></div>
                 </div>
 
                 <div class="form-group">
@@ -358,6 +370,7 @@
                 <h2 id="spell-modal-title">Spell Builder</h2>
                 <div id="spell-xp-badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold;">0 XP</div>
             </div>
+            <div id="spell-tag-limit-status" class="tag-limit-status"></div>
             <form id="spell-form">
                 <input type="hidden" id="spell-id">
                 
@@ -635,7 +648,7 @@
                 <p>Each attribute (BODY, POWER, SOUL, etc.) accepts a <strong>comma-separated list of dice</strong>. For example, type <code style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.3rem; border-radius: 3px;">d6, d8</code> to assign two dice to that stat.</p>
                 <ul style="padding-left: 1.2rem;">
                     <li><strong>Auto-Calculate XP</strong> — Totals the XP cost of all your attributes and tiles.</li>
-                    <li><strong>Auto-Calculate Vitals</strong> — Sets your HP, EN, RX, and SH max values based on your attributes and tile colors, then fills your current values to match.</li>
+                    <li><strong>Auto-Calculate Vitals</strong> — Sets your HP, EN, RX, and SH max values based on tile colors and resource tags, then fills your current values to match.</li>
                 </ul>
 
                 <hr style="border-color: var(--glass-border); margin: 1rem 0;">

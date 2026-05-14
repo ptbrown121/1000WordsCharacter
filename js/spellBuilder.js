@@ -1,4 +1,5 @@
 import { VALID_DICE } from './data.js';
+import { PoolEngine } from './pool.js';
 
 export class SpellBuilder {
     constructor(dataManager, renderCallback) {
@@ -8,6 +9,7 @@ export class SpellBuilder {
         this.currentStep = 1;
         this.totalSteps = 5;
         this.editingTileId = null;
+        this.poolEngine = new PoolEngine();
 
         this.currentFormTags = [];
 
@@ -19,6 +21,7 @@ export class SpellBuilder {
         this.btnCancel = document.getElementById('btn-spell-cancel');
         this.btnDelete = document.getElementById('btn-spell-delete');
         this.xpBadge = document.getElementById('spell-xp-badge');
+        this.tagLimitStatus = document.getElementById('spell-tag-limit-status');
         
         // Tag Elements
         this.tagSelect = document.getElementById('spell-tag-select');
@@ -52,6 +55,7 @@ export class SpellBuilder {
         });
 
         this.form.addEventListener('change', () => this.calculateXP());
+        document.getElementById('spell-dice').addEventListener('input', () => this.calculateXP());
 
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -192,6 +196,8 @@ export class SpellBuilder {
             
             this.tagsContainer.appendChild(span);
         });
+
+        this.renderTagLimitStatus();
     }
 
     closeWizard() {
@@ -221,7 +227,59 @@ export class SpellBuilder {
         }
     }
 
-    calculateXP() {
+    getSpellDiceInfo() {
+        const diceRaw = document.getElementById('spell-dice').value.trim();
+        const diceTokens = diceRaw ? diceRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : ['d4'];
+
+        return {
+            diceArray: diceTokens.filter(die => VALID_DICE.has(die)),
+            invalidDice: diceTokens.filter(die => !VALID_DICE.has(die))
+        };
+    }
+
+    summarizeTagLimitExemptions(tagLimit) {
+        const exemptNames = tagLimit.exemptTags.map(tag => tag.name).filter(Boolean);
+        if (exemptNames.length === 0) return '';
+
+        const visibleNames = exemptNames.slice(0, 3).join(', ');
+        const remaining = exemptNames.length > 3 ? ` +${exemptNames.length - 3} more` : '';
+        return ` Exempt: ${visibleNames}${remaining}.`;
+    }
+
+    formatTagLimitStatus(tagLimit) {
+        const exemptText = this.summarizeTagLimitExemptions(tagLimit);
+        if (tagLimit.valid) {
+            return `Tag limit: ${tagLimit.count}/${tagLimit.limit} countable tags.${exemptText}`;
+        }
+
+        return `Too many countable tags: ${tagLimit.count}/${tagLimit.limit}. Remove ${tagLimit.overage} or increase dice.${exemptText}`;
+    }
+
+    tagLimitErrorMessage(tagLimit) {
+        const countableNames = tagLimit.countableTags.map(tag => tag.name).filter(Boolean).join(', ');
+        const tagsText = countableNames ? ` Countable tags: ${countableNames}.` : '';
+        return `This spell has ${tagLimit.count} countable tags, but its dice allow ${tagLimit.limit}. Remove ${tagLimit.overage} countable tag${tagLimit.overage === 1 ? '' : 's'} or increase its dice.${tagsText}`;
+    }
+
+    renderTagLimitStatus() {
+        if (!this.tagLimitStatus) return null;
+
+        const { diceArray, invalidDice } = this.getSpellDiceInfo();
+        this.tagLimitStatus.classList.remove('valid', 'invalid');
+
+        if (invalidDice.length > 0) {
+            this.tagLimitStatus.textContent = 'Spell dice must use only: d3, d4, d6, d8, d10, d12, d14, or d16.';
+            this.tagLimitStatus.classList.add('invalid');
+            return null;
+        }
+
+        const tagLimit = this.poolEngine.calculateTagLimit(diceArray, this.currentFormTags);
+        this.tagLimitStatus.textContent = this.formatTagLimitStatus(tagLimit);
+        this.tagLimitStatus.classList.add(tagLimit.valid ? 'valid' : 'invalid');
+        return tagLimit;
+    }
+
+    calculateBaseXP() {
         let xp = 0;
 
         // School
@@ -254,8 +312,19 @@ export class SpellBuilder {
             xp += parseInt(document.getElementById('spell-unchained').value);
         }
 
-        this.xpBadge.textContent = `${xp} 🗱 (Base)`;
         return xp;
+    }
+
+    calculateXP() {
+        const baseXp = this.calculateBaseXP();
+        const { diceArray, invalidDice } = this.getSpellDiceInfo();
+        const diceXp = invalidDice.length > 0 ? 0 : this.poolEngine.calculateOptimalXpCost(diceArray);
+        const totalXp = Math.max(0, baseXp + diceXp);
+        const diceLabel = invalidDice.length > 0 ? 'invalid dice' : `${diceXp} dice`;
+
+        this.xpBadge.textContent = `${totalXp} 🗱 (${baseXp} base + ${diceLabel})`;
+        this.renderTagLimitStatus();
+        return totalXp;
     }
 
     generatePreview() {
@@ -288,16 +357,19 @@ export class SpellBuilder {
 
     saveSpell() {
         const name = document.getElementById('spell-name').value.trim() || 'Custom Spell';
-        const diceRaw = document.getElementById('spell-dice').value.trim();
-        const diceTokens = diceRaw ? diceRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : ['d4'];
-        const invalidDice = diceTokens.filter(die => !VALID_DICE.has(die));
+        const { diceArray, invalidDice } = this.getSpellDiceInfo();
 
-        if (diceTokens.length === 0 || invalidDice.length > 0) {
+        if (diceArray.length === 0 || invalidDice.length > 0) {
             alert('Spell dice must use only: d3, d4, d6, d8, d10, d12, d14, or d16.');
             return;
         }
 
-        const diceArray = diceTokens;
+        const tagLimit = this.poolEngine.calculateTagLimit(diceArray, this.currentFormTags);
+        this.renderTagLimitStatus();
+        if (!tagLimit.valid) {
+            alert(this.tagLimitErrorMessage(tagLimit));
+            return;
+        }
         
         // Colors
         let colors = [];
