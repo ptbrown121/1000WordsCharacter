@@ -20,6 +20,17 @@ export const COLOR_HEX = {
     'White': '#ffffff'
 };
 
+export const VALID_DICE = new Set(['d3', 'd4', 'd6', 'd8', 'd10', 'd12', 'd14', 'd16']);
+
+function inferShowOptionalStats(state) {
+    const hasOptionalStats = Boolean(state?.stats?.Id || state?.stats?.Qi);
+    const hasOptionalTiles = (state?.tiles || []).some(tile =>
+        (tile.colors || []).some(color => color === 'Black' || color === 'White')
+    );
+
+    return hasOptionalStats || hasOptionalTiles;
+}
+
 const DEFAULT_STATE = {
     name: 'Hero Name',
     xpEarned: 75,
@@ -38,6 +49,7 @@ const DEFAULT_STATE = {
     sh: 0,
     shTemp: 0,
     shPerm: 0,
+    showOptionalStats: false,
     stats: {
         'BODY': '',
         'POWER': '',
@@ -62,11 +74,15 @@ export class DataManager {
         if (saved) {
             try {
                 const state = JSON.parse(saved);
+                const hadShowOptionalStats = state.showOptionalStats !== undefined;
                 // Migrate missing fields from DEFAULT_STATE
                 for (const key of Object.keys(DEFAULT_STATE)) {
                     if (state[key] === undefined) {
                         state[key] = JSON.parse(JSON.stringify(DEFAULT_STATE[key]));
                     }
+                }
+                if (!hadShowOptionalStats) {
+                    state.showOptionalStats = inferShowOptionalStats(state);
                 }
                 return state;
             } catch (e) {
@@ -132,6 +148,9 @@ export class DataManager {
                 if (newState.enMax === undefined) newState.enMax = newState.en || 10;
                 if (newState.rxMax === undefined) newState.rxMax = newState.rx || 10;
                 if (newState.sh === undefined) newState.sh = 0;
+                if (newState.showOptionalStats === undefined) {
+                    newState.showOptionalStats = inferShowOptionalStats(newState);
+                }
                 // Vital bonuses backward compat
                 ['hpTemp','hpPerm','enTemp','enPerm','rxTemp','rxPerm','shTemp','shPerm'].forEach(k => {
                     if (newState[k] === undefined) newState[k] = 0;

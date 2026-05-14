@@ -1,3 +1,5 @@
+import { VALID_DICE } from './data.js';
+
 export class SpellBuilder {
     constructor(dataManager, renderCallback) {
         this.dataManager = dataManager;
@@ -287,7 +289,15 @@ export class SpellBuilder {
     saveSpell() {
         const name = document.getElementById('spell-name').value.trim() || 'Custom Spell';
         const diceRaw = document.getElementById('spell-dice').value.trim();
-        const diceArray = diceRaw ? diceRaw.split(',').map(s => s.trim()) : ['d4'];
+        const diceTokens = diceRaw ? diceRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : ['d4'];
+        const invalidDice = diceTokens.filter(die => !VALID_DICE.has(die));
+
+        if (diceTokens.length === 0 || invalidDice.length > 0) {
+            alert('Spell dice must use only: d3, d4, d6, d8, d10, d12, d14, or d16.');
+            return;
+        }
+
+        const diceArray = diceTokens;
         
         // Colors
         let colors = [];

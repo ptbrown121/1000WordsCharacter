@@ -239,6 +239,20 @@ header {
     margin-bottom: 1rem;
 }
 
+.inline-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.inline-toggle input {
+    cursor: pointer;
+}
+
 /* Cards (Mosaic) */
 .card-grid {
     display: grid;
@@ -333,9 +347,6 @@ header {
 }
 
 .btn-burn-instant {
-    position: absolute;
-    bottom: 0.5rem;
-    right: 0.5rem;
     background: rgba(255, 165, 0, 0.2);
     border: 1px solid rgba(255, 165, 0, 0.8);
     color: white;
@@ -344,11 +355,6 @@ header {
     font-size: 0.8rem;
     cursor: pointer;
     z-index: 3;
-    display: none;
-}
-
-.tile-card:hover .btn-burn-instant {
-    display: block;
 }
 
 .btn-burn-instant:hover {

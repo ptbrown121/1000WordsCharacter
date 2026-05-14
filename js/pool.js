@@ -1,4 +1,4 @@
-import { STAT_COLORS } from './data.js';
+import { STAT_COLORS, VALID_DICE } from './data.js';
 
 export class PoolEngine {
     constructor() {
@@ -8,7 +8,8 @@ export class PoolEngine {
     calculateSteps(diceArray) {
         let steps = 0;
         diceArray.forEach(d => {
-            if (d === 'd4') steps += 1;
+            if (d === 'd3') steps += 0;
+            else if (d === 'd4') steps += 1;
             else if (d === 'd6') steps += 2;
             else if (d === 'd8') steps += 3;
             else if (d === 'd10') steps += 4;
@@ -21,7 +22,10 @@ export class PoolEngine {
 
     parseDiceString(str) {
         if (!str) return [];
-        return str.split(',').map(s => s.trim().toLowerCase());
+        return str
+            .split(',')
+            .map(s => s.trim().toLowerCase())
+            .filter(die => VALID_DICE.has(die));
     }
 
     calculateOptimalXpCost(diceArray) {
@@ -177,26 +181,19 @@ export class PoolEngine {
 
         // 3. Validate and Add Burn Tiles (Burn tiles do NOT trigger tags)
         if (burnTiles && burnTiles.length > 0) {
-            let commonColor = null;
-            if (burnTiles.length > 0) {
-                const colors0 = burnTiles[0].colors;
-                const colors1 = burnTiles.length > 1 ? burnTiles[1].colors : colors0;
-                const intersection = colors0.filter(c => colors1.includes(c));
-                if (intersection.length === 0) {
-                    return { dice: pool, adds, flatBonus, error: "Burn tiles must share at least one color." };
-                }
-                commonColor = intersection[0]; 
+            const commonColors = burnTiles.reduce((sharedColors, tile, index) => {
+                if (index === 0) return [...tile.colors];
+                return sharedColors.filter(color => tile.colors.includes(color));
+            }, []);
 
-                const allMatch = burnTiles.every(t => t.colors.includes(commonColor));
-                if (!allMatch) {
-                    return { dice: pool, adds, flatBonus, error: "All Burn tiles must match the SAME color." };
-                }
-
-                burnTiles.forEach(bt => {
-                    bt.dice.forEach(d => pool.push({ source: `Burn (${bt.name})`, die: d }));
-                    adds += 1; 
-                });
+            if (commonColors.length === 0) {
+                return { dice: pool, adds, flatBonus, error: "All Burn tiles must share at least one common color." };
             }
+
+            burnTiles.forEach(bt => {
+                bt.dice.forEach(d => pool.push({ source: `Burn (${bt.name})`, die: d }));
+                adds += 1;
+            });
         }
 
         // 4. Validate and Add Extra Dice

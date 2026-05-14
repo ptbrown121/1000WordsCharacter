@@ -1,4 +1,4 @@
-import { DataManager, COLOR_HEX, STAT_COLORS } from './data.js';
+import { DataManager, COLOR_HEX, STAT_COLORS, VALID_DICE } from './data.js';
 import { PoolEngine } from './pool.js';
 import { SpellBuilder } from './spellBuilder.js';
 
@@ -32,7 +32,9 @@ const els = {
     btnNewChar: document.getElementById('btn-new-char'),
     btnCalcXp: document.getElementById('btn-calc-xp'),
     btnCalcVitals: document.getElementById('btn-calc-vitals'),
+    toggleOptionalStats: document.getElementById('toggle-optional-stats'),
     statSelects: document.querySelectorAll('.stat-select'),
+    optionalStatBoxes: document.querySelectorAll('.optional-stat'),
     cardContainer: document.getElementById('card-container'),
     btnAddTile: document.getElementById('btn-add-tile'),
     searchTiles: document.getElementById('search-tiles'),
@@ -51,6 +53,7 @@ const els = {
     
     callColor1: document.getElementById('call-color-1'),
     callColor2: document.getElementById('call-color-2'),
+    optionalCallOptions: document.querySelectorAll('.optional-call-option'),
     autoFilterCall: document.getElementById('auto-filter-call'),
     poolDiceDisplay: document.getElementById('pool-dice-display'),
     poolAddsDisplay: document.getElementById('pool-adds-display'),
@@ -93,12 +96,58 @@ const els = {
 };
 
 // Math Utilities
-const DIE_STEPS = { 'd4': 1, 'd6': 2, 'd8': 3, 'd10': 4, 'd12': 5, 'd14': 6, 'd16': 7 };
-const BASE_XP = { 'd4': 1, 'd6': 3, 'd8': 6, 'd10': 10, 'd12': 15, 'd14': 21, 'd16': 28 };
+const DIE_STEPS = { 'd3': 0, 'd4': 1, 'd6': 2, 'd8': 3, 'd10': 4, 'd12': 5, 'd14': 6, 'd16': 7 };
+const BASE_XP = { 'd3': 0, 'd4': 1, 'd6': 3, 'd8': 6, 'd10': 10, 'd12': 15, 'd14': 21, 'd16': 28 };
+
+function parseDiceInput(str) {
+    if (!str || !str.trim()) return { dice: [], invalid: [] };
+
+    const tokens = str
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean);
+
+    return {
+        dice: tokens.filter(die => VALID_DICE.has(die)),
+        invalid: tokens.filter(die => !VALID_DICE.has(die))
+    };
+}
 
 function parseDiceString(str) {
-    if (!str) return [];
-    return str.split(',').map(s => s.trim().toLowerCase()).filter(s => DIE_STEPS[s]);
+    return parseDiceInput(str).dice;
+}
+
+function getDiceValidationMessage(label = 'Dice') {
+    return `${label} must use only: d3, d4, d6, d8, d10, d12, d14, or d16.`;
+}
+
+function escapeAttribute(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function renderOptionalStatsVisibility() {
+    const showOptionalStats = Boolean(dataManager.state.showOptionalStats);
+
+    els.toggleOptionalStats.checked = showOptionalStats;
+    els.optionalStatBoxes.forEach(box => {
+        box.style.display = showOptionalStats ? '' : 'none';
+    });
+
+    els.optionalCallOptions.forEach(option => {
+        option.hidden = !showOptionalStats;
+    });
+
+    if (!showOptionalStats) {
+        [els.callColor1, els.callColor2].forEach(select => {
+            if (select.value === 'Black' || select.value === 'White') {
+                select.value = '';
+            }
+        });
+    }
 }
 
 function calcAttributeXP(diceArray) {
@@ -134,6 +183,14 @@ function bindEvents() {
         dataManager.state.xpEarned = parseInt(e.target.value, 10) || 0;
         dataManager.saveState();
         updateXpTracker();
+    });
+
+    els.toggleOptionalStats.addEventListener('change', (e) => {
+        dataManager.state.showOptionalStats = e.target.checked;
+        dataManager.saveState();
+        renderOptionalStatsVisibility();
+        renderCards();
+        updatePoolPreview();
     });
 
     // Info Modal
@@ -261,6 +318,13 @@ function bindEvents() {
     // Stats
     els.statSelects.forEach(sel => {
         sel.addEventListener('change', (e) => {
+            const { invalid } = parseDiceInput(e.target.value);
+            if (invalid.length > 0) {
+                alert(getDiceValidationMessage('Stats'));
+                e.target.value = dataManager.state.stats[e.target.dataset.stat] || '';
+                return;
+            }
+
             dataManager.updateStat(e.target.dataset.stat, e.target.value);
             updatePoolPreview();
             updateXpTracker();
@@ -332,7 +396,11 @@ function bindEvents() {
     // XP Estimation
     els.btnEstimateXp.addEventListener('click', () => {
         const diceStr = document.getElementById('tile-dice').value.trim();
-        const diceArray = diceStr.split(',').map(s => s.trim().toLowerCase()).filter(s => s.startsWith('d'));
+        const { dice: diceArray, invalid } = parseDiceInput(diceStr);
+        if (invalid.length > 0) {
+            alert(getDiceValidationMessage('Tile dice'));
+            return;
+        }
         const xp = poolEngine.estimateTileXp(diceArray, currentFormTags);
         els.tileXp.value = xp;
     });
@@ -474,6 +542,7 @@ function renderAll() {
         sel.parentElement.style.borderTopColor = COLOR_HEX[colorName] || '#fff';
     });
 
+    renderOptionalStatsVisibility();
     renderCards();
     updatePoolPreview();
     updateXpTracker();
@@ -548,6 +617,7 @@ function renderCards() {
     filteredTiles.forEach(tile => {
         const div = document.createElement('div');
         div.className = 'tile-card';
+        const tileNameLabel = escapeAttribute(tile.name);
         
         // Gradient background based on 2 colors
         let c1 = COLOR_HEX[tile.colors[0]] || '#444';
@@ -570,14 +640,14 @@ function renderCards() {
                 <div class="tile-tags">${tile.tags}</div>
                 <div class="tile-dice">${tile.dice.join(', ')}</div>
                 <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-                    <button class="btn-edit-tile" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">✏️ Edit</button>
+                    <button class="btn-edit-tile" aria-label="Edit ${tileNameLabel}" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">✏️ Edit</button>
                     ${tile.description ? `<button class="btn-details" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">Details ▼</button>` : ''}
                 </div>
                 ${tile.description ? `<div class="tile-description" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; font-style: italic; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; white-space: pre-wrap;">${tile.description}</div>` : ''}
             </div>
             ${tile.isBurnt 
-                ? `<button class="btn-unburn" title="Un-burn this tile">🔥 Restore</button>`
-                : `<button class="btn-burn-instant" title="Burn this tile instantly">🔥 Burn</button>`
+                ? `<button class="btn-unburn" title="Restore this tile" aria-label="Restore ${tileNameLabel}">🔥 Restore</button>`
+                : `<button class="btn-burn-instant" title="Burn ${tileNameLabel}" aria-label="Burn ${tileNameLabel}">🔥 Burn</button>`
             }
         `;
 
@@ -670,8 +740,11 @@ function handleCardClick(tile) {
 
 function getExtraDice() {
     const val = els.extraDiceInput.value.trim();
-    if (!val) return [];
-    return val.split(',').map(s => s.trim().toLowerCase()).filter(s => s.startsWith('d'));
+    const { dice, invalid } = parseDiceInput(val);
+    return {
+        dice,
+        error: invalid.length > 0 ? getDiceValidationMessage('Extra dice') : null
+    };
 }
 
 function updatePoolPreview() {
@@ -684,7 +757,16 @@ function updatePoolPreview() {
     els.burnTilesZone.innerHTML = burnTiles.map(t => `<div class="badge" style="margin:2px">${t.name}</div>`).join('');
 
     const extraDice = getExtraDice();
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice);
+    if (extraDice.error) {
+        els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${extraDice.error}</span>`;
+        els.poolAddsDisplay.innerText = `Adds: --`;
+        if (document.querySelector('input[name="roll-mode"]:checked').value === 'manual') {
+            els.manualInputsContainer.innerHTML = '';
+        }
+        return;
+    }
+
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
     
     if (res.error) {
         els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${res.error}</span>`;
@@ -710,10 +792,12 @@ function renderManualInputs() {
     const c1 = els.callColor1.value;
     const c2 = els.callColor2.value;
     const colors = [c1, c2].filter(c => c);
-    const extraDice = getExtraDice();
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice);
-    
     els.manualInputsContainer.innerHTML = '';
+
+    const extraDice = getExtraDice();
+    if (extraDice.error) return;
+
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
     if (res.error || res.dice.length === 0) return;
 
     res.dice.forEach((dObj, idx) => {
@@ -732,7 +816,12 @@ function executeVirtualRoll() {
     const c2 = els.callColor2.value;
     const colors = [c1, c2].filter(c => c);
     const extraDice = getExtraDice();
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice);
+    if (extraDice.error) {
+        alert(extraDice.error);
+        return;
+    }
+
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
     
     if (res.error || res.dice.length === 0) {
         alert(res.error || "No dice to roll.");
@@ -756,7 +845,8 @@ function executeManualCalculate() {
         const val = parseInt(inp.value, 10);
         const dieStr = inp.dataset.die;
         const sourceStr = inp.dataset.source;
-        if (isNaN(val)) {
+        const max = parseInt(dieStr.replace('d', ''), 10);
+        if (isNaN(val) || val < 1 || val > max) {
             hasError = true;
         } else {
             rolled.push({ source: sourceStr, die: dieStr, val: val });
@@ -764,7 +854,7 @@ function executeManualCalculate() {
     });
 
     if (hasError) {
-        alert("Please enter a valid number for all dice.");
+        alert("Please enter a valid roll for every die, within that die's range.");
         return;
     }
 
@@ -772,7 +862,12 @@ function executeManualCalculate() {
     const c2 = els.callColor2.value;
     const colors = [c1, c2].filter(c => c);
     const extraDice = getExtraDice();
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice);
+    if (extraDice.error) {
+        alert(extraDice.error);
+        return;
+    }
+
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice);
 
     const result = poolEngine.calculateOptimalTotal(rolled, res.adds);
     result.total += res.flatBonus;
@@ -878,18 +973,29 @@ function renderFormTags() {
         div.style.display = 'flex';
         div.style.alignItems = 'center';
         div.style.gap = '0.3rem';
-        div.innerHTML = `
-            ${tag}
-            <span style="cursor: pointer; color: #ff3333; font-weight: bold;" onclick="removeTag('${tag}')">×</span>
-        `;
+
+        const tagText = document.createElement('span');
+        tagText.textContent = tag;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '×';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.style.color = '#ff3333';
+        removeBtn.style.fontWeight = 'bold';
+        removeBtn.style.background = 'transparent';
+        removeBtn.style.border = 'none';
+        removeBtn.style.padding = '0';
+        removeBtn.addEventListener('click', () => {
+            currentFormTags = currentFormTags.filter(t => t !== tag);
+            renderFormTags();
+        });
+
+        div.appendChild(tagText);
+        div.appendChild(removeBtn);
         els.tagsContainer.appendChild(div);
     });
 }
-
-window.removeTag = function(tag) {
-    currentFormTags = currentFormTags.filter(t => t !== tag);
-    renderFormTags();
-};
 
 function closeModal() {
     els.modal.classList.remove('active');
@@ -911,9 +1017,9 @@ function saveTileFromForm() {
         return;
     }
 
-    const diceArray = diceStr.split(',').map(s => s.trim().toLowerCase()).filter(s => s.startsWith('d'));
-    if (diceArray.length === 0) {
-        alert('Please enter at least one valid die (e.g., d4).');
+    const { dice: diceArray, invalid } = parseDiceInput(diceStr);
+    if (invalid.length > 0 || diceArray.length === 0) {
+        alert(getDiceValidationMessage('Tile dice'));
         return;
     }
 

@@ -79,7 +79,10 @@
         <section id="stats-section" class="glass-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h2 style="margin: 0;">Stats & Attributes</h2>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
+                    <label class="inline-toggle" title="Show or hide the optional Id/Qi attributes">
+                        <input type="checkbox" id="toggle-optional-stats"> Show Id / Qi
+                    </label>
                     <button id="btn-calc-xp" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Auto-Calculate XP</button>
                     <button id="btn-calc-vitals" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Auto-Calculate Vitals</button>
                 </div>
@@ -87,37 +90,37 @@
             <div class="stats-grid">
                 <!-- Core Stats -->
                 <div class="stat-box" data-color="Red">
-                    <span class="stat-name">BODY</span>
-                    <input type="text" class="stat-select stat-input" data-stat="BODY" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-body">BODY</span>
+                    <input type="text" class="stat-select stat-input" data-stat="BODY" aria-labelledby="stat-label-body" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Orange">
-                    <span class="stat-name">POWER</span>
-                    <input type="text" class="stat-select stat-input" data-stat="POWER" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-power">POWER</span>
+                    <input type="text" class="stat-select stat-input" data-stat="POWER" aria-labelledby="stat-label-power" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Yellow">
-                    <span class="stat-name">SOUL</span>
-                    <input type="text" class="stat-select stat-input" data-stat="SOUL" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-soul">SOUL</span>
+                    <input type="text" class="stat-select stat-input" data-stat="SOUL" aria-labelledby="stat-label-soul" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Green">
-                    <span class="stat-name">FOCUS</span>
-                    <input type="text" class="stat-select stat-input" data-stat="FOCUS" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-focus">FOCUS</span>
+                    <input type="text" class="stat-select stat-input" data-stat="FOCUS" aria-labelledby="stat-label-focus" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Blue">
-                    <span class="stat-name">MIND</span>
-                    <input type="text" class="stat-select stat-input" data-stat="MIND" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-mind">MIND</span>
+                    <input type="text" class="stat-select stat-input" data-stat="MIND" aria-labelledby="stat-label-mind" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box" data-color="Purple">
-                    <span class="stat-name">SPEED</span>
-                    <input type="text" class="stat-select stat-input" data-stat="SPEED" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-speed">SPEED</span>
+                    <input type="text" class="stat-select stat-input" data-stat="SPEED" aria-labelledby="stat-label-speed" placeholder="e.g. d6, d8">
                 </div>
                 <!-- Optional Stats -->
                 <div class="stat-box optional-stat" data-color="Black">
-                    <span class="stat-name">Id (Opt)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="Id" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-id">Id (Opt)</span>
+                    <input type="text" class="stat-select stat-input" data-stat="Id" aria-labelledby="stat-label-id" placeholder="e.g. d6, d8">
                 </div>
                 <div class="stat-box optional-stat" data-color="White">
-                    <span class="stat-name">Qi (Opt)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="Qi" placeholder="e.g. d6, d8">
+                    <span class="stat-name" id="stat-label-qi">Qi (Opt)</span>
+                    <input type="text" class="stat-select stat-input" data-stat="Qi" aria-labelledby="stat-label-qi" placeholder="e.g. d6, d8">
                 </div>
             </div>
         </section>
@@ -147,7 +150,7 @@
                 <div class="call-colors">
                     <label>GM Call Colors:</label>
                     <div class="color-selectors">
-                        <select id="call-color-1">
+                        <select id="call-color-1" aria-label="First GM call color">
                             <option value="">-- None --</option>
                             <option value="Red">Red (BODY)</option>
                             <option value="Orange">Orange (POWER)</option>
@@ -155,10 +158,10 @@
                             <option value="Green">Green (FOCUS)</option>
                             <option value="Blue">Blue (MIND)</option>
                             <option value="Purple">Purple (SPEED)</option>
-                            <option value="Black">Black (Id)</option>
-                            <option value="White">White (Qi)</option>
+                            <option value="Black" class="optional-call-option">Black (Id)</option>
+                            <option value="White" class="optional-call-option">White (Qi)</option>
                         </select>
-                        <select id="call-color-2">
+                        <select id="call-color-2" aria-label="Second GM call color">
                             <option value="">-- None --</option>
                             <option value="Red">Red (BODY)</option>
                             <option value="Orange">Orange (POWER)</option>
@@ -166,8 +169,8 @@
                             <option value="Green">Green (FOCUS)</option>
                             <option value="Blue">Blue (MIND)</option>
                             <option value="Purple">Purple (SPEED)</option>
-                            <option value="Black">Black (Id)</option>
-                            <option value="White">White (Qi)</option>
+                            <option value="Black" class="optional-call-option">Black (Id)</option>
+                            <option value="White" class="optional-call-option">White (Qi)</option>
                         </select>
                     </div>
                     <div style="margin-top: 0.5rem;">
