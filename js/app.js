@@ -1263,7 +1263,11 @@ function renderResolutionAssignments(result) {
         return `
             <div class="resolution-die-row">
                 <span class="resolution-die-main">
-                    <span class="resolution-die-value">${escapeAttribute(roll.die)} rolled ${roll.val}</span>
+                    <span class="resolution-die-badge" title="${escapeAttribute(roll.die)} rolled ${roll.val}">
+                        <span class="resolution-die-type">${escapeAttribute(roll.die)}</span>
+                        <span class="resolution-die-label">rolled</span>
+                        <span class="resolution-die-roll">${roll.val}</span>
+                    </span>
                     <span class="resolution-die-source">${escapeAttribute(roll.source)}</span>
                 </span>
                 <select class="resolution-die-select" data-roll-id="${rollId}">

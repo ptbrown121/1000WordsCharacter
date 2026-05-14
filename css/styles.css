@@ -667,14 +667,53 @@ header {
 
 .resolution-die-main {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    align-items: center;
+    gap: 0.65rem;
     min-width: 0;
 }
 
-.resolution-die-value {
+.resolution-die-badge {
+    align-items: center;
+    background: linear-gradient(135deg, rgba(0,255,204,0.18), rgba(255,255,255,0.08));
+    border: 1px solid rgba(0,255,204,0.35);
+    border-radius: 6px;
+    box-shadow: 0 0 16px rgba(0,255,204,0.12), inset 0 1px 0 rgba(255,255,255,0.12);
     color: var(--text-primary);
-    font-weight: 700;
+    display: grid;
+    flex: 0 0 auto;
+    grid-template-areas:
+        "die roll"
+        "label roll";
+    grid-template-columns: auto minmax(2ch, auto);
+    min-height: 3rem;
+    min-width: 5.25rem;
+    padding: 0.35rem 0.55rem;
+}
+
+.resolution-die-type {
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-weight: 800;
+    grid-area: die;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.resolution-die-label {
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    grid-area: label;
+    line-height: 1;
+}
+
+.resolution-die-roll {
+    color: #00ffcc;
+    font-size: 1.7rem;
+    font-weight: 800;
+    grid-area: roll;
+    line-height: 1;
+    text-align: right;
+    text-shadow: 0 0 10px rgba(0,255,204,0.45);
 }
 
 .resolution-die-source {
