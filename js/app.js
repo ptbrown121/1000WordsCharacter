@@ -82,6 +82,7 @@ const els = {
     extraDiceInput: document.getElementById('extra-dice-input'),
     
     rollResults: document.getElementById('roll-results'),
+    resultNotices: document.getElementById('result-notices'),
     resultTotal: document.getElementById('result-total'),
     resolutionControls: document.getElementById('resolution-controls'),
     resultDetails: document.getElementById('result-details'),
@@ -1457,13 +1458,12 @@ function renderResolutionDetails() {
 
     const result = lastRollResult;
     const summary = calculateResolutionSummary(result);
-    const haywireHtml = result.isHaywire
-        ? `<div style="color: #ff3333; font-weight: bold; margin: 10px 0; border: 1px dashed #ff3333; padding: 5px; background: rgba(255, 51, 51, 0.1);">HAYWIRE! More than half the dice rolled 1.</div>`
+    els.resultNotices.innerHTML = result.isHaywire
+        ? '<div class="result-notice result-notice-haywire">HAYWIRE! More than half the dice rolled 1.</div>'
         : '';
 
     els.resultTotal.innerText = summary.headline;
     els.resultDetails.innerHTML = `
-        ${haywireHtml}
         <div style="margin-bottom: 0.5rem; color: #a0aab5;">
             <p style="margin: 0; text-decoration: underline;">All Rolls by Source:</p>
             ${renderRollGroups(result)}
