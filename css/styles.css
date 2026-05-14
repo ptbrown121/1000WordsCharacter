@@ -465,6 +465,93 @@ header {
     color: #ffcc00;
 }
 
+.tag-bonus-panel,
+.chain-panel {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    margin: -0.5rem 0 1.5rem;
+    padding: 1rem;
+}
+
+.tag-bonus-panel h3,
+.chain-panel h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.tag-bonus-options,
+.chain-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tag-bonus-option,
+.chain-option {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.6rem;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 0.55rem 0.65rem;
+}
+
+.tag-bonus-option:has(input:checked),
+.chain-option:has(input:checked) {
+    border-color: rgba(0,255,200,0.45);
+    background: rgba(0,255,200,0.1);
+}
+
+.chain-option.chain-blocked {
+    border-color: rgba(255, 51, 51, 0.45);
+}
+
+.tag-bonus-option input,
+.chain-option input {
+    cursor: pointer;
+}
+
+.tag-bonus-main,
+.chain-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.tag-bonus-title,
+.chain-title {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.tag-bonus-context,
+.chain-context {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.tag-bonus-steps,
+.chain-status {
+    color: #ffcc00;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.chain-status.chain-status-active {
+    color: #00ffcc;
+}
+
+.chain-status.chain-status-blocked,
+.chain-status.chain-status-missing {
+    color: #ff6666;
+}
+
 .roll-modes {
     margin-top: 1rem;
 }
@@ -524,6 +611,102 @@ header {
     color: var(--text-secondary);
 }
 
+.resolution-controls {
+    text-align: left;
+    margin: 1rem 0;
+}
+
+.resolution-toolbar,
+.resolution-extra-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin-bottom: 0.75rem;
+}
+
+.resolution-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.resolution-field label,
+.resolution-assignments label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.resolution-field input,
+.resolution-field select,
+.resolution-die-select {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: white;
+    font-family: var(--font-main);
+    padding: 0.45rem 0.55rem;
+}
+
+.resolution-assignments {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.resolution-die-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0.55rem 0.65rem;
+}
+
+.resolution-die-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.resolution-die-value {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.resolution-die-source {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+}
+
+.resolution-summary {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+}
+
+.resolution-summary strong {
+    color: var(--text-primary);
+}
+
+.resolution-warning {
+    color: #ff6666;
+    font-weight: 700;
+}
+
+.resolution-success {
+    color: #00ffcc;
+    font-weight: 700;
+}
+
 /* Modal */
 .modal {
     display: none;
@@ -565,6 +748,21 @@ header {
 .form-group input[type="text"]:focus {
     outline: none;
     border-color: #3399ff;
+}
+
+.tag-limit-status {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    margin-top: 0.5rem;
+}
+
+.tag-limit-status.valid {
+    color: #00ffcc;
+}
+
+.tag-limit-status.invalid {
+    color: #ff6666;
 }
 
 .color-checkboxes {
