@@ -163,6 +163,12 @@ const HEALING_TARGETS = {
     wound: { label: 'Wound', difficulty: 12, kind: 'count' }
 };
 
+const RESOLUTION_PLUS_BUCKETS = {
+    attack: new Set(['attack', 'impact']),
+    defense: new Set(['evasion', 'grit']),
+    healing: new Set(['diagnosis', 'heal_energy', 'heal_health', 'heal_reflex'])
+};
+
 function parseDiceInput(str) {
     if (!str || !str.trim()) return { dice: [], invalid: [] };
 
@@ -1117,6 +1123,61 @@ function calculateAssignedTotals(result) {
     return { totals, usedCount };
 }
 
+function calculateResolutionPlusUsage(result, mode = currentResolutionMode) {
+    const plusBuckets = RESOLUTION_PLUS_BUCKETS[mode];
+    const bucketCounts = {};
+
+    if (!plusBuckets) {
+        return {
+            used: 0,
+            budget: Math.max(0, (result.adds || 2) - 1),
+            bucketCounts
+        };
+    }
+
+    (result.originalRolls || []).forEach((roll, index) => {
+        const rollId = getRollId(roll, index);
+        const assignment = currentResolutionAssignments[rollId] || 'unused';
+        if (!plusBuckets.has(assignment)) return;
+
+        bucketCounts[assignment] = (bucketCounts[assignment] || 0) + 1;
+    });
+
+    const used = Object.values(bucketCounts)
+        .reduce((sum, count) => sum + Math.max(0, count - 1), 0);
+
+    return {
+        used,
+        budget: Math.max(0, (result.adds || 2) - 1),
+        bucketCounts
+    };
+}
+
+function renderResolutionUsageFields(result, usedCount, adds) {
+    if (!RESOLUTION_PLUS_BUCKETS[currentResolutionMode]) {
+        return `
+            <div class="resolution-field">
+                <label>Dice Used</label>
+                <div class="${usedCount > adds ? 'resolution-warning' : 'resolution-success'}">${usedCount}/${adds}</div>
+            </div>
+        `;
+    }
+
+    const plusUsage = calculateResolutionPlusUsage(result);
+    const diceTotal = (result.originalRolls || []).length;
+
+    return `
+        <div class="resolution-field">
+            <label>Dice Assigned</label>
+            <div class="resolution-success">${usedCount}/${diceTotal}</div>
+        </div>
+        <div class="resolution-field">
+            <label>Pluses Used</label>
+            <div class="${plusUsage.used > plusUsage.budget ? 'resolution-warning' : 'resolution-success'}">${plusUsage.used}/${plusUsage.budget}</div>
+        </div>
+    `;
+}
+
 function renderResolutionModeOptions() {
     return Object.entries(RESOLUTION_MODES).map(([value, mode]) => {
         const selected = value === currentResolutionMode ? ' selected' : '';
@@ -1244,8 +1305,18 @@ function calculateResolutionSummary(result) {
     const bonuses = bonusInfo.totals;
     const adds = result.adds || 2;
     const warnings = [];
+    const plusUsage = RESOLUTION_PLUS_BUCKETS[currentResolutionMode]
+        ? calculateResolutionPlusUsage(result)
+        : null;
+    const plusesAreLegal = !plusUsage || plusUsage.used <= plusUsage.budget;
 
-    if (usedCount > adds) {
+    if (plusUsage && !plusesAreLegal) {
+        if (currentResolutionMode === 'healing') {
+            warnings.push(`Too many pluses used: ${plusUsage.used}/${plusUsage.budget}. Move dice out of combined diagnosis/resource totals or assign them to one-at-a-time healing options.`);
+        } else {
+            warnings.push(`Too many pluses used: ${plusUsage.used}/${plusUsage.budget}. Split dice across ${currentResolutionMode === 'attack' ? 'Attack/Impact' : 'Evasion/Grit'} differently or move dice to Unused.`);
+        }
+    } else if (!plusUsage && usedCount > adds) {
         warnings.push(`Too many dice assigned: ${usedCount}/${adds}. Move ${usedCount - adds} die${usedCount - adds === 1 ? '' : 's'} to Unused.`);
     }
 
@@ -1258,10 +1329,13 @@ function calculateResolutionSummary(result) {
         const crits = getResolutionText('attack-crits');
         const lines = [
             `<p><strong>Attack:</strong> ${attackTotal} (${totals.attack || 0} dice + ${bonuses.attack} bonus)</p>`,
-            `<p><strong>Impact:</strong> ${impactTotal} HP (${totals.impact || 0} dice + ${bonuses.impact} bonus)</p>`
+            `<p><strong>Impact:</strong> ${impactTotal} HP (${totals.impact || 0} dice + ${bonuses.impact} bonus)</p>`,
+            `<p><strong>Pluses Used:</strong> ${plusUsage.used}/${plusUsage.budget}</p>`
         ];
 
-        if (targetEvasion !== null) {
+        if (!plusesAreLegal) {
+            lines.push('<p class="resolution-warning">Reduce plus use before resolving attack.</p>');
+        } else if (targetEvasion !== null) {
             const hit = attackTotal >= targetEvasion;
             lines.push(`<p class="${hit ? 'resolution-success' : 'resolution-warning'}">${hit ? 'Hit' : 'Miss'} vs target evasion ${targetEvasion}.</p>`);
 
@@ -1292,10 +1366,13 @@ function calculateResolutionSummary(result) {
         const lines = [
             `<p><strong>Evasion:</strong> ${evasionTotal} (${totals.evasion || 0} dice + ${bonuses.evasion} bonus)</p>`,
             `<p><strong>Grit:</strong> ${gritTotal} (${totals.grit || 0} dice + ${bonuses.grit} bonus)</p>`,
-            `<p><strong>Soak:</strong> ${soakTotal} (${otherSoak} other + ${bonuses.soak} bonus)</p>`
+            `<p><strong>Soak:</strong> ${soakTotal} (${otherSoak} other + ${bonuses.soak} bonus)</p>`,
+            `<p><strong>Pluses Used:</strong> ${plusUsage.used}/${plusUsage.budget}</p>`
         ];
 
-        if (incomingAttack !== null) {
+        if (!plusesAreLegal) {
+            lines.push('<p class="resolution-warning">Reduce plus use before resolving defense.</p>');
+        } else if (incomingAttack !== null) {
             const missed = evasionTotal > incomingAttack;
             lines.push(`<p class="${missed ? 'resolution-success' : 'resolution-warning'}">${missed ? 'Attack misses' : 'Attack hits'} vs incoming attack ${incomingAttack}.</p>`);
 
@@ -1322,15 +1399,18 @@ function calculateResolutionSummary(result) {
         const spareCount = healingEntries.reduce((sum, entry) => sum + entry.count, 0);
         const baseDifficulty = healingEntries.reduce((max, entry) => Math.max(max, entry.difficulty), 0);
         const difficulty = baseDifficulty + (spareCount * 2) + (healingInCombat ? 4 : 0);
-        const succeeds = spareCount > 0 && diagnosisTotal >= difficulty;
+        const succeeds = plusesAreLegal && spareCount > 0 && diagnosisTotal >= difficulty;
         const lines = [
-            `<p><strong>Diagnosis:</strong> ${diagnosisTotal} (${totals.diagnosis || 0} dice + ${bonuses.diagnosis} bonus)</p>`
+            `<p><strong>Diagnosis:</strong> ${diagnosisTotal} (${totals.diagnosis || 0} dice + ${bonuses.diagnosis} bonus)</p>`,
+            `<p><strong>Pluses Used:</strong> ${plusUsage.used}/${plusUsage.budget}</p>`
         ];
 
         if (spareCount === 0) {
             lines.push('<p>No treatment dice assigned.</p>');
+        } else if (!plusesAreLegal) {
+            lines.push('<p class="resolution-warning">Reduce plus use before resolving treatment.</p>');
         } else {
-            lines.push(`<p><strong>Difficulty:</strong> ${difficulty} (${baseDifficulty} base + ${spareCount * 2} assigned dice${healingInCombat ? ' + 4 combat' : ''}).</p>`);
+            lines.push(`<p><strong>Difficulty:</strong> ${difficulty} (${baseDifficulty} base + ${spareCount * 2} from ${spareCount} treatment dice${healingInCombat ? ' + 4 combat' : ''}).</p>`);
             lines.push(`<p class="${succeeds ? 'resolution-success' : 'resolution-warning'}">${succeeds ? 'Treatment succeeds' : 'Treatment fails'}.</p>`);
             healingEntries.forEach(entry => {
                 if (entry.kind === 'resource') {
@@ -1405,10 +1485,7 @@ function renderResolution() {
                 <label for="resolution-mode">Resolution</label>
                 <select id="resolution-mode">${renderResolutionModeOptions()}</select>
             </div>
-            <div class="resolution-field">
-                <label>Dice Used</label>
-                <div class="${usedCount > adds ? 'resolution-warning' : 'resolution-success'}">${usedCount}/${adds}</div>
-            </div>
+            ${renderResolutionUsageFields(result, usedCount, adds)}
         </div>
         ${renderResolutionExtraFields()}
         <div class="resolution-assignments">
