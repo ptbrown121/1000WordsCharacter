@@ -606,6 +606,26 @@ header {
     text-shadow: 0 0 10px rgba(0,255,200,0.5);
     margin: 0.5rem 0;
 }
+
+.result-notices {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.result-notice {
+    border-radius: 6px;
+    font-weight: 800;
+    padding: 0.65rem 0.75rem;
+    text-align: left;
+}
+
+.result-notice-haywire {
+    background: rgba(255,51,51,0.12);
+    border: 1px dashed #ff3333;
+    color: #ff5a5a;
+}
+
 .result-details {
     font-size: 0.9rem;
     color: var(--text-secondary);
