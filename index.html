@@ -489,21 +489,53 @@
                 <div class="wizard-step" id="spell-step-3" style="display: none;">
                     <h3>Step 3: Range & Duration</h3>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <div class="form-group" style="flex: 1; min-width: 200px;">
-                            <label>Linear Range / Volume</label>
-                            <select id="spell-range" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                        <div class="form-group" style="flex: 1; min-width: 140px;">
+                            <label>Range (Linear)</label>
+                            <select id="spell-range" class="spell-input" onchange="document.getElementById('spell-range-custom').style.display = this.value === 'custom' ? 'flex' : 'none'" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
                                 <option value="-2">Touch (-2🗱)</option>
                                 <option value="-1">Close (-1🗱)</option>
-                                <option value="0" selected>Reach / Blam (0🗱)</option>
-                                <option value="1">Bang (1🗱)</option>
-                                <option value="2">Short / Boom / Cup (2🗱)</option>
-                                <option value="3">Chest (3🗱)</option>
-                                <option value="4">Blast / Cart (4🗱)</option>
+                                <option value="0" selected>Reach (0🗱)</option>
+                                <option value="2">Short (2🗱)</option>
+                                <option value="4">Long (4🗱)</option>
+                                <option value="custom">Custom...</option>
                             </select>
+                            <div id="spell-range-custom" style="display: none; gap: 0.5rem; margin-top: 0.5rem;">
+                                <input type="text" id="spell-range-custom-name" placeholder="Metric" class="spell-input" style="flex: 2; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                                <input type="number" id="spell-range-custom-xp" placeholder="XP" value="0" class="spell-input" style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                            </div>
                         </div>
-                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                        <div class="form-group" style="flex: 1; min-width: 140px;">
+                            <label>Area (Zone)</label>
+                            <select id="spell-area" class="spell-input" onchange="document.getElementById('spell-area-custom').style.display = this.value === 'custom' ? 'flex' : 'none'" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                                <option value="0" selected>None (0🗱)</option>
+                                <option value="0">Blam (0🗱)</option>
+                                <option value="1">Bang (1🗱)</option>
+                                <option value="2">Boom (2🗱)</option>
+                                <option value="4">Blast (4🗱)</option>
+                                <option value="custom">Custom...</option>
+                            </select>
+                            <div id="spell-area-custom" style="display: none; gap: 0.5rem; margin-top: 0.5rem;">
+                                <input type="text" id="spell-area-custom-name" placeholder="Metric" class="spell-input" style="flex: 2; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                                <input type="number" id="spell-area-custom-xp" placeholder="XP" value="0" class="spell-input" style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                            </div>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 140px;">
+                            <label>Volume (Dome)</label>
+                            <select id="spell-volume" class="spell-input" onchange="document.getElementById('spell-volume-custom').style.display = this.value === 'custom' ? 'flex' : 'none'" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                                <option value="0" selected>None (0🗱)</option>
+                                <option value="2">Cup (2🗱)</option>
+                                <option value="3">Chest (3🗱)</option>
+                                <option value="4">Cart (4🗱)</option>
+                                <option value="custom">Custom...</option>
+                            </select>
+                            <div id="spell-volume-custom" style="display: none; gap: 0.5rem; margin-top: 0.5rem;">
+                                <input type="text" id="spell-volume-custom-name" placeholder="Metric" class="spell-input" style="flex: 2; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                                <input type="number" id="spell-volume-custom-xp" placeholder="XP" value="0" class="spell-input" style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                            </div>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 140px;">
                             <label>Duration</label>
-                            <select id="spell-duration" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                            <select id="spell-duration" class="spell-input" onchange="document.getElementById('spell-duration-custom').style.display = this.value === 'custom' ? 'flex' : 'none'" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
                                 <option value="-3">Sustain (-3🗱)</option>
                                 <option value="-2">Rite (-2🗱)</option>
                                 <option value="-1" selected>Instant (-1🗱)</option>
@@ -512,7 +544,12 @@
                                 <option value="2">15 minutes (2🗱)</option>
                                 <option value="3">1 hour (3🗱)</option>
                                 <option value="4">6 hours (4🗱)</option>
+                                <option value="custom">Custom...</option>
                             </select>
+                            <div id="spell-duration-custom" style="display: none; gap: 0.5rem; margin-top: 0.5rem;">
+                                <input type="text" id="spell-duration-custom-name" placeholder="Metric" class="spell-input" style="flex: 2; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                                <input type="number" id="spell-duration-custom-xp" placeholder="XP" value="0" class="spell-input" style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 4px;">
+                            </div>
                         </div>
                     </div>
                 </div>

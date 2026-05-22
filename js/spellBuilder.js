@@ -117,6 +117,10 @@ export class SpellBuilder {
         this.form.reset();
         this.tagCustomInput.style.display = 'none';
         this.tagCustomXp.style.display = 'none';
+        ['spell-range', 'spell-area', 'spell-volume', 'spell-duration'].forEach(id => {
+            const div = document.getElementById(`${id}-custom`);
+            if (div) div.style.display = 'none';
+        });
         
         if (tile && tile.spellState) {
             // Restore fields from spellState
@@ -131,6 +135,10 @@ export class SpellBuilder {
                         el.checked = tile.spellState[key];
                     } else {
                         el.value = tile.spellState[key];
+                        if (el.tagName === 'SELECT' && el.value === 'custom') {
+                            const customDiv = document.getElementById(`${el.id}-custom`);
+                            if (customDiv) customDiv.style.display = 'flex';
+                        }
                     }
                 }
             });
@@ -294,9 +302,20 @@ export class SpellBuilder {
         // Tags List
         this.currentFormTags.forEach(t => xp += t.xp);
 
-        // Range & Duration
-        xp += parseInt(document.getElementById('spell-range').value || 0);
-        xp += parseInt(document.getElementById('spell-duration').value || 0);
+        const getSelectXP = (id) => {
+            const sel = document.getElementById(id);
+            if (!sel) return 0;
+            if (sel.value === 'custom') {
+                return parseInt(document.getElementById(`${id}-custom-xp`).value || 0);
+            }
+            return parseInt(sel.value || 0);
+        };
+
+        // Metrics
+        xp += getSelectXP('spell-range');
+        xp += getSelectXP('spell-area');
+        xp += getSelectXP('spell-volume');
+        xp += getSelectXP('spell-duration');
 
         // Modifiers (number inputs)
         document.querySelectorAll('.spell-mod').forEach(input => {
@@ -331,11 +350,20 @@ export class SpellBuilder {
         const action = document.getElementById('spell-action');
         const actionText = action.options[action.selectedIndex].text.split('(')[0].trim();
         
-        const range = document.getElementById('spell-range');
-        const rangeText = range.options[range.selectedIndex].text.split('(')[0].trim();
-        
-        const duration = document.getElementById('spell-duration');
-        const durationText = duration.options[duration.selectedIndex].text.split('(')[0].trim();
+        const getSelectText = (id) => {
+            const sel = document.getElementById(id);
+            if (!sel) return '';
+            if (sel.value === 'custom') {
+                const name = document.getElementById(`${id}-custom-name`).value.trim();
+                return name || 'Custom';
+            }
+            return sel.options[sel.selectedIndex].text.split('(')[0].trim();
+        };
+
+        const rangeText = getSelectText('spell-range');
+        const areaText = getSelectText('spell-area');
+        const volumeText = getSelectText('spell-volume');
+        const durationText = getSelectText('spell-duration');
         
         let mods = [];
         document.querySelectorAll('.spell-mod').forEach(input => {
@@ -346,7 +374,11 @@ export class SpellBuilder {
             }
         });
         
-        let desc = `Effect: ${actionText}. Range: ${rangeText}. Duration: ${durationText}.`;
+        let desc = `Effect: ${actionText}.`;
+        if (rangeText && rangeText !== 'None' && rangeText !== 'Single / None') desc += ` Range: ${rangeText}.`;
+        if (areaText && areaText !== 'None' && areaText !== 'Single / None') desc += ` Area: ${areaText}.`;
+        if (volumeText && volumeText !== 'None' && volumeText !== 'Single / None') desc += ` Volume: ${volumeText}.`;
+        desc += ` Duration: ${durationText}.`;
         if (this.currentFormTags.length > 0) {
             desc += ` Tags: ${this.currentFormTags.map(t => t.name).join(', ')}.`;
         }
@@ -405,7 +437,17 @@ export class SpellBuilder {
             'spell-school': document.getElementById('spell-school').value,
             'spell-action': document.getElementById('spell-action').value,
             'spell-range': document.getElementById('spell-range').value,
+            'spell-range-custom-name': document.getElementById('spell-range-custom-name').value,
+            'spell-range-custom-xp': document.getElementById('spell-range-custom-xp').value,
+            'spell-area': document.getElementById('spell-area').value,
+            'spell-area-custom-name': document.getElementById('spell-area-custom-name').value,
+            'spell-area-custom-xp': document.getElementById('spell-area-custom-xp').value,
+            'spell-volume': document.getElementById('spell-volume').value,
+            'spell-volume-custom-name': document.getElementById('spell-volume-custom-name').value,
+            'spell-volume-custom-xp': document.getElementById('spell-volume-custom-xp').value,
             'spell-duration': document.getElementById('spell-duration').value,
+            'spell-duration-custom-name': document.getElementById('spell-duration-custom-name').value,
+            'spell-duration-custom-xp': document.getElementById('spell-duration-custom-xp').value,
             'spell-custom-tags': document.getElementById('spell-custom-tags').value,
             'spell-unchained': document.getElementById('spell-unchained').checked,
             tagsList: [...this.currentFormTags]
