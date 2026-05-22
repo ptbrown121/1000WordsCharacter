@@ -338,7 +338,12 @@
                         </select>
                         <button type="button" id="btn-add-tag" class="btn btn-outline" style="padding: 0.5rem 1rem;">Add</button>
                         </div>
-                        <input type="text" id="tag-custom-input" placeholder="Value..." style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                            <input type="text" id="tag-custom-input" placeholder="Value..." style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white;" title="Tag does not count towards the limit">
+                                <input type="checkbox" id="tag-exempt"> GM Exempt
+                            </label>
+                        </div>
                     </div>
                     <div id="selected-tags-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 30px;">
                         <!-- Tag pills go here -->

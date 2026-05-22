@@ -470,12 +470,20 @@ function bindEvents() {
             finalTag = selVal;
         }
 
+        if (finalTag) {
+            const isExempt = document.getElementById('tag-exempt').checked;
+            if (isExempt) {
+                finalTag = `${finalTag} (Exempt)`;
+            }
+        }
+
         if (finalTag && !currentFormTags.includes(finalTag)) {
             currentFormTags.push(finalTag);
             renderFormTags();
             els.tagSelect.value = '';
             els.tagCustomInput.value = '';
             els.tagCustomInput.style.display = 'none';
+            document.getElementById('tag-exempt').checked = false;
         }
     });
 
