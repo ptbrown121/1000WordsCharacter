@@ -125,7 +125,7 @@ export class SpellBuilder {
         this.form.reset();
         this.tagCustomInput.style.display = 'none';
         this.tagCustomXp.style.display = 'none';
-        ['spell-range', 'spell-area', 'spell-volume', 'spell-duration'].forEach(id => {
+        ['spell-range', 'spell-area', 'spell-volume', 'spell-displacement', 'spell-duration'].forEach(id => {
             const div = document.getElementById(`${id}-custom`);
             if (div) div.style.display = 'none';
         });
@@ -335,6 +335,7 @@ export class SpellBuilder {
         xp += getSelectXP('spell-range');
         xp += getSelectXP('spell-area');
         xp += getSelectXP('spell-volume');
+        xp += getSelectXP('spell-displacement');
         xp += getSelectXP('spell-duration');
 
         // Modifiers (number inputs)
@@ -383,6 +384,7 @@ export class SpellBuilder {
         const rangeText = getSelectText('spell-range');
         const areaText = getSelectText('spell-area');
         const volumeText = getSelectText('spell-volume');
+        const displacementText = getSelectText('spell-displacement');
         const durationText = getSelectText('spell-duration');
         
         let mods = [];
@@ -398,7 +400,8 @@ export class SpellBuilder {
         if (rangeText && rangeText !== 'None' && rangeText !== 'Single / None') desc += ` Range: ${rangeText}.`;
         if (areaText && areaText !== 'None' && areaText !== 'Single / None') desc += ` Area: ${areaText}.`;
         if (volumeText && volumeText !== 'None' && volumeText !== 'Single / None') desc += ` Volume: ${volumeText}.`;
-        desc += ` Duration: ${durationText}.`;
+        if (displacementText && displacementText !== 'None' && displacementText !== 'Single / None') desc += ` Displacement: ${displacementText}.`;
+        if (durationText && durationText !== 'None' && durationText !== 'Single / None') desc += ` Duration: ${durationText}.`;
         if (this.currentFormTags.length > 0) {
             desc += ` Tags: ${this.currentFormTags.map(t => t.name).join(', ')}.`;
         }
@@ -470,6 +473,9 @@ export class SpellBuilder {
             'spell-volume': document.getElementById('spell-volume').value,
             'spell-volume-custom-name': document.getElementById('spell-volume-custom-name').value,
             'spell-volume-custom-xp': document.getElementById('spell-volume-custom-xp').value,
+            'spell-displacement': document.getElementById('spell-displacement').value,
+            'spell-displacement-custom-name': document.getElementById('spell-displacement-custom-name').value,
+            'spell-displacement-custom-xp': document.getElementById('spell-displacement-custom-xp').value,
             'spell-duration': document.getElementById('spell-duration').value,
             'spell-duration-custom-name': document.getElementById('spell-duration-custom-name').value,
             'spell-duration-custom-xp': document.getElementById('spell-duration-custom-xp').value,
