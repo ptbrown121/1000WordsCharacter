@@ -1534,7 +1534,11 @@ function updatePoolPreview() {
         if (res.dice.length === 0) {
             els.poolDiceDisplay.innerText = 'No dice in pool.';
         } else {
-            els.poolDiceDisplay.innerText = res.dice.map(d => d.die).join(' + ');
+            let diceStr = res.dice.map(d => d.die).join(' + ');
+            if (res.dice.length % 2 !== 0) {
+                diceStr += ' <span style="color: #ffaa00; font-size: 0.85em; margin-left: 0.5rem;" title="Odd number of dice significantly increases the odds of a haywire">⚠️ Odd Dice (Haywire Risk)</span>';
+            }
+            els.poolDiceDisplay.innerHTML = diceStr;
         }
         renderChainOptions(res.chainOptions || []);
         renderTagBonusOptions(res.tagBonuses || []);
@@ -1667,6 +1671,15 @@ function showResults(result) {
     healingInCombat = false;
     els.rollResults.style.display = 'block';
     renderResolution();
+    
+    setTimeout(() => {
+        const dash = document.getElementById('action-dashboard');
+        if (dash && window.getComputedStyle(dash).overflowY === 'auto') {
+            dash.scrollTo({ top: dash.scrollHeight, behavior: 'smooth' });
+        } else {
+            els.rollResults.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, 50);
 }
 
 // Modal Form Logic
