@@ -124,12 +124,12 @@ export class SpellBuilder {
         
         const chainTargetSelect = document.getElementById('spell-chain-target');
         if (chainTargetSelect) {
-            chainTargetSelect.innerHTML = '<option value="">-- No Specific Spell --</option>';
-            const spells = (this.dataManager.state.tiles || []).filter(t => t.tags && t.tags.includes('Spell') && t.id !== this.editingTileId);
-            spells.forEach(spell => {
+            chainTargetSelect.innerHTML = '<option value="">-- No Specific Spellcast Skill --</option>';
+            const skills = (this.dataManager.state.tiles || []).filter(t => t.type === 'Skill' && t.isSpellcastSkill);
+            skills.forEach(skill => {
                 const opt = document.createElement('option');
-                opt.value = spell.name;
-                opt.textContent = spell.name;
+                opt.value = skill.name;
+                opt.textContent = skill.name;
                 chainTargetSelect.appendChild(opt);
             });
         }

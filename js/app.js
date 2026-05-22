@@ -1694,6 +1694,8 @@ function openModal(tile = null) {
         document.getElementById('modal-title').innerText = 'Edit Tile';
         document.getElementById('tile-id').value = tile.id;
         document.getElementById('tile-type').value = tile.type || 'Skill';
+        document.getElementById('spellcast-skill-container').style.display = (tile.type || 'Skill') === 'Skill' ? 'block' : 'none';
+        document.getElementById('tile-is-spellcast').checked = !!tile.isSpellcastSkill;
         document.getElementById('tile-name').value = tile.name;
         document.getElementById('tile-description').value = tile.description || '';
         document.getElementById('tile-dice').value = tile.dice.join(', ');
@@ -1711,6 +1713,8 @@ function openModal(tile = null) {
         document.getElementById('modal-title').innerText = 'Add Tile';
         document.getElementById('tile-id').value = '';
         document.getElementById('tile-type').value = 'Skill';
+        document.getElementById('spellcast-skill-container').style.display = 'block';
+        document.getElementById('tile-is-spellcast').checked = false;
         document.getElementById('tile-description').value = '';
         els.tileXp.value = 0;
         els.btnDelete.style.display = 'none';
@@ -1761,6 +1765,7 @@ function closeModal() {
 function saveTileFromForm() {
     const id = document.getElementById('tile-id').value;
     const type = document.getElementById('tile-type').value;
+    const isSpellcastSkill = type === 'Skill' && document.getElementById('tile-is-spellcast').checked;
     const name = document.getElementById('tile-name').value.trim();
     const description = document.getElementById('tile-description').value.trim();
     const diceStr = document.getElementById('tile-dice').value.trim();
@@ -1795,7 +1800,8 @@ function saveTileFromForm() {
         colors: checkedColors,
         dice: diceArray,
         tags,
-        xpCost
+        xpCost,
+        isSpellcastSkill
     };
 
     if (id) {
