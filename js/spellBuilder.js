@@ -96,7 +96,15 @@ export class SpellBuilder {
                 return;
             }
 
+            const isExempt = document.getElementById('spell-tag-exempt').checked;
+            if (isExempt) {
+                val = `${val} (Exempt)`;
+            }
+
             this.currentFormTags.push({ name: val, xp: xp });
+            
+            document.getElementById('spell-tag-exempt').checked = false;
+            
             this.renderTags();
             this.calculateXP();
         });

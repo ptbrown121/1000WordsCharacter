@@ -470,6 +470,10 @@
                                     <option value="Tough" data-xp="2">Tough</option>
                                     <option value="Vital" data-xp="2">Vital</option>
                                     <option value="Nimble" data-xp="2">Nimble</option>
+                                    <option value="Motorized" data-xp="2">Motorized</option>
+                                    <option value="Loose" data-xp="2">Loose</option>
+                                    <option value="Sealed" data-xp="2">Sealed</option>
+                                    <option value="Adamant" data-xp="2">Adamant</option>
                                 </optgroup>
                                 <optgroup label="Standard Flaws (-2 XP)">
                                     <option value="Old" data-xp="-2">Old</option>
@@ -478,10 +482,15 @@
                                     <option value="Risky" data-xp="-2">Risky</option>
                                     <option value="Worn" data-xp="-2">Worn</option>
                                     <option value="Hitch" data-xp="-2">Hitch</option>
+                                    <option value="Bulky" data-xp="-2">Bulky</option>
+                                    <option value="Heavy" data-xp="-2">Heavy</option>
                                 </optgroup>
                             </select>
                             <input type="text" id="spell-tag-custom-input" placeholder="Custom Tag..." style="display: none; flex: 1; padding: 0.8rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
                             <input type="number" id="spell-tag-custom-xp" value="2" style="display: none; width: 60px; padding: 0.8rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;" title="XP Cost">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0 0.5rem; cursor: pointer; color: white;" title="Tag does not count towards the limit">
+                                <input type="checkbox" id="spell-tag-exempt"> GM Exempt
+                            </label>
                             <button type="button" id="btn-spell-add-tag" class="btn btn-outline">Add</button>
                         </div>
                     </div>
