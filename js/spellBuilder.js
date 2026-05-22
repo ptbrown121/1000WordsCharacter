@@ -122,6 +122,18 @@ export class SpellBuilder {
             if (div) div.style.display = 'none';
         });
         
+        const chainTargetSelect = document.getElementById('spell-chain-target');
+        if (chainTargetSelect) {
+            chainTargetSelect.innerHTML = '<option value="">-- No Specific Spell --</option>';
+            const spells = (this.dataManager.state.tiles || []).filter(t => t.tags && t.tags.includes('Spell') && t.id !== this.editingTileId);
+            spells.forEach(spell => {
+                const opt = document.createElement('option');
+                opt.value = spell.name;
+                opt.textContent = spell.name;
+                chainTargetSelect.appendChild(opt);
+            });
+        }
+        
         if (tile && tile.spellState) {
             // Restore fields from spellState
             document.getElementById('spell-name').value = tile.name;
@@ -422,6 +434,11 @@ export class SpellBuilder {
             tagsArr.push(`Chain ${school === 'Divergent' ? 'Skill' : school}`);
         }
         
+        const chainTarget = document.getElementById('spell-chain-target');
+        if (chainTarget && chainTarget.value) {
+            tagsArr.push(`Chain ${chainTarget.value}`);
+        }
+        
         const customTags = document.getElementById('spell-custom-tags').value.trim();
         if (customTags) {
             customTags.split(',').forEach(t => {
@@ -450,6 +467,7 @@ export class SpellBuilder {
             'spell-duration-custom-xp': document.getElementById('spell-duration-custom-xp').value,
             'spell-custom-tags': document.getElementById('spell-custom-tags').value,
             'spell-unchained': document.getElementById('spell-unchained').checked,
+            'spell-chain-target': document.getElementById('spell-chain-target') ? document.getElementById('spell-chain-target').value : '',
             tagsList: [...this.currentFormTags]
         };
         
