@@ -236,9 +236,6 @@ export class SpellBuilder {
             document.getElementById('spell-colors-group').style.display = 'none';
         }
 
-        if (this.currentActions.length === 0) {
-            this.currentActions.push({ val: 'Move', text: 'Move object', xp: 0 });
-        }
         this.renderTags();
         this.renderActions();
         this.updateWizardUI();
@@ -261,9 +258,6 @@ export class SpellBuilder {
             
             span.querySelector('button').addEventListener('click', () => {
                 this.currentActions.splice(index, 1);
-                if (this.currentActions.length === 0) {
-                    this.currentActions.push({ val: 'Move', text: 'Move object', xp: 0 });
-                }
                 this.renderActions();
                 this.calculateXP();
             });
