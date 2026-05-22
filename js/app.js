@@ -291,7 +291,7 @@ function init() {
 
 function bindEvents() {
     // Header
-    els.charName.addEventListener('blur', (e) => dataManager.updateName(e.target.innerText));
+    els.charName.addEventListener('blur', (e) => dataManager.updateName(e.target.value));
     
     els.valXpEarned.addEventListener('change', (e) => {
         dataManager.state.xpEarned = parseInt(e.target.value, 10) || 0;
@@ -659,7 +659,7 @@ function renderJournal() {
     });
 }
 function renderAll() {
-    els.charName.innerText = dataManager.state.name;
+    els.charName.value = dataManager.state.name;
     els.valXpEarned.value = dataManager.state.xpEarned || 75;
     els.valHp.value = dataManager.state.hp ?? 0;
     

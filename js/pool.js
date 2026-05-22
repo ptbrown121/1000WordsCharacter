@@ -212,7 +212,7 @@ export class PoolEngine {
         let tagBonuses = [];
         let chainOptions = [];
         let error = null;
-        const activeCallColors = callColors.filter(Boolean);
+        const activeCallColors = [...new Set(callColors.filter(Boolean))];
         const disabledChainIds = options.disabledChainIds || new Set();
         const isChainDisabled = (chainId) => {
             if (disabledChainIds instanceof Set) return disabledChainIds.has(chainId);

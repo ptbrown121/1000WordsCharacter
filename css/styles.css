@@ -137,9 +137,9 @@ header {
 }
 
 .resource-pools {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
 }
 
 .pool {
@@ -172,8 +172,8 @@ header {
 
 /* Stats */
 .stats-grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 1rem;
     margin-top: 1rem;
 }
@@ -229,6 +229,9 @@ header {
         flex: 1;
         position: sticky;
         top: 1.5rem;
+        max-height: calc(100vh - 3rem);
+        overflow-y: auto;
+        padding-right: 5px; /* Prevent scrollbar overlap with layout border */
     }
 }
 
@@ -838,8 +841,9 @@ header {
     border-radius: 4px;
     cursor: pointer;
 }
-.color-checkboxes input:checked + label {
+.color-checkboxes label:has(input:checked) {
     background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
 }
 
 .form-actions {
@@ -938,4 +942,15 @@ header {
 .journal-entry-body textarea:focus {
     outline: none;
     border-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 480px) {
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+    }
+    .form-actions .btn {
+        width: 100%;
+        margin: 0;
+    }
 }
