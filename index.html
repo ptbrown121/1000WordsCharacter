@@ -418,37 +418,43 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Core Action</label>
-                        <select id="spell-action" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
-                            <optgroup label="Twist Actions">
-                                <option value="Move" data-xp="0">Move object (0🗱)</option>
-                                <option value="Shape" data-xp="3">Modify form/material (3🗱)</option>
-                                <option value="HealHarm" data-xp="2">Heal Harm (2🗱)</option>
-                                <option value="HealCrit" data-xp="2">Heal Crit (Tag + 2🗱)</option>
-                                <option value="HealBurn" data-xp="5">Heal burned tile (5🗱)</option>
-                                <option value="BuffSkill" data-xp="1">Buff skill by ▟ (1🗱)</option>
-                                <option value="BuffStat" data-xp="2">Buff stat by ▟ (2🗱)</option>
-                                <option value="ShapeBot" data-xp="5">Animate a Bot (5🗱)</option>
-                            </optgroup>
-                            <optgroup label="Augur Actions">
-                                <option value="ShowRange" data-xp="1">Show Range as vision (1🗱)</option>
-                                <option value="ShowMaterial" data-xp="2">Show material (2🗱)</option>
-                                <option value="ShowMind" data-xp="3">Show mind (3🗱)</option>
-                                <option value="Conceal" data-xp="0">Conceal/Give Hidden (0🗱)</option>
-                            </optgroup>
-                            <optgroup label="Forge Actions">
-                                <option value="HarmPool" data-xp="1">Harm Pool by ▟ (1🗱)</option>
-                                <option value="HarmSkill" data-xp="2">Harm Skill by ▟ (2🗱)</option>
-                                <option value="HarmStat" data-xp="4">Harm Stat by ▟ (4🗱)</option>
-                                <option value="GiveResource" data-xp="0">Give Resource (0🗱)</option>
-                                <option value="GiveHarm" data-xp="0">Give Harm (0🗱)</option>
-                                <option value="GiveTag" data-xp="0">Give/Deal Tag (Tag Cost)</option>
-                                <option value="GiveDicePool" data-xp="3">Give spell dice to pool (3🗱)</option>
-                                <option value="GiveDiceSkill" data-xp="5">Give spell dice as skill (5🗱)</option>
-                                <option value="DealCrit" data-xp="0">Deal Crit (Crit Cost)</option>
-                                <option value="TakeFlaw" data-xp="2">Take/Remove Flaw (2🗱)</option>
-                            </optgroup>
-                        </select>
+                        <label>Core Action(s)</label>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <select id="spell-action" class="spell-input" style="flex: 1; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                                <optgroup label="Twist Actions">
+                                    <option value="Move" data-xp="0">Move object (0🗱)</option>
+                                    <option value="Shape" data-xp="3">Modify form/material (3🗱)</option>
+                                    <option value="HealHarm" data-xp="2">Heal Harm (2🗱)</option>
+                                    <option value="HealCrit" data-xp="2">Heal Crit (Tag + 2🗱)</option>
+                                    <option value="HealBurn" data-xp="5">Heal burned tile (5🗱)</option>
+                                    <option value="BuffSkill" data-xp="1">Buff skill by ▟ (1🗱)</option>
+                                    <option value="BuffStat" data-xp="2">Buff stat by ▟ (2🗱)</option>
+                                    <option value="ShapeBot" data-xp="5">Animate a Bot (5🗱)</option>
+                                </optgroup>
+                                <optgroup label="Augur Actions">
+                                    <option value="ShowRange" data-xp="1">Show Range as vision (1🗱)</option>
+                                    <option value="ShowMaterial" data-xp="2">Show material (2🗱)</option>
+                                    <option value="ShowMind" data-xp="3">Show mind (3🗱)</option>
+                                    <option value="Conceal" data-xp="0">Conceal/Give Hidden (0🗱)</option>
+                                </optgroup>
+                                <optgroup label="Forge Actions">
+                                    <option value="HarmPool" data-xp="1">Harm Pool by ▟ (1🗱)</option>
+                                    <option value="HarmSkill" data-xp="2">Harm Skill by ▟ (2🗱)</option>
+                                    <option value="HarmStat" data-xp="4">Harm Stat by ▟ (4🗱)</option>
+                                    <option value="GiveResource" data-xp="0">Give Resource (0🗱)</option>
+                                    <option value="GiveHarm" data-xp="0">Give Harm (0🗱)</option>
+                                    <option value="GiveTag" data-xp="0">Give/Deal Tag (Tag Cost)</option>
+                                    <option value="GiveDicePool" data-xp="3">Give spell dice to pool (3🗱)</option>
+                                    <option value="GiveDiceSkill" data-xp="5">Give spell dice as skill (5🗱)</option>
+                                    <option value="DealCrit" data-xp="0">Deal Crit (Crit Cost)</option>
+                                    <option value="TakeFlaw" data-xp="2">Take/Remove Flaw (2🗱)</option>
+                                </optgroup>
+                            </select>
+                            <button type="button" id="btn-spell-add-action" class="btn btn-outline">Add</button>
+                        </div>
+                        <div id="spell-actions-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 30px;">
+                            <!-- Action pills go here -->
+                        </div>
                     </div>
                 </div>
 

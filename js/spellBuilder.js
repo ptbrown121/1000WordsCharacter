@@ -27,8 +27,15 @@ export class SpellBuilder {
         this.tagSelect = document.getElementById('spell-tag-select');
         this.tagCustomInput = document.getElementById('spell-tag-custom-input');
         this.tagCustomXp = document.getElementById('spell-tag-custom-xp');
+        this.tagCustomInput = document.getElementById('spell-tag-custom-input');
+        this.tagCustomXp = document.getElementById('spell-tag-custom-xp');
         this.btnAddTag = document.getElementById('btn-spell-add-tag');
         this.tagsContainer = document.getElementById('spell-tags-container');
+
+        this.actionSelect = document.getElementById('spell-action');
+        this.btnAddAction = document.getElementById('btn-spell-add-action');
+        this.actionsContainer = document.getElementById('spell-actions-container');
+        this.currentActions = [];
         
         this.bindEvents();
     }
@@ -82,6 +89,21 @@ export class SpellBuilder {
             }
         });
 
+        this.btnAddAction.addEventListener('click', () => {
+            const val = this.actionSelect.value;
+            if (!val) return;
+            
+            const opt = this.actionSelect.options[this.actionSelect.selectedIndex];
+            const text = opt.text.split('(')[0].trim();
+            const xp = parseInt(opt.dataset.xp || 0);
+
+            if (this.currentActions.some(a => a.val === val)) return;
+
+            this.currentActions.push({ val, text, xp });
+            this.renderActions();
+            this.calculateXP();
+        });
+
         this.btnAddTag.addEventListener('click', () => {
             let val = this.tagSelect.value;
             let xp = parseInt(this.tagSelect.options[this.tagSelect.selectedIndex].dataset.xp || 0);
@@ -122,6 +144,7 @@ export class SpellBuilder {
         this.currentStep = 1;
         this.editingTileId = tile ? tile.id : null;
         this.currentFormTags = [];
+        this.currentActions = [];
         this.form.reset();
         this.tagCustomInput.style.display = 'none';
         this.tagCustomXp.style.display = 'none';
@@ -180,6 +203,21 @@ export class SpellBuilder {
                 this.currentFormTags = [...tile.spellState.tagsList];
             }
             
+            if (tile.spellState.actionsList) {
+                this.currentActions = [...tile.spellState.actionsList];
+            } else if (tile.spellState['spell-action']) {
+                const legacyVal = tile.spellState['spell-action'];
+                Array.from(this.actionSelect.options).forEach(opt => {
+                    if (opt.value === legacyVal) {
+                        this.currentActions.push({
+                            val: opt.value,
+                            text: opt.text.split('(')[0].trim(),
+                            xp: parseInt(opt.dataset.xp || 0)
+                        });
+                    }
+                });
+            }
+            
             // Restore color checkboxes if divergent
             const school = document.getElementById('spell-school').value;
             if (school === 'Divergent') {
@@ -198,10 +236,40 @@ export class SpellBuilder {
             document.getElementById('spell-colors-group').style.display = 'none';
         }
 
+        if (this.currentActions.length === 0) {
+            this.currentActions.push({ val: 'Move', text: 'Move object', xp: 0 });
+        }
         this.renderTags();
+        this.renderActions();
         this.updateWizardUI();
         this.calculateXP();
         this.modal.classList.add('active');
+    }
+
+    renderActions() {
+        if (!this.actionsContainer) return;
+        this.actionsContainer.innerHTML = '';
+        this.currentActions.forEach((act, index) => {
+            const span = document.createElement('span');
+            span.className = 'badge';
+            span.style.background = 'rgba(255,255,255,0.2)';
+            span.style.color = 'white';
+            span.style.display = 'flex';
+            span.style.alignItems = 'center';
+            span.style.gap = '0.3rem';
+            span.innerHTML = `${act.text} (${act.xp > 0 ? '+'+act.xp : act.xp}🗱) <button type="button" style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;">×</button>`;
+            
+            span.querySelector('button').addEventListener('click', () => {
+                this.currentActions.splice(index, 1);
+                if (this.currentActions.length === 0) {
+                    this.currentActions.push({ val: 'Move', text: 'Move object', xp: 0 });
+                }
+                this.renderActions();
+                this.calculateXP();
+            });
+            
+            this.actionsContainer.appendChild(span);
+        });
     }
 
     renderTags() {
@@ -314,10 +382,8 @@ export class SpellBuilder {
         const school = document.getElementById('spell-school').value;
         if (school === 'Divergent') xp += 2;
 
-        // Action
-        const actionSel = document.getElementById('spell-action');
-        const actionOpt = actionSel.options[actionSel.selectedIndex];
-        if (actionOpt) xp += parseInt(actionOpt.dataset.xp || 0);
+        // Base actions
+        this.currentActions.forEach(act => xp += act.xp);
 
         // Tags List
         this.currentFormTags.forEach(t => xp += t.xp);
@@ -368,8 +434,8 @@ export class SpellBuilder {
     }
 
     generatePreview() {
-        const action = document.getElementById('spell-action');
-        const actionText = action.options[action.selectedIndex].text.split('(')[0].trim();
+        const actionTexts = this.currentActions.map(act => act.text);
+        const actionText = actionTexts.length > 0 ? actionTexts.join(', ') : 'None';
         
         const getSelectText = (id) => {
             const sel = document.getElementById(id);
@@ -463,7 +529,7 @@ export class SpellBuilder {
         // Spell State for editing
         const spellState = {
             'spell-school': document.getElementById('spell-school').value,
-            'spell-action': document.getElementById('spell-action').value,
+            actionsList: [...this.currentActions],
             'spell-range': document.getElementById('spell-range').value,
             'spell-range-custom-name': document.getElementById('spell-range-custom-name').value,
             'spell-range-custom-xp': document.getElementById('spell-range-custom-xp').value,
