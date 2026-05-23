@@ -149,39 +149,7 @@
         </section>
 
         <div class="main-columns">
-            <!-- Left Column: Mosaic (Cards) -->
-            <section id="mosaic-section">
-                <div class="section-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2>Mosaic (Tiles)</h2>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button id="btn-add-tile" class="btn btn-primary">+ Add Tile</button>
-                            <button id="btn-add-spell" class="btn btn-primary" style="background: linear-gradient(135deg, #00b09b, #96c93d); color: #111;">+ Add Spell</button>
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%;">
-                        <input type="text" id="search-tiles" placeholder="Search by name, color, type, or tags..." style="flex: 1; min-width: 200px; padding: 0.8rem; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); font-size: 1rem;">
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <label style="color: var(--text-muted); font-size: 0.9rem;">Sort:</label>
-                            <select id="sort-tiles-by" style="padding: 0.6rem; border-radius: 6px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border);">
-                                <option value="default">Added (Default)</option>
-                                <option value="alpha">Alphabetical</option>
-                                <option value="color">By Color</option>
-                                <option value="type">By Type</option>
-                            </select>
-                            <button id="btn-sort-dir" class="btn btn-outline" style="padding: 0.5rem 0.8rem;" title="Reverse Order" data-dir="asc">↓</button>
-                            <label style="display: flex; align-items: center; gap: 0.3rem; color: var(--text-muted); font-size: 0.9rem; margin-left: 0.5rem;">
-                                <input type="checkbox" id="ignore-favorites-sort"> Ignore Favs
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-grid" id="card-container">
-                    <!-- Cards injected via JS -->
-                </div>
-            </section>
-
-            <!-- Right Column: Action Dashboard -->
+            <!-- Action Dashboard -->
             <section id="action-dashboard" class="glass-panel">
                 <h2>The Call (Dice Pool)</h2>
                 
@@ -278,6 +246,38 @@
                     <div class="result-total" id="result-total">--</div>
                     <div id="resolution-controls" class="resolution-controls"></div>
                     <div class="result-details" id="result-details"></div>
+                </div>
+            </section>
+
+            <!-- Mosaic (Cards) -->
+            <section id="mosaic-section">
+                <div class="section-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Mosaic (Tiles)</h2>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="btn-add-tile" class="btn btn-primary">+ Add Tile</button>
+                            <button id="btn-add-spell" class="btn btn-primary" style="background: linear-gradient(135deg, #00b09b, #96c93d); color: #111;">+ Add Spell</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%;">
+                        <input type="text" id="search-tiles" placeholder="Search by name, color, type, or tags..." style="flex: 1; min-width: 200px; padding: 0.8rem; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); font-size: 1rem;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <label style="color: var(--text-muted); font-size: 0.9rem;">Sort:</label>
+                            <select id="sort-tiles-by" style="padding: 0.6rem; border-radius: 6px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border);">
+                                <option value="default">Added (Default)</option>
+                                <option value="alpha">Alphabetical</option>
+                                <option value="color">By Color</option>
+                                <option value="type">By Type</option>
+                            </select>
+                            <button id="btn-sort-dir" class="btn btn-outline" style="padding: 0.5rem 0.8rem;" title="Reverse Order" data-dir="asc">↓</button>
+                            <label style="display: flex; align-items: center; gap: 0.3rem; color: var(--text-muted); font-size: 0.9rem; margin-left: 0.5rem;">
+                                <input type="checkbox" id="ignore-favorites-sort"> Ignore Favs
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-grid" id="card-container">
+                    <!-- Cards injected via JS -->
                 </div>
             </section>
         </div>
