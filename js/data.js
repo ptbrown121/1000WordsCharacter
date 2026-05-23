@@ -27,8 +27,15 @@ export const VALID_DICE = new Set(['d3', 'd4', 'd6', 'd8', 'd10', 'd12', 'd14', 
  * Legacy saves stored it as a comma-separated string; SpellBuilder once
  * stored it as a list of {name, xp} objects. This normalizer is idempotent
  * and is called both when loading from localStorage and when importing JSON.
+ *
+ * Also strips a known-bad tag pattern: spells saved before the
+ * "preview-as-tag" bug fix have the auto-generated description sentence
+ * (always starting with "Effect:") incorrectly appended to tile.tags. We
+ * detect those by `isSpell && tag.startsWith('Effect:')` and drop them.
+ * Real player-authored tags do not begin with "Effect:" - the rulebook's
+ * tag taxonomy does not include such a tag.
  */
-function normalizeTileTags(tile) {
+export function normalizeTileTags(tile) {
     if (!tile || typeof tile !== 'object') return;
     const raw = tile.tags;
 
@@ -38,12 +45,14 @@ function normalizeTileTags(tile) {
     }
 
     const items = Array.isArray(raw) ? raw : String(raw).split(',');
+    const isSpell = Boolean(tile.isSpell);
     tile.tags = items
         .map(item => {
             if (item && typeof item === 'object') return String(item.name || '').trim();
             return String(item || '').trim();
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter(tag => !(isSpell && tag.startsWith('Effect:')));
 }
 
 /**
