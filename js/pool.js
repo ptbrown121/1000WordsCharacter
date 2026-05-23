@@ -272,31 +272,65 @@ export class PoolEngine {
         return totalXp;
     }
 
-    estimateTileXp(diceArray, tagsArray, armorType = null) {
+    /**
+     * Categorize a tag string for XP scoring. Returns:
+     *   - `xp`: the XP modifier this tag contributes (positive or negative)
+     *   - `recognized`: true when the tag matched a known category, false when
+     *     it fell through to the default. Callers that surface unknown tags
+     *     to the user (e.g. modals.js Auto-Estimate button) use this flag to
+     *     warn that a typo cost the player the default +2 XP.
+     *
+     * "Recognized but defaulted" tags - structural prefixes like `Build:`,
+     * `Detail:`, `Crit:`, `Shield:`, `Range:`, `Duration:`, plus exotic tags -
+     * are valid rulebook categories whose specific XP costs aren't fully
+     * tabulated here. They still get the default +2 XP, but they are NOT
+     * flagged as unknown so the UI doesn't bother the player about them.
+     */
+    classifyTagForXp(tag) {
+        const t = String(tag || '').toLowerCase().replace(' (exempt)', '');
+
+        if (t.startsWith('chain ')) return { xp: 4, recognized: true };
+        // 'hitch' is also in FLAW_TAGS but we match it first for its -3 refund.
+        if (t.startsWith('hitch')) return { xp: -3, recognized: true };
+        if (FLAW_TAGS.has(t)) return { xp: -2, recognized: true };
+        if (['slow', 'pain'].includes(t)) return { xp: 3, recognized: true };
+        if (['bleed', 'wound'].includes(t)) return { xp: 4, recognized: true };
+        if (['expert', 'keen', 'sharp', 'agile', 'hidden', 'ironclad', 'rugged',
+             'quick', 'tough', 'vital', 'nimble', 'down', 'jolt'].includes(t)) {
+            return { xp: 2, recognized: true };
+        }
+
+        // Structural prefixes - valid tag categories without a specific XP rule
+        // wired up here. Treat as recognized (no typo warning) but keep the
+        // default +2 XP so totals are unchanged.
+        if (/^(build|detail|crit|shield|range|duration)\s*:/i.test(t)) {
+            return { xp: 2, recognized: true };
+        }
+        if (t.startsWith('motorized')) return { xp: 2, recognized: true };
+        if (EXOTIC_TAGS.has(t)) return { xp: 2, recognized: true };
+
+        return { xp: 2, recognized: false };
+    }
+
+    /**
+     * Detailed tile XP estimate. Same total as estimateTileXp(), but also
+     * returns the list of unrecognized tags so the UI can warn the player
+     * that a typo silently cost them XP. Use this in interactive contexts
+     * (e.g. the "Auto-Estimate" button); use estimateTileXp when you only
+     * need the number.
+     *
+     * @returns {{ xp: number, unknownTags: string[] }}
+     */
+    estimateTileXpDetails(diceArray, tagsArray, armorType = null) {
         let xp = this.calculateOptimalXpCost(diceArray);
         const isHardArmor = Boolean(armorType) && armorType.material === 'Hard';
+        const unknownTags = [];
 
-        // Tag modifiers
         tagsArray.forEach(tag => {
-            const t = tag.toLowerCase().replace(' (exempt)', '');
-            if (t.startsWith('chain ')) {
-                xp += 4;
-            } else if (t.startsWith('hitch')) {
-                // Hitch can give up to 6 XP, default guess -3
-                xp -= 3;
-            } else if (FLAW_TAGS.has(t)) {
-                // Flaw tags refund 2 XP (old, primitive, rare, risky, worn, bulky, heavy)
-                xp -= 2;
-            } else if (['slow', 'pain'].includes(t)) {
-                xp += 3;
-            } else if (['bleed', 'wound'].includes(t)) {
-                xp += 4;
-            } else if (['expert', 'keen', 'sharp', 'agile', 'hidden', 'ironclad', 'rugged', 'quick', 'tough', 'vital', 'nimble', 'down', 'jolt'].includes(t)) {
-                xp += 2;
-            } else {
-                // generic tag guess
-                xp += 2;
-            }
+            const t = String(tag || '').toLowerCase().replace(' (exempt)', '');
+            const { xp: tagXp, recognized } = this.classifyTagForXp(tag);
+            xp += tagXp;
+            if (!recognized && t.trim()) unknownTags.push(String(tag));
 
             // Hard armor makes Detail tags cost 1 XP less.
             // Motorized may carry a ": STAT" suffix, so match its base word too.
@@ -310,7 +344,11 @@ export class PoolEngine {
             xp += (ARMOR_MATERIAL_XP[armorType.material] || 0) + (ARMOR_COVERAGE_XP[armorType.coverage] || 0);
         }
 
-        return Math.max(0, xp);
+        return { xp: Math.max(0, xp), unknownTags };
+    }
+
+    estimateTileXp(diceArray, tagsArray, armorType = null) {
+        return this.estimateTileXpDetails(diceArray, tagsArray, armorType).xp;
     }
 
     calculateResourceMaxes(tiles = []) {
