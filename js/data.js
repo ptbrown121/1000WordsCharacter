@@ -84,16 +84,21 @@ export class DataManager {
             // If legacy save exists and roster somehow loaded, we should probably just leave it alone or migrate it.
             // Assuming normal case where legacy save is migrated below.
         } else if (legacySave) {
-            const charId = 'char_' + Date.now();
+            const charId = crypto.randomUUID();
             let name = 'Hero Name';
             try { name = JSON.parse(legacySave).name || 'Hero Name'; } catch(e){}
             this.roster = [{ id: charId, name }];
             this.activeCharId = charId;
-            localStorage.setItem('1000words_state_' + charId, legacySave);
-            localStorage.removeItem('1000words_state'); // Migrate it out
+            try {
+                localStorage.setItem('1000words_state_' + charId, legacySave);
+                localStorage.removeItem('1000words_state'); // Migrate it out
+            } catch (e) {
+                console.error('Failed to migrate legacy save to localStorage', e);
+                window.dispatchEvent(new CustomEvent('storage-error', { detail: { error: e, operation: 'loadRoster' } }));
+            }
             this.saveRoster();
         } else {
-            const charId = 'char_' + Date.now();
+            const charId = crypto.randomUUID();
             this.roster = [{ id: charId, name: 'Hero Name' }];
             this.activeCharId = charId;
             this.saveRoster();
@@ -106,9 +111,14 @@ export class DataManager {
     }
 
     saveRoster() {
-        localStorage.setItem('1000words_roster', JSON.stringify(this.roster));
-        if (this.activeCharId) {
-            localStorage.setItem('1000words_active_char', this.activeCharId);
+        try {
+            localStorage.setItem('1000words_roster', JSON.stringify(this.roster));
+            if (this.activeCharId) {
+                localStorage.setItem('1000words_active_char', this.activeCharId);
+            }
+        } catch (e) {
+            console.error('Failed to save roster to localStorage', e);
+            window.dispatchEvent(new CustomEvent('storage-error', { detail: { error: e, operation: 'saveRoster' } }));
         }
     }
 
@@ -138,7 +148,12 @@ export class DataManager {
 
     saveState() {
         if (!this.activeCharId) return;
-        localStorage.setItem('1000words_state_' + this.activeCharId, JSON.stringify(this.state));
+        try {
+            localStorage.setItem('1000words_state_' + this.activeCharId, JSON.stringify(this.state));
+        } catch (e) {
+            console.error('Failed to save state to localStorage', e);
+            window.dispatchEvent(new CustomEvent('storage-error', { detail: { error: e, operation: 'saveState' } }));
+        }
         
         // Also update roster name if it changed
         const rosterEntry = this.roster.find(r => r.id === this.activeCharId);
@@ -164,7 +179,7 @@ export class DataManager {
     }
 
     addTile(tile) {
-        if (!tile.id) tile.id = Date.now().toString();
+        if (!tile.id) tile.id = crypto.randomUUID();
         this.state.tiles.push(tile);
         this.saveState();
     }
@@ -191,7 +206,7 @@ export class DataManager {
     }
 
     createNewCharacter(name = "Hero Name") {
-        const charId = 'char_' + Date.now();
+        const charId = crypto.randomUUID();
         this.roster.push({ id: charId, name });
         this.activeCharId = charId;
         this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -250,7 +265,7 @@ export class DataManager {
                     this.state = newState;
                     this.saveState();
                 } else {
-                    const charId = 'char_' + Date.now();
+                    const charId = crypto.randomUUID();
                     const name = newState.name || 'Imported Hero';
                     this.roster.push({ id: charId, name });
                     this.activeCharId = charId;
