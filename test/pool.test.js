@@ -72,14 +72,49 @@ describe('calculateTagLimit', () => {
 
 describe('calculateOptimalXpCost (cascade)', () => {
     it('matches rulebook base costs for a single die', () => {
+        // From the System Concept-Dice chart: cumulative cost to grow
+        // a free d3 up to each rank.
         assert.equal(engine.calculateOptimalXpCost(['d3']), 0);
         assert.equal(engine.calculateOptimalXpCost(['d4']), 1);
         assert.equal(engine.calculateOptimalXpCost(['d6']), 3);
         assert.equal(engine.calculateOptimalXpCost(['d8']), 6);
+        assert.equal(engine.calculateOptimalXpCost(['d10']), 10);
+        assert.equal(engine.calculateOptimalXpCost(['d12']), 15);
+        assert.equal(engine.calculateOptimalXpCost(['d14']), 21);
+        assert.equal(engine.calculateOptimalXpCost(['d16']), 28);
     });
 
-    it('charges escalating cost for additional dice', () => {
+    it('charges {steps} + {count of other dice} for each additional die', () => {
+        // 2x d4: add d4 (1+0=1), add d4 (1+1=2) => 3
         assert.equal(engine.calculateOptimalXpCost(['d4', 'd4']), 3);
+        // 3x d4: 1 + 2 + 3 = 6
+        assert.equal(engine.calculateOptimalXpCost(['d4', 'd4', 'd4']), 6);
+        // 2x d6 (matches the rulebook walkthrough): first d6 costs 3,
+        // second d6 costs (1+1)+(2+1) = 5 => total 8
+        assert.equal(engine.calculateOptimalXpCost(['d6', 'd6']), 8);
+        // 2x d8: 6 + ((1+1)+(2+1)+(3+1)) = 6 + 9 = 15
+        assert.equal(engine.calculateOptimalXpCost(['d8', 'd8']), 15);
+    });
+
+    it('charges mixed-rank pools with the highest die paying first', () => {
+        // d6 + d4 (sorted [d6,d4]): 3 + (1+1) = 5
+        assert.equal(engine.calculateOptimalXpCost(['d6', 'd4']), 5);
+        assert.equal(engine.calculateOptimalXpCost(['d4', 'd6']), 5); // order-independent
+        // d8 + d4: 6 + (1+1) = 8
+        assert.equal(engine.calculateOptimalXpCost(['d8', 'd4']), 8);
+        // d8 + d6 + d4 (sorted [d8,d6,d4]): 6 + ((1+1)+(2+1)) + (1+2) = 6 + 5 + 3 = 14
+        assert.equal(engine.calculateOptimalXpCost(['d4', 'd6', 'd8']), 14);
+    });
+
+    it('treats d3 as free and does not count it toward "other dice"', () => {
+        // d3 alone is free.
+        assert.equal(engine.calculateOptimalXpCost(['d3']), 0);
+        // d3 + d6: d3 is skipped entirely, so d6 pays its lone-die cost of 3,
+        // not 3+1=4 as if the d3 counted as an "other die".
+        assert.equal(engine.calculateOptimalXpCost(['d3', 'd6']), 3);
+        assert.equal(engine.calculateOptimalXpCost(['d3', 'd3', 'd6']), 3);
+        // d3 + 2x d6: still 8, the d3 is invisible to the cascade.
+        assert.equal(engine.calculateOptimalXpCost(['d3', 'd6', 'd6']), 8);
     });
 });
 

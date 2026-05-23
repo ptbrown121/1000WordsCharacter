@@ -7,18 +7,6 @@ import { renderCards } from './cards.js';
 let dataManager;
 let poolEngine;
 
-export const BASE_XP = { 'd3': 0, 'd4': 1, 'd6': 3, 'd8': 6, 'd10': 10, 'd12': 15, 'd14': 21, 'd16': 28 };
-
-export function calcAttributeXP(diceArray) {
-    let xp = 0;
-    let index = 0;
-    for (let die of diceArray) {
-        xp += BASE_XP[die] + index;
-        index++;
-    }
-    return xp;
-}
-
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
@@ -60,17 +48,19 @@ export function init(deps) {
 
 export function updateXpTracker() {
     let spent = 0;
-    
-    // 1. Stats XP
+
+    // 1. Stats XP - charged via the same cascade formula as tile dice
+    // (rulebook System Concept-Dice chart: each advance costs
+    // {steps on the advanced die} + {count of other dice}).
     Object.values(dataManager.state.stats).forEach(str => {
-        spent += calcAttributeXP(parseDiceString(str));
+        spent += poolEngine.calculateOptimalXpCost(parseDiceString(str));
     });
-    
+
     // 2. Tiles XP
     dataManager.state.tiles.forEach(t => {
         spent += (parseInt(t.xpCost, 10) || 0);
     });
-    
+
     els.valXpSpent.innerText = spent;
     els.valXpEarned.value = dataManager.state.xpEarned;
 }
