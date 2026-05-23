@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Character & dice-pool manager for the 1000 WORDS TTRPG. Zero-dependency, no build — open index.html to run. This file only enables `node --test` for the pure logic in js/pool.js.",
   "scripts": {
+    "dev": "npx --yes serve .",
     "test": "node --test \"test/**/*.test.js\""
   }
 }
