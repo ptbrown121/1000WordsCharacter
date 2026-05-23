@@ -34,6 +34,7 @@ const els = {
     valSh: document.getElementById('val-sh'),
     valShMax: document.getElementById('val-sh-max'),
     shTempBadge: document.getElementById('sh-temp-badge'),
+    shadowPool: document.getElementById('shadow-pool'),
     btnRest: document.getElementById('btn-rest'),
     btnNewChar: document.getElementById('btn-new-char'),
     btnCalcXp: document.getElementById('btn-calc-xp'),
@@ -263,6 +264,10 @@ function renderOptionalStatsVisibility() {
     els.optionalStatBoxes.forEach(box => {
         box.style.display = showOptionalStats ? '' : 'none';
     });
+    
+    if (els.shadowPool) {
+        els.shadowPool.style.display = showOptionalStats ? '' : 'none';
+    }
 
     els.optionalCallOptions.forEach(option => {
         option.hidden = !showOptionalStats;

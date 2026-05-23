@@ -25,11 +25,6 @@ const RESOURCE_TAGS = {
 
 const FLAW_TAGS = new Set(['old', 'primitive', 'rare', 'risky', 'worn', 'hitch', 'bulky', 'heavy']);
 const EXOTIC_TAGS = new Set(['bestial', 'celestial', 'cyber']);
-const ARMOR_TAGS = new Set([
-    'quick', 'tough', 'vital', 'motorized',
-    'agile', 'hidden', 'ironclad', 'loose', 'rugged', 'sealed',
-    'adamant'
-]);
 
 const DIE_STEPS = {
     d3: 0,
@@ -90,10 +85,6 @@ export class PoolEngine {
 
         if (withoutPrefix.includes('flaw') || FLAW_TAGS.has(withoutPrefix) || withoutPrefix.startsWith('hitch')) {
             return { name, counts: false, reason: 'Flaw tags do not count' };
-        }
-
-        if (ARMOR_TAGS.has(withoutPrefix)) {
-            return { name, counts: false, reason: 'Armor tags do not count' };
         }
 
         if (withoutPrefix.includes('(exempt)') || withoutPrefix.includes('exempt')) {
