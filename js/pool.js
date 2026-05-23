@@ -161,7 +161,7 @@ export class PoolEngine {
         
         // Tag modifiers
         tagsArray.forEach(tag => {
-            const t = tag.toLowerCase();
+            const t = tag.toLowerCase().replace(' (exempt)', '');
             if (t.startsWith('chain ')) {
                 xp += 4;
             } else if (['old', 'primitive', 'rare', 'risky', 'worn'].includes(t)) {
@@ -169,7 +169,11 @@ export class PoolEngine {
             } else if (t.startsWith('hitch')) {
                 // Hitch can give up to 6 XP, default guess -3
                 xp -= 3; 
-            } else if (['expert', 'keen', 'sharp', 'agile', 'hidden', 'ironclad', 'rugged', 'quick', 'tough', 'vital', 'nimble'].includes(t)) {
+            } else if (['slow', 'pain'].includes(t)) {
+                xp += 3;
+            } else if (['bleed', 'wound'].includes(t)) {
+                xp += 4;
+            } else if (['expert', 'keen', 'sharp', 'agile', 'hidden', 'ironclad', 'rugged', 'quick', 'tough', 'vital', 'nimble', 'down', 'jolt'].includes(t)) {
                 xp += 2;
             } else {
                 // generic tag guess

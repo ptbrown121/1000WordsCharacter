@@ -357,6 +357,16 @@
                                 <option value="Bulky">Bulky (-3 Walk)</option>
                                 <option value="Heavy">Heavy (Spend 1 EN on call)</option>
                             </optgroup>
+                            <optgroup label="Fast Crits (Apply once, then fade)">
+                                <option value="DOWN">DOWN (target loses next action) [+2]</option>
+                                <option value="JOLT">JOLT (target loses 3 Grit on next defense) [+2]</option>
+                                <option value="SLOW">SLOW (target loses 3 Reflex) [+3]</option>
+                                <option value="PAIN">PAIN (target loses 3 Energy) [+3]</option>
+                            </optgroup>
+                            <optgroup label="Sticky Crits (Last until healed)">
+                                <option value="BLEED">BLEED (called tiles are burned) [+4]</option>
+                                <option value="WOUND">WOUND (all checks at -3) [+4]</option>
+                            </optgroup>
                             <optgroup label="Other">
                                 <option value="Custom">Custom...</option>
                             </optgroup>
@@ -487,12 +497,22 @@
                                 <option value="" data-xp="0">-- Select --</option>
                                 <option value="Custom" data-xp="0">Custom...</option>
                                 <optgroup label="Spell Crits & Tags">
-                                    <option value="2 XP Crit/Tag" data-xp="2">2 XP Crit/Tag (e.g., DOWN) (+2🗱)</option>
-                                    <option value="3 XP Crit" data-xp="3">3 XP Crit (e.g., PAIN) (+3🗱)</option>
-                                    <option value="4 XP Crit/Tag" data-xp="4">4 XP Crit/Tag (e.g., BLEED) (+4🗱)</option>
-                                    <option value="Exotic Tag" data-xp="5">Exotic Tag (e.g., Cyber) (+5🗱)</option>
-                                    <option value="-2 XP Flaw" data-xp="-2">-2 XP Flaw (e.g., Bulky) (-2🗱)</option>
+                                    <option value="2 XP Crit/Tag" data-xp="2">2 XP Crit/Tag (+2🗱)</option>
+                                    <option value="3 XP Crit" data-xp="3">3 XP Crit (+3🗱)</option>
+                                    <option value="4 XP Crit/Tag" data-xp="4">4 XP Crit/Tag (+4🗱)</option>
+                                    <option value="Exotic Tag" data-xp="5">Exotic Tag (+5🗱)</option>
+                                    <option value="-2 XP Flaw" data-xp="-2">-2 XP Flaw (-2🗱)</option>
                                     <option value="-4 XP Flaw" data-xp="-4">-4 XP Flaw (-4🗱)</option>
+                                </optgroup>
+                                <optgroup label="Fast Crits (Apply once, then fade)">
+                                    <option value="DOWN" data-xp="2">DOWN (target loses next action) [+2]</option>
+                                    <option value="JOLT" data-xp="2">JOLT (target loses 3 Grit on next defense) [+2]</option>
+                                    <option value="SLOW" data-xp="3">SLOW (target loses 3 Reflex) [+3]</option>
+                                    <option value="PAIN" data-xp="3">PAIN (target loses 3 Energy) [+3]</option>
+                                </optgroup>
+                                <optgroup label="Sticky Crits (Last until healed)">
+                                    <option value="BLEED" data-xp="4">BLEED (called tiles are burned) [+4]</option>
+                                    <option value="WOUND" data-xp="4">WOUND (all checks at -3) [+4]</option>
                                 </optgroup>
                                 <optgroup label="Standard Tags (+2 XP)">
                                     <option value="Expert" data-xp="2">Expert</option>
