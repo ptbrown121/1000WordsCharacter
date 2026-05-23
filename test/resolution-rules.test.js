@@ -211,13 +211,10 @@ describe('calculateResolutionPlusUsage', () => {
         assert.deepEqual(out.bucketCounts, { attack: 1 });
     });
 
-    it('budget defaults to 1 when result.adds is 0 (legacy `|| 2` fallback)', () => {
-        // result.adds || 2 treats 0 as missing - this is current behavior,
-        // not necessarily desired. Documented here so a future change to
-        // `??` shows up as an intentional test update.
+    it('budget is 0 when result.adds is 0 (nullish coalescing preserves explicit zero)', () => {
         const r = result(rolls(6), { adds: 0 });
-        assert.equal(calculateResolutionPlusUsage(r, 'attack', {}).budget, 1);
-        assert.equal(calculateResolutionPlusUsage(r, 'action', {}).budget, 1);
+        assert.equal(calculateResolutionPlusUsage(r, 'attack', {}).budget, 0);
+        assert.equal(calculateResolutionPlusUsage(r, 'action', {}).budget, 0);
     });
 });
 

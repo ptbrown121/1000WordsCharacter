@@ -95,7 +95,7 @@ export function getSortedRolls(result) {
 export function getDefaultResolutionAssignments(result, mode) {
     const assignments = {};
     const sortedRolls = getSortedRolls(result);
-    const adds = result.adds || 2;
+    const adds = result.adds ?? 2;
 
     sortedRolls.forEach((roll, index) => {
         let assignment = 'unused';
@@ -203,7 +203,7 @@ export function calculateResolutionPlusUsage(result, mode, assignments) {
     if (!plusBuckets) {
         return {
             used: 0,
-            budget: Math.max(0, (result.adds || 2) - 1),
+            budget: Math.max(0, (result.adds ?? 2) - 1),
             bucketCounts
         };
     }
@@ -221,7 +221,7 @@ export function calculateResolutionPlusUsage(result, mode, assignments) {
 
     return {
         used,
-        budget: Math.max(0, (result.adds || 2) - 1),
+        budget: Math.max(0, (result.adds ?? 2) - 1),
         bucketCounts
     };
 }

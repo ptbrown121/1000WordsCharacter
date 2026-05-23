@@ -32,8 +32,6 @@ export class SpellBuilder {
         this.tagSelect = document.getElementById('spell-tag-select');
         this.tagCustomInput = document.getElementById('spell-tag-custom-input');
         this.tagCustomXp = document.getElementById('spell-tag-custom-xp');
-        this.tagCustomInput = document.getElementById('spell-tag-custom-input');
-        this.tagCustomXp = document.getElementById('spell-tag-custom-xp');
         this.btnAddTag = document.getElementById('btn-spell-add-tag');
         this.tagsContainer = document.getElementById('spell-tags-container');
 
@@ -100,7 +98,7 @@ export class SpellBuilder {
             
             const opt = this.actionSelect.options[this.actionSelect.selectedIndex];
             const text = opt.text.split('(')[0].trim();
-            const xp = parseInt(opt.dataset.xp || 0);
+            const xp = parseInt(opt.dataset.xp || 0, 10);
 
             if (this.currentActions.some(a => a.val === val)) return;
 
@@ -111,11 +109,11 @@ export class SpellBuilder {
 
         this.btnAddTag.addEventListener('click', () => {
             let val = this.tagSelect.value;
-            let xp = parseInt(this.tagSelect.options[this.tagSelect.selectedIndex].dataset.xp || 0);
+            let xp = parseInt(this.tagSelect.options[this.tagSelect.selectedIndex].dataset.xp || 0, 10);
 
             if (val === 'Custom') {
                 val = this.tagCustomInput.value.trim();
-                xp = parseInt(this.tagCustomXp.value || 0);
+                xp = parseInt(this.tagCustomXp.value || 0, 10);
                 if (!val) return;
                 this.tagCustomInput.value = '';
                 this.tagCustomXp.value = '2';
@@ -217,7 +215,7 @@ export class SpellBuilder {
                         this.currentActions.push({
                             val: opt.value,
                             text: opt.text.split('(')[0].trim(),
-                            xp: parseInt(opt.dataset.xp || 0)
+                            xp: parseInt(opt.dataset.xp || 0, 10)
                         });
                     }
                 });
@@ -397,9 +395,9 @@ export class SpellBuilder {
             const sel = document.getElementById(id);
             if (!sel) return 0;
             if (sel.value === 'custom') {
-                return parseInt(document.getElementById(`${id}-custom-xp`).value || 0);
+                return parseInt(document.getElementById(`${id}-custom-xp`).value || 0, 10);
             }
-            return parseInt(sel.value || 0);
+            return parseInt(sel.value || 0, 10);
         };
 
         // Metrics
@@ -411,16 +409,16 @@ export class SpellBuilder {
 
         // Modifiers (number inputs)
         document.querySelectorAll('.spell-mod').forEach(input => {
-            const count = parseInt(input.value || 0);
+            const count = parseInt(input.value || 0, 10);
             if (count > 0) {
-                const cost = parseInt(input.dataset.xp || 0);
+                const cost = parseInt(input.dataset.xp || 0, 10);
                 xp += (cost * count);
             }
         });
 
         // Chaining
         if (document.getElementById('spell-unchained').checked) {
-            xp += parseInt(document.getElementById('spell-unchained').value);
+            xp += parseInt(document.getElementById('spell-unchained').value, 10);
         }
 
         return xp;
@@ -460,7 +458,7 @@ export class SpellBuilder {
         
         let mods = [];
         document.querySelectorAll('.spell-mod').forEach(input => {
-            const count = parseInt(input.value || 0);
+            const count = parseInt(input.value || 0, 10);
             if (count > 0) {
                 const label = input.dataset.label;
                 mods.push(count > 1 ? `${label} x${count}` : label);
