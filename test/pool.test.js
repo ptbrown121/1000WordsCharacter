@@ -2,10 +2,13 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
     PoolEngine,
+    getExoticSkillBaseXp,
     formatWeaponTemplateDetails,
     getWeaponTemplateById,
     getWeaponTemplateTags,
-    getWeaponTemplatesByCategory
+    getWeaponTemplatesByCategory,
+    getHitchValue,
+    isHitchedTile
 } from '../js/pool.js';
 
 const engine = new PoolEngine();
@@ -177,6 +180,12 @@ describe('estimateTileXp', () => {
         assert.equal(engine.estimateTileXp(['d4'], ['Single'], null, { weapon: { templateId: 'javelin' } }), 1); // d4 1 + Single -2 + Far +2
         assert.equal(engine.estimateTileXp(['d4'], ['Fast'], null, { weapon: { templateId: 'small-arms' } }), 3); // no Far surcharge
         assert.equal(engine.estimateTileXp(['d4'], [], null, { weapon: { category: 'Far' } }), 3); // custom Far weapon surcharge
+    });
+
+    it('adds exotic skill base XP before the first die', () => {
+        assert.equal(getExoticSkillBaseXp('arcana-twist'), 2);
+        assert.equal(engine.estimateTileXp(['d4'], [], null, { exoticSkill: { id: 'cyber' } }), 3);
+        assert.equal(engine.estimateTileXp(['d6'], ['Expert'], null, { exoticSkill: 'bestial' }), 7);
     });
 });
 
@@ -390,6 +399,24 @@ describe('compilePool', () => {
         const plainCallTile = { id: '3', name: 'Axe', colors: ['Red'], dice: ['d8'], tags: '' };
         const burnRes = engine.compilePool(['Red'], stats, plainCallTile, [buriedBurn], [plainCallTile, buriedBurn], []);
         assert.match(burnRes.error, /buried/i);
+    });
+
+    it('reports Hitch EN cost for called tiles and rejects Hitched burn tiles', () => {
+        const hitched = { id: 'h', name: 'Oath', colors: ['Red'], dice: ['d6'], tags: 'Hitch 5' };
+        assert.equal(getHitchValue(hitched), 5);
+        assert.equal(isHitchedTile(hitched), true);
+
+        const callRes = engine.compilePool(['Red'], stats, hitched, [], [hitched], []);
+        assert.equal(callRes.error, null);
+        assert.deepEqual(callRes.resourceCosts.map(cost => ({
+            resource: cost.resource,
+            amount: cost.amount,
+            sourceTileName: cost.sourceTileName
+        })), [{ resource: 'en', amount: 1, sourceTileName: 'Oath' }]);
+
+        const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: '' };
+        const burnRes = engine.compilePool(['Red'], stats, callTile, [hitched], [callTile, hitched], []);
+        assert.match(burnRes.error, /cannot be burned/i);
     });
 
     it('surfaces a contextual tag bonus equal to the tile’s die steps', () => {

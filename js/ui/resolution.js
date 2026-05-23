@@ -13,7 +13,13 @@ import {
     getHealingAssignments
 } from '../resolution-rules.js';
 
-export function init() {
+let dataManager;
+let renderAll;
+
+export function init(deps = {}) {
+    dataManager = deps.dataManager;
+    renderAll = deps.renderAll;
+
     els.resolutionControls.addEventListener('change', (e) => {
         if (!uiState.lastRollResult) return;
 
@@ -26,6 +32,12 @@ export function init() {
 
         if (e.target.classList.contains('resolution-die-select')) {
             uiState.currentResolutionAssignments[e.target.dataset.rollId] = e.target.value;
+            renderResolution();
+            return;
+        }
+
+        if (e.target.classList.contains('ammo-die-select')) {
+            uiState.ammoAssignments[e.target.dataset.ammoTileId] = e.target.value;
             renderResolution();
             return;
         }
@@ -44,6 +56,11 @@ export function init() {
     els.resolutionControls.addEventListener('input', (e) => {
         if (!uiState.lastRollResult || !e.target.classList.contains('resolution-extra')) return;
         renderResolutionDetails();
+    });
+
+    els.resolutionControls.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('btn-resolve-ammo')) return;
+        resolveAmmo(e.target.dataset.ammoTileId);
     });
 }
 
@@ -183,6 +200,75 @@ export function renderResolutionAssignments(result) {
             </div>
         `;
     }).join('');
+}
+
+function getRollOptions(result, selectedId = '') {
+    const empty = '<option value="">-- Assign die --</option>';
+    const options = (result.originalRolls || []).map((roll, index) => {
+        const rollId = getRollId(roll, index);
+        const selected = rollId === selectedId ? ' selected' : '';
+        return `<option value="${escapeHtml(rollId)}"${selected}>${escapeHtml(roll.source)} ${escapeHtml(roll.die)} rolled ${escapeHtml(roll.val)}</option>`;
+    }).join('');
+    return empty + options;
+}
+
+export function renderAmmoResolution(result) {
+    const options = result.ammoOptions || [];
+    if (options.length === 0) return '';
+
+    const rows = options.map(option => {
+        const selected = uiState.ammoAssignments[option.tileId] || '';
+        const roll = (result.originalRolls || []).find((candidate, index) => getRollId(candidate, index) === selected);
+        const status = roll
+            ? (roll.val >= option.supply ? 'Retains on resolve' : 'Runs out on resolve')
+            : (option.linked ? `Supply ${option.supply}` : `Unlinked · Supply ${option.supply}`);
+        return `
+            <div class="ammo-resolution-row">
+                <span class="ammo-resolution-main">
+                    <strong>${escapeHtml(option.name)}</strong>
+                    <small>${escapeHtml(option.targetName || 'GM target')} · ${escapeHtml(option.currentSupply)}/${escapeHtml(option.supply)}</small>
+                </span>
+                <select class="ammo-die-select" data-ammo-tile-id="${escapeHtml(option.tileId)}">
+                    ${getRollOptions(result, selected)}
+                </select>
+                <button class="btn-resolve-ammo" type="button" data-ammo-tile-id="${escapeHtml(option.tileId)}"${selected ? '' : ' disabled'}>Resolve</button>
+                <span class="ammo-resolution-status">${escapeHtml(status)}</span>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="ammo-resolution-panel">
+            <h3>Ammo Resolution</h3>
+            <p class="hint-text">Assign a spare die to ammo. If the die is below Supply, the ammo is buried/runs out.</p>
+            ${rows}
+        </div>
+    `;
+}
+
+function resolveAmmo(tileId) {
+    if (!dataManager || !uiState.lastRollResult) return;
+    const selectedRollId = uiState.ammoAssignments[tileId];
+    const roll = (uiState.lastRollResult.originalRolls || [])
+        .find((candidate, index) => getRollId(candidate, index) === selectedRollId);
+    const tile = (dataManager.state.tiles || []).find(candidate => candidate.id === tileId);
+    if (!roll || !tile?.ammo) return;
+
+    const supply = Math.max(1, parseInt(tile.ammo.maxSupply, 10) || 1);
+    const retained = roll.val >= supply;
+    tile.ammo.currentSupply = Math.max(0, (parseInt(tile.ammo.currentSupply, 10) || 0) - 1);
+    if (!retained) {
+        tile.isBuried = true;
+        tile.isBurnt = false;
+        tile.ammo.currentSupply = 0;
+    }
+
+    dataManager.updateTile(tile);
+    uiState.lastRollResult.ammoOptions = (uiState.lastRollResult.ammoOptions || [])
+        .filter(option => option.tileId !== tileId);
+    delete uiState.ammoAssignments[tileId];
+    if (renderAll) renderAll();
+    renderResolution();
 }
 
 export function renderBonusDetails(details) {
@@ -382,6 +468,7 @@ export function renderResolution() {
             <label>Assign Rolled Dice</label>
             ${renderResolutionAssignments(result)}
         </div>
+        ${renderAmmoResolution(result)}
         ${warningHtml}
     `;
 
@@ -392,6 +479,7 @@ export function showResults(result) {
     uiState.lastRollResult = result;
     uiState.currentResolutionMode = 'action';
     uiState.currentResolutionAssignments = getDefaultResolutionAssignments(result, uiState.currentResolutionMode);
+    uiState.ammoAssignments = {};
     uiState.healingInCombat = false;
     els.rollResults.style.display = 'block';
     renderResolution();

@@ -3,6 +3,7 @@ import { els } from '../els.js';
 import { updatePoolPreview } from './pool.js';
 import { updateShadowMax } from './vitals.js';
 import { renderCards } from './cards.js';
+import { renderRulesReview } from './rulesReview.js';
 
 let dataManager;
 let poolEngine;
@@ -39,6 +40,7 @@ export function init(deps) {
             updatePoolPreview();
             updateXpTracker();
             updateShadowMax();
+            renderRulesReview();
         });
     });
 
@@ -63,6 +65,7 @@ export function updateXpTracker() {
 
     els.valXpSpent.innerText = spent;
     els.valXpEarned.value = dataManager.state.xpEarned;
+    renderRulesReview();
 }
 
 export function renderOptionalStatsVisibility() {

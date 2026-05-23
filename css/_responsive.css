@@ -17,7 +17,152 @@
     }
 }
 
+@media (max-width: 700px) {
+    body {
+        overflow-x: hidden;
+        padding: 0.75rem;
+    }
+    .glass-panel {
+        padding: 1rem;
+    }
+    .header-top > div,
+    .section-header > div,
+    #stats-section > div:first-child {
+        min-width: 0;
+    }
+    .header-top > div {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
+    .header-top > div > div:first-child {
+        flex: 0 1 auto !important;
+        width: 100%;
+    }
+    .header-actions {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        width: 100%;
+    }
+    .header-actions .btn,
+    .header-actions label.btn {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        text-align: center;
+    }
+    .resource-pools {
+        grid-template-columns: 1fr;
+    }
+    #stats-section > div:first-child {
+        align-items: stretch !important;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    #stats-section > div:first-child > div {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        justify-content: stretch !important;
+    }
+    #stats-section .inline-toggle {
+        min-width: 0;
+    }
+    #stats-section .btn {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        white-space: normal;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    #mosaic-section .section-header > div:first-child {
+        align-items: stretch !important;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    #mosaic-section .section-header > div:first-child > div {
+        display: grid !important;
+        gap: 0.5rem;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    #mosaic-section .section-header .btn {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
 @media (max-width: 480px) {
+    body {
+        overflow-x: hidden;
+        padding: 0.75rem;
+    }
+    .glass-panel {
+        padding: 1rem;
+    }
+    .header-top > div,
+    .section-header > div,
+    #stats-section > div:first-child {
+        min-width: 0;
+    }
+    .header-top > div {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
+    .header-top > div > div:first-child {
+        flex: 0 1 auto !important;
+        width: 100%;
+    }
+    .header-actions {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        width: 100%;
+    }
+    .header-actions .btn,
+    .header-actions label.btn {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        text-align: center;
+    }
+    .resource-pools {
+        grid-template-columns: 1fr;
+    }
+    #stats-section > div:first-child {
+        align-items: stretch !important;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    #stats-section > div:first-child > div {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        justify-content: stretch !important;
+    }
+    #stats-section .inline-toggle {
+        min-width: 0;
+    }
+    #stats-section .btn {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        white-space: normal;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    #mosaic-section .section-header > div:first-child {
+        align-items: stretch !important;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    #mosaic-section .section-header > div:first-child > div {
+        display: grid !important;
+        gap: 0.5rem;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    #mosaic-section .section-header .btn {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
     .modal {
         align-items: stretch;
         padding: 0.5rem;
@@ -44,6 +189,9 @@
     }
     #weapon-template-preview {
         flex-basis: 100% !important;
+    }
+    .ammo-resolution-row {
+        grid-template-columns: 1fr;
     }
 }
 

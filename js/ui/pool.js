@@ -1,4 +1,4 @@
-import { escapeHtml, parseDiceInput, getDiceValidationMessage } from '../pool.js';
+import { escapeHtml, isHitchedTile, parseDiceInput, getDiceValidationMessage } from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { showResults } from './resolution.js';
@@ -66,6 +66,48 @@ export function getPoolOptions() {
     return {
         disabledChainIds: new Set(uiState.disabledChainIds)
     };
+}
+
+function getAmmoResolutionOptions(calledTileIds = []) {
+    const calledIds = new Set(calledTileIds);
+    return (dataManager.state.tiles || [])
+        .filter(tile => tile.type === 'Gear' && tile.gearSubtype === 'Ammo' && tile.ammo && !tile.isBuried)
+        .filter(tile => (parseInt(tile.ammo.currentSupply, 10) || 0) > 0)
+        .filter(tile => !tile.ammo.targetTileId || calledIds.has(tile.ammo.targetTileId))
+        .map(tile => ({
+            tileId: tile.id,
+            name: tile.name,
+            targetName: tile.ammo.targetName || '',
+            currentSupply: parseInt(tile.ammo.currentSupply, 10) || 0,
+            supply: Math.max(1, parseInt(tile.ammo.maxSupply, 10) || 1),
+            linked: Boolean(tile.ammo.targetTileId)
+        }));
+}
+
+function applyResourceCosts(resourceCosts = []) {
+    const enCost = resourceCosts
+        .filter(cost => cost.resource === 'en')
+        .reduce((sum, cost) => sum + (parseInt(cost.amount, 10) || 0), 0);
+
+    if (enCost <= 0) return true;
+
+    const names = resourceCosts
+        .filter(cost => cost.resource === 'en')
+        .map(cost => cost.sourceTileName)
+        .join(', ');
+    const currentEn = parseInt(dataManager.state.en, 10) || 0;
+    if (currentEn < enCost && !dataManager.state.gmOverride) {
+        alert(`Calling ${names} costs ${enCost} EN for Hitch, but only ${currentEn} EN is available.`);
+        return false;
+    }
+
+    const spend = confirm(`Calling ${names} costs ${enCost} EN for Hitch. Spend it now?`);
+    if (!spend) return false;
+
+    dataManager.state.en = Math.max(0, currentEn - enCost);
+    dataManager.saveState();
+    els.valEn.value = dataManager.state.en;
+    return true;
 }
 
 export function renderChainOptions(chainOptions = []) {
@@ -223,6 +265,7 @@ export function updatePoolPreview() {
         const selectedTagBonus = calculateSelectedTagBonus(res.tagBonuses || []);
         let addsText = `Adds (Keep): ${res.adds}`;
         if ((res.tagBonuses || []).length > 0) addsText += ` | Tag Bonus: +${selectedTagBonus}`;
+        if ((res.resourceCosts || []).length > 0) addsText += ` | Costs: ${res.resourceCosts.map(cost => `${cost.amount} ${cost.resource.toUpperCase()}`).join(', ')}`;
         els.poolAddsDisplay.innerText = addsText;
     }
 
@@ -271,6 +314,7 @@ export function executeVirtualRoll() {
         alert(res.error || "No dice to roll.");
         return;
     }
+    if (!applyResourceCosts(res.resourceCosts || [])) return;
 
     const rolled = poolEngine.rollPool(res.dice);
     const result = poolEngine.calculateOptimalTotal(rolled, res.adds);
@@ -278,6 +322,7 @@ export function executeVirtualRoll() {
     result.adds = res.adds;
     result.flatBonus = res.flatBonus || 0;
     result.appliedTagBonuses = appliedTagBonuses;
+    result.ammoOptions = getAmmoResolutionOptions(res.calledTileIds || []);
     showResults(result);
     processBurns();
 }
@@ -318,19 +363,24 @@ export function executeManualCalculate() {
         alert(res.error || "No dice to calculate.");
         return;
     }
+    if (!applyResourceCosts(res.resourceCosts || [])) return;
 
     const result = poolEngine.calculateOptimalTotal(rolled, res.adds);
     const appliedTagBonuses = getSelectedTagBonuses(res.tagBonuses || []);
     result.adds = res.adds;
     result.flatBonus = res.flatBonus || 0;
     result.appliedTagBonuses = appliedTagBonuses;
+    result.ammoOptions = getAmmoResolutionOptions(res.calledTileIds || []);
     showResults(result);
     processBurns();
 }
 
 export function processBurns() {
     if (uiState.burnTiles.length > 0) {
-        uiState.burnTiles.forEach(t => {
+        uiState.burnTiles
+            .filter(t => !poolEngine.getUnavailableReason(t))
+            .filter(t => !isHitchedTile(t))
+            .forEach(t => {
             t.isBurnt = true;
             dataManager.updateTile(t);
         });

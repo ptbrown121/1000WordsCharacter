@@ -22,6 +22,22 @@ export const COLOR_HEX = {
 
 export const VALID_DICE = new Set(['d3', 'd4', 'd6', 'd8', 'd10', 'd12', 'd14', 'd16']);
 
+const EXOTIC_SKILL_DATA = {
+    'arcana-twist': { system: 'Arcana', specialty: 'Twist', label: 'Arcana: Twist', baseXp: 2 },
+    'arcana-forge': { system: 'Arcana', specialty: 'Forge', label: 'Arcana: Forge', baseXp: 2 },
+    'arcana-augur': { system: 'Arcana', specialty: 'Augur', label: 'Arcana: Augur', baseXp: 2 },
+    bestial: { system: 'Stranger', specialty: 'Bestial', label: 'Stranger: Bestial', baseXp: 2 },
+    celestial: { system: 'Stranger', specialty: 'Celestial', label: 'Stranger: Celestial', baseXp: 2 },
+    cyber: { system: 'Cyber', specialty: 'Cyber', label: 'Cyber', baseXp: 2 }
+};
+
+function normalizeStoredExoticSkill(value) {
+    if (!value) return null;
+    const id = typeof value === 'string' ? value : value.id || value.type || '';
+    const option = EXOTIC_SKILL_DATA[id];
+    return option ? { id, ...option } : null;
+}
+
 /**
  * In-place migration: ensure tile.tags is a string[] of trimmed tag strings.
  * Legacy saves stored it as a comma-separated string; SpellBuilder once
@@ -65,6 +81,7 @@ function normalizeTileMetadata(tile) {
 
     if (tile.isBurnt === undefined) tile.isBurnt = false;
     if (tile.isBuried === undefined) tile.isBuried = false;
+    tile.exoticSkill = tile.type === 'Skill' ? normalizeStoredExoticSkill(tile.exoticSkill) : null;
     if (tile.gearSubtype === undefined && tile.type === 'Gear') {
         tile.gearSubtype = tile.ammo ? 'Ammo' : tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
     }
@@ -138,6 +155,7 @@ const DEFAULT_STATE = {
     sh: 0,
     shTemp: 0,
     shPerm: 0,
+    gmOverride: false,
     showOptionalStats: false,
     stats: {
         'BODY': '',

@@ -6,6 +6,7 @@ import { renderOptionalStatsVisibility, updateXpTracker } from './ui/stats.js';
 import { renderTempBadge, updateShadowMax } from './ui/vitals.js';
 import { renderJournal } from './ui/journal.js';
 import { renderRosterSelect } from './ui/roster.js';
+import { renderRulesReview } from './ui/rulesReview.js';
 
 let dataManager;
 
@@ -47,4 +48,5 @@ export function renderAll() {
     updateShadowMax();
     renderJournal();
     renderRosterSelect();
+    renderRulesReview();
 }

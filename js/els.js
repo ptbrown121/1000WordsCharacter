@@ -33,6 +33,8 @@ export const els = {
     btnCalcXp: document.getElementById('btn-calc-xp'),
     btnCalcVitals: document.getElementById('btn-calc-vitals'),
     toggleOptionalStats: document.getElementById('toggle-optional-stats'),
+    toggleGmOverride: document.getElementById('toggle-gm-override'),
+    rulesReviewStrip: document.getElementById('rules-review-strip'),
     statSelects: document.querySelectorAll('.stat-select'),
     optionalStatBoxes: document.querySelectorAll('.optional-stat'),
     cardContainer: document.getElementById('card-container'),

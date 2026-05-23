@@ -21,6 +21,8 @@ export const uiState = {
     currentResolutionMode: 'action',
     // Map of roll-id -> assignment slot for the current resolution.
     currentResolutionAssignments: {},
+    // Map of ammo tile id -> roll id selected for ammo supply resolution.
+    ammoAssignments: {},
     // Whether healing-in-combat penalties apply to the current roll.
     healingInCombat: false
 };

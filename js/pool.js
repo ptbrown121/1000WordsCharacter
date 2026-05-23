@@ -154,6 +154,36 @@ export function formatWeaponTemplateDetails(template) {
     return `${template.category} · ${template.range} · ${template.skill} · Tags: ${tags}${extra}`;
 }
 
+export const EXOTIC_SKILL_OPTIONS = {
+    none: { label: 'None', baseXp: 0 },
+    'arcana-twist': { system: 'Arcana', specialty: 'Twist', label: 'Arcana: Twist', baseXp: 2 },
+    'arcana-forge': { system: 'Arcana', specialty: 'Forge', label: 'Arcana: Forge', baseXp: 2 },
+    'arcana-augur': { system: 'Arcana', specialty: 'Augur', label: 'Arcana: Augur', baseXp: 2 },
+    bestial: { system: 'Stranger', specialty: 'Bestial', label: 'Stranger: Bestial', baseXp: 2 },
+    celestial: { system: 'Stranger', specialty: 'Celestial', label: 'Stranger: Celestial', baseXp: 2 },
+    cyber: { system: 'Cyber', specialty: 'Cyber', label: 'Cyber', baseXp: 2 }
+};
+
+export function normalizeExoticSkill(value) {
+    if (!value) return null;
+    if (typeof value === 'string') {
+        const option = EXOTIC_SKILL_OPTIONS[value];
+        return option && value !== 'none' ? { id: value, ...option } : null;
+    }
+    const id = value.id || value.type || '';
+    const option = EXOTIC_SKILL_OPTIONS[id];
+    if (option && id !== 'none') return { id, ...option };
+    return null;
+}
+
+export function getExoticSkillBaseXp(value) {
+    return normalizeExoticSkill(value)?.baseXp || 0;
+}
+
+export function getExoticSkillLabel(value) {
+    return normalizeExoticSkill(value)?.label || '';
+}
+
 const CONTEXTUAL_TAG_BONUSES = {
     expert: { name: 'Expert', context: 'action check', description: '+▟ to action checks using this tile' },
     keen: { name: 'Keen', context: 'attack', description: '+▟ to attacks using this tile' },
@@ -377,6 +407,17 @@ function getMechanicalBaseTag(normalizedTag) {
 
 function getDuplicateKey(tag) {
     return normalizeTagForXp(getTagName(tag));
+}
+
+export function getHitchValue(tile) {
+    const hitchTag = tileTagList(tile).find(tag => getMechanicalBaseTag(normalizeTagForXp(tag)) === 'hitch');
+    if (!hitchTag) return 0;
+    const match = String(hitchTag).match(/hitch\s*(\d+)/i);
+    return match ? Math.min(6, Math.max(1, parseInt(match[1], 10) || 1)) : 3;
+}
+
+export function isHitchedTile(tile) {
+    return getHitchValue(tile) > 0;
 }
 
 export class PoolEngine {
@@ -609,6 +650,8 @@ export class PoolEngine {
             xp += 2;
         }
 
+        xp += getExoticSkillBaseXp(options.exoticSkill);
+
         return { xp: Math.max(0, xp), unknownTags };
     }
 
@@ -669,9 +712,22 @@ export class PoolEngine {
         let flatBonus = 0;
         let tagBonuses = [];
         let chainOptions = [];
+        let resourceCosts = [];
+        let calledTileIds = [];
         let error = null;
         const activeCallColors = [...new Set(callColors.filter(Boolean))];
         const disabledChainIds = options.disabledChainIds || new Set();
+        const buildResult = (overrides = {}) => ({
+            dice: pool,
+            adds,
+            flatBonus,
+            tagBonuses,
+            chainOptions,
+            resourceCosts,
+            calledTileIds,
+            error: null,
+            ...overrides
+        });
         const isChainDisabled = (chainId) => {
             if (disabledChainIds instanceof Set) return disabledChainIds.has(chainId);
             if (Array.isArray(disabledChainIds)) return disabledChainIds.includes(chainId);
@@ -679,7 +735,7 @@ export class PoolEngine {
         };
 
         if (activeCallColors.length === 0) {
-            return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: "Select at least 1 color for the Call." };
+            return buildResult({ error: "Select at least 1 color for the Call." });
         }
 
         const getSharedCallColors = (...tiles) => {
@@ -729,6 +785,17 @@ export class PoolEngine {
                     error = `Chained Tile '${tile.name}' does not match any Call Colors.`;
                 }
                 return;
+            }
+
+            calledTileIds.push(tile.id);
+            if (isHitchedTile(tile)) {
+                resourceCosts.push({
+                    resource: 'en',
+                    amount: 1,
+                    sourceTileId: tile.id,
+                    sourceTileName: tile.name,
+                    reason: 'Hitch'
+                });
             }
 
             // Add tile dice
@@ -822,25 +889,30 @@ export class PoolEngine {
         // 2. Validate and Add Call Tile (with chains)
         if (callTile) {
             resolveTile(callTile, true, new Set());
-            if (error) return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error };
+            if (error) return buildResult({ error });
         }
 
         // 3. Validate and Add Burn Tiles (Burn tiles do NOT trigger tags)
         if (burnTiles && burnTiles.length > 0) {
             if (!callTile) {
-                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: "Select a Call Tile before adding Burn tiles." };
+                return buildResult({ error: "Select a Call Tile before adding Burn tiles." });
             }
 
             const unavailableBurnTile = burnTiles.find(tile => this.getUnavailableReason(tile));
             if (unavailableBurnTile) {
                 const reason = this.getUnavailableReason(unavailableBurnTile);
-                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: `Burn tile '${unavailableBurnTile.name}' is ${reason} and cannot be used.` };
+                return buildResult({ error: `Burn tile '${unavailableBurnTile.name}' is ${reason} and cannot be used.` });
+            }
+
+            const hitchedBurnTile = burnTiles.find(tile => isHitchedTile(tile));
+            if (hitchedBurnTile) {
+                return buildResult({ error: `Hitched tile '${hitchedBurnTile.name}' cannot be burned.` });
             }
 
             const sharedBurnColors = getSharedCallColors(callTile, ...burnTiles);
 
             if (sharedBurnColors.length === 0) {
-                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: "Burn tiles must share one selected Call color with the Call Tile." };
+                return buildResult({ error: "Burn tiles must share one selected Call color with the Call Tile." });
             }
 
             burnTiles.forEach(bt => {
@@ -854,7 +926,7 @@ export class PoolEngine {
             extraDice.forEach(d => pool.push({ source: `Extra`, die: d }));
         }
 
-        return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: null };
+        return buildResult();
     }
 
     rollDie(dieString) {

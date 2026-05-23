@@ -151,3 +151,53 @@ header {
 .inline-toggle input {
     cursor: pointer;
 }
+
+.rules-review-strip {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    margin: -0.25rem 0 0.8rem;
+}
+
+.rules-review-strip details {
+    background: rgba(255, 204, 0, 0.06);
+    border: 1px solid rgba(255, 204, 0, 0.16);
+    border-radius: 8px;
+    padding: 0.45rem 0.65rem;
+}
+
+.rules-review-strip.rules-review-overridden details {
+    background: rgba(255,255,255,0.025);
+    border-color: rgba(255,255,255,0.08);
+    opacity: 0.72;
+}
+
+.rules-review-strip summary {
+    cursor: pointer;
+    outline: none;
+}
+
+.rules-review-strip ul {
+    display: grid;
+    gap: 0.3rem;
+    list-style: none;
+    margin-top: 0.5rem;
+    padding-left: 0;
+}
+
+.rules-review-item {
+    line-height: 1.35;
+}
+
+.rules-review-item span {
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-right: 0.4rem;
+}
+
+.rules-review-high span {
+    color: #ff8c8c;
+}
+
+.rules-review-medium span {
+    color: #ffd166;
+}

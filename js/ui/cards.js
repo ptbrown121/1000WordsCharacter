@@ -2,13 +2,14 @@
 // This is safe because all cross-imported symbols are functions that are
 // only called at runtime (inside event handlers or render cycles), never
 // during module evaluation.
-import { escapeHtml, tileTagList } from '../pool.js';
+import { escapeHtml, getExoticSkillLabel, isHitchedTile, tileTagList } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { formatAmmoBase, formatArmorBase, formatWeaponBase } from './modals.js';
 import { updatePoolPreview } from './pool.js';
 import { updateShadowMax } from './vitals.js';
+import { renderRulesReview } from './rulesReview.js';
 
 let dataManager;
 let spellBuilder;
@@ -54,6 +55,8 @@ export function handleCardClick(tile) {
         // Add to pool. If no call tile, make it call. Else make it burn.
         if (!uiState.callTile) {
             uiState.callTile = tile;
+        } else if (isHitchedTile(tile)) {
+            return;
         } else {
             uiState.burnTiles.push(tile);
         }
@@ -137,6 +140,8 @@ export function renderCards() {
         const weaponLabel = formatWeaponBase(tile.weapon);
         const ammoLabel = formatAmmoBase(tile.ammo);
         const isAmmo = tile.type === 'Gear' && tile.gearSubtype === 'Ammo';
+        const isHitched = isHitchedTile(tile);
+        const exoticLabel = getExoticSkillLabel(tile.exoticSkill);
         const linkedAmmoTiles = tile.weapon
             ? dataManager.state.tiles.filter(t => t.gearSubtype === 'Ammo' && t.ammo?.targetTileId === tile.id && !t.isBuried)
             : [];
@@ -167,7 +172,7 @@ export function renderCards() {
             : tile.isBurnt
                 ? `<button class="btn-unburn" title="Un-burn ${tileNameLabel}" aria-label="Un-burn ${tileNameLabel}">Un-burn</button>`
                 : `<div class="tile-card-actions">
-                    <button class="btn-burn-instant" title="Burn ${tileNameLabel}" aria-label="Burn ${tileNameLabel}">Burn</button>
+                    ${isHitched ? '<span class="tile-hitch-note" title="Hitched tiles cost 1 EN when called and cannot be burned">Hitch: 1 EN</span>' : `<button class="btn-burn-instant" title="Burn ${tileNameLabel}" aria-label="Burn ${tileNameLabel}">Burn</button>`}
                     <button class="btn-bury-tile" title="Bury ${tileNameLabel}" aria-label="Bury ${tileNameLabel}">Bury</button>
                 </div>`;
 
@@ -176,6 +181,7 @@ export function renderCards() {
                 ${(tile.colors || []).map(c => `<span class="badge" style="background:${COLOR_HEX[c]}; color:${c==='White'||c==='Yellow'?'black':'white'}">${escapeHtml(c)}</span>`).join('')}
                 ${tile.type ? `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">${escapeHtml(String(tile.type).toUpperCase())}</span>` : `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">SKILL</span>`}
                 ${tile.gearSubtype ? `<span class="badge tile-subtype-badge" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);">${escapeHtml(String(tile.gearSubtype).toUpperCase())}</span>` : ''}
+                ${exoticLabel ? `<span class="badge exotic-skill-badge">${escapeHtml(exoticLabel)}</span>` : ''}
                 ${tile.weapon?.category ? `<span class="badge weapon-category-badge" style="background: rgba(51, 153, 255, 0.2); color: #99ccff; border: 1px solid rgba(153,204,255,0.6);">${escapeHtml(tile.weapon.category)}</span>` : ''}
                 <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost !== undefined ? escapeHtml(tile.xpCost) : 0} XP</span>
             </div>
@@ -219,6 +225,7 @@ export function renderCards() {
                 renderCards();
                 updatePoolPreview();
                 updateShadowMax();
+                renderRulesReview();
             });
         } else if (isAmmo) {
             const btnUseAmmo = div.querySelector('.btn-use-ammo');
@@ -231,6 +238,7 @@ export function renderCards() {
                 tile.ammo.currentSupply = Math.max(0, (parseInt(tile.ammo.currentSupply, 10) || 0) - 1);
                 dataManager.updateTile(tile);
                 renderCards();
+                renderRulesReview();
             });
             btnRestockAmmo.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -238,6 +246,7 @@ export function renderCards() {
                 tile.ammo.currentSupply = Math.max(0, parseInt(tile.ammo.maxSupply, 10) || 0);
                 dataManager.updateTile(tile);
                 renderCards();
+                renderRulesReview();
             });
             btnBury.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -247,6 +256,7 @@ export function renderCards() {
                 renderCards();
                 updatePoolPreview();
                 updateShadowMax();
+                renderRulesReview();
             });
         } else if (tile.isBurnt) {
             const btnUnburn = div.querySelector('.btn-unburn');
@@ -256,18 +266,22 @@ export function renderCards() {
                 dataManager.updateTile(tile);
                 renderCards();
                 updatePoolPreview();
+                renderRulesReview();
             });
         } else {
             const btnBurn = div.querySelector('.btn-burn-instant');
-            btnBurn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                tile.isBurnt = true;
-                if (uiState.callTile && uiState.callTile.id === tile.id) uiState.callTile = null;
-                uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
-                dataManager.updateTile(tile);
-                renderCards();
-                updatePoolPreview();
-            });
+            if (btnBurn) {
+                btnBurn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    tile.isBurnt = true;
+                    if (uiState.callTile && uiState.callTile.id === tile.id) uiState.callTile = null;
+                    uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
+                    dataManager.updateTile(tile);
+                    renderCards();
+                    updatePoolPreview();
+                    renderRulesReview();
+                });
+            }
             const btnBury = div.querySelector('.btn-bury-tile');
             btnBury.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -279,6 +293,7 @@ export function renderCards() {
                 renderCards();
                 updatePoolPreview();
                 updateShadowMax();
+                renderRulesReview();
             });
         }
 

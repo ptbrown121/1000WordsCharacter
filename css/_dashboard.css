@@ -349,6 +349,63 @@
     color: var(--text-primary);
 }
 
+.ammo-resolution-panel {
+    background: rgba(51, 153, 255, 0.08);
+    border: 1px solid rgba(153, 204, 255, 0.24);
+    border-radius: 8px;
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+}
+
+.ammo-resolution-panel h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.35rem;
+}
+
+.ammo-resolution-row {
+    align-items: center;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.2fr) auto;
+    margin-top: 0.5rem;
+}
+
+.ammo-resolution-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.ammo-resolution-main small,
+.ammo-resolution-status {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.ammo-die-select {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: white;
+    min-width: 0;
+    padding: 0.45rem;
+}
+
+.btn-resolve-ammo {
+    background: rgba(51, 153, 255, 0.18);
+    border: 1px solid rgba(153, 204, 255, 0.75);
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    padding: 0.45rem 0.6rem;
+}
+
+.btn-resolve-ammo:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
 .resolution-warning {
     color: #ff6666;
     font-weight: 700;

@@ -2,6 +2,7 @@ import {
     formatWeaponTemplateDetails,
     getWeaponTemplateById,
     getWeaponTemplatesByCategory,
+    normalizeExoticSkill,
     parseDiceInput,
     getDiceValidationMessage,
     formatTagLimitStatus,
@@ -12,6 +13,7 @@ import { els } from '../els.js';
 import { renderCards } from './cards.js';
 import { updatePoolPreview } from './pool.js';
 import { updateXpTracker } from './stats.js';
+import { renderRulesReview } from './rulesReview.js';
 
 let dataManager;
 let poolEngine;
@@ -89,6 +91,11 @@ function getFormGearSubtype() {
     return document.getElementById('gear-subtype').value || 'Custom';
 }
 
+function getFormExoticSkill() {
+    if (document.getElementById('tile-type').value !== 'Skill') return null;
+    return normalizeExoticSkill(document.getElementById('tile-exotic-skill').value);
+}
+
 function populateWeaponTemplates() {
     const select = document.getElementById('weapon-template');
     if (!select || select.dataset.populated === 'true') return;
@@ -151,6 +158,7 @@ function syncTileTypeSections() {
     const isAmmo = type === 'Gear' && gearSubtype === 'Ammo';
 
     document.getElementById('spellcast-skill-container').style.display = type === 'Skill' ? 'block' : 'none';
+    document.getElementById('exotic-skill-container').style.display = type === 'Skill' ? 'block' : 'none';
     document.getElementById('gear-subtype-container').style.display = type === 'Gear' ? 'block' : 'none';
     document.getElementById('weapon-builder-container').style.display = type === 'Gear' && gearSubtype === 'Weapon' ? 'block' : 'none';
     document.getElementById('armor-base-container').style.display = type === 'Gear' && gearSubtype === 'Armor' ? 'block' : 'none';
@@ -288,6 +296,7 @@ export function init(deps) {
             closeModal();
             renderCards();
             updatePoolPreview();
+            renderRulesReview();
         }
     });
 
@@ -359,6 +368,11 @@ export function init(deps) {
     els.tileDice.addEventListener('input', renderTileTagLimitStatus);
     document.getElementById('tile-type').addEventListener('change', syncTileTypeSections);
     document.getElementById('gear-subtype').addEventListener('change', syncTileTypeSections);
+    document.getElementById('tile-exotic-skill').addEventListener('change', (e) => {
+        if (e.target.value.startsWith('arcana-')) {
+            document.getElementById('tile-is-spellcast').checked = true;
+        }
+    });
     document.getElementById('weapon-template').addEventListener('change', (e) => {
         applyWeaponTemplate(e.target.value);
     });
@@ -383,7 +397,10 @@ export function init(deps) {
             alert(getDiceValidationMessage('Tile dice'));
             return;
         }
-        const { xp, unknownTags } = poolEngine.estimateTileXpDetails(diceArray, currentFormTags, getFormArmorType(), { weapon: getFormWeapon() });
+        const { xp, unknownTags } = poolEngine.estimateTileXpDetails(diceArray, currentFormTags, getFormArmorType(), {
+            weapon: getFormWeapon(),
+            exoticSkill: getFormExoticSkill()
+        });
         els.tileXp.value = xp;
         renderXpEstimateNote(unknownTags);
     });
@@ -409,6 +426,7 @@ export function openModal(tile = null) {
     const ammoCurrentSupply = document.getElementById('ammo-current-supply');
     const ammoMaxSupply = document.getElementById('ammo-max-supply');
     const ammoReplacesTag = document.getElementById('ammo-replaces-tag');
+    const exoticSkill = document.getElementById('tile-exotic-skill');
 
     if (tile) {
         document.getElementById('modal-title').innerText = 'Edit Tile';
@@ -429,6 +447,7 @@ export function openModal(tile = null) {
         armorMaterial.value = tile.armorType?.material || '';
         armorCoverage.value = tile.armorType?.coverage || '';
         document.getElementById('tile-is-spellcast').checked = !!tile.isSpellcastSkill;
+        exoticSkill.value = tile.exoticSkill?.id || '';
         document.getElementById('tile-name').value = tile.name;
         document.getElementById('tile-description').value = tile.description || '';
         document.getElementById('tile-dice').value = (tile.dice || []).join(', ');
@@ -463,6 +482,7 @@ export function openModal(tile = null) {
         armorMaterial.value = '';
         armorCoverage.value = '';
         document.getElementById('tile-is-spellcast').checked = false;
+        exoticSkill.value = '';
         document.getElementById('tile-description').value = '';
         els.tileXp.value = 0;
         els.btnDelete.style.display = 'none';
@@ -555,6 +575,7 @@ export function saveTileFromForm() {
     const armorType = getFormArmorType();
     const weapon = getFormWeapon();
     const ammo = getFormAmmo();
+    const exoticSkill = getFormExoticSkill();
 
     const existingTile = id ? dataManager.state.tiles.find(t => t.id === id) : null;
     const tile = {
@@ -567,6 +588,7 @@ export function saveTileFromForm() {
         tags,
         xpCost,
         isSpellcastSkill,
+        exoticSkill,
         gearSubtype,
         weapon,
         ammo,
@@ -588,4 +610,5 @@ export function saveTileFromForm() {
     renderCards();
     updatePoolPreview();
     updateXpTracker();
+    renderRulesReview();
 }

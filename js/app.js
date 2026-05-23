@@ -11,6 +11,7 @@ import { init as initRoster } from './ui/roster.js';
 import { init as initStats } from './ui/stats.js';
 import { init as initVitals } from './ui/vitals.js';
 import { init as initNotifications } from './ui/notifications.js';
+import { init as initRulesReview } from './ui/rulesReview.js';
 
 const dataManager = new DataManager();
 const poolEngine = new PoolEngine();
@@ -29,5 +30,6 @@ initRoster(deps);
 initStats(deps);
 initVitals(deps);
 initNotifications(deps);
+initRulesReview(deps);
 
 renderAll();
