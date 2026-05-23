@@ -3,9 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Character & dice-pool manager for the 1000 WORDS TTRPG. Zero-dependency, no build — open index.html to run. This file only enables `node --test` for the pure logic in js/pool.js.",
+  "description": "Character & dice-pool manager for the 1000 WORDS TTRPG. Zero runtime dependencies, no build — open index.html to run. devDependencies are dev-only (Node test runner + ESLint).",
   "scripts": {
     "dev": "npx --yes serve .",
-    "test": "node --test \"test/**/*.test.js\""
+    "test": "node --test \"test/**/*.test.js\"",
+    "lint": "eslint \"js/**/*.js\" \"test/**/*.js\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^15.15.0"
   }
 }

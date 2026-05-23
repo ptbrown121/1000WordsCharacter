@@ -45,8 +45,24 @@ A zero-dependency, mobile-first web application designed to digitally manage cha
 
 ## Technical Architecture
 
-- `index.html`: The core UI layout and Modals, utilizing a mobile-friendly glassmorphism aesthetic.
-- `css/styles.css`: All styling, color variables, grid layouts, and card visual states (like the grayscale BURNT status).
-- `js/app.js`: The DOM controller. Handles event bindings, UI updates, and bridges the data model to the HTML view.
-- `js/data.js`: The Data model and Persistence engine. Manages `localStorage` reads/writes and JSON Import/Export.
-- `js/pool.js`: The "Brain". Contains the ruleset logic, including recursive Tag Parsing, Pool validation, optimal total calculation, and the complex XP cascade algorithm.
+The codebase is plain ES modules served as static files - no bundler, no framework.
+
+### Module layout
+
+- `index.html` - UI shell (header, mosaic, action dashboard, journal) and all modal markup (tile, spell wizard, vital, info).
+- `css/styles.css` - thin aggregator that `@import`s eight partials in `css/`: `_variables`, `_base`, `_layout`, `_cards`, `_dashboard`, `_modal`, `_journal`, `_responsive`.
+- `js/app.js` - bootstrap. Constructs `DataManager`, `PoolEngine`, `SpellBuilder`, then calls `init({ deps })` on each UI module.
+- `js/data.js` - persistence model. `DataManager` owns `localStorage` reads/writes, the multi-character roster, legacy-save migration, JSON import/export, and `tile.tags` normalization. Also exports `STAT_COLORS`, `COLOR_HEX`, `VALID_DICE`, and the `getEffectiveMax(state, key, baseOverride)` vital helper.
+- `js/pool.js` - the rules brain. Pure, DOM-free. `PoolEngine` for tag limits, XP cascade math, resource maxes, recursive Chain resolution, virtual rolls, and optimal-keep selection. Also exports shared helpers (`escapeHtml`, `parseDiceInput`, `tileTagList`, `formatTagLimitStatus`, `tagLimitErrorMessage`).
+- `js/resolution-rules.js` - pure post-roll engine. Mode tables, default die assignments, plus-budget accounting, healing-target rules, bonus routing.
+- `js/spellBuilder.js` - the 5-step spell wizard. Owns its own DOM lookups today; consumes `PoolEngine` and `formatTagLimitStatus`.
+- `js/render.js` - top-level `renderAll()` that delegates to each UI module's render function.
+- `js/state.js` - shared mutable `uiState` singleton (call tile, burn tiles, current resolution mode, etc.).
+- `js/els.js` - centralized DOM cache. All UI modules import from here rather than calling `getElementById` directly.
+- `js/ui/` - one module per dashboard concern: `cards.js` (mosaic render + select/burn), `pool.js` (dice pool preview + roll), `resolution.js` (post-roll resolution screen), `modals.js` (tile add/edit modal), `journal.js`, `roster.js` (character switcher + import/export), `stats.js` (stat dice + XP tracker), `vitals.js` (HP/EN/RX/SH inputs + Rest + Auto-Calc).
+
+### Tests, lint, and CI scripts
+
+- `npm test` - runs all `test/**/*.test.js` files via `node --test`. Pure-logic modules (`pool.js`, `resolution-rules.js`, `data.js`) are covered.
+- `npm run lint` - runs ESLint with a flat config (`eslint.config.js`). `import/no-cycle`, `no-alert`, and `no-unused-vars` are warnings today; tightening them is a follow-up.
+- `npm run dev` - serves the workspace via `npx serve`.
