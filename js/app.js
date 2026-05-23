@@ -1,5 +1,13 @@
-import { DataManager, COLOR_HEX, STAT_COLORS, VALID_DICE } from './data.js';
-import { PoolEngine } from './pool.js';
+import { DataManager, COLOR_HEX, STAT_COLORS } from './data.js';
+import {
+    PoolEngine,
+    escapeHtml,
+    parseDiceInput,
+    parseDiceString,
+    getDiceValidationMessage,
+    formatTagLimitStatus,
+    tagLimitErrorMessage
+} from './pool.js';
 import { SpellBuilder } from './spellBuilder.js';
 
 const dataManager = new DataManager();
@@ -198,52 +206,6 @@ const RESOLUTION_PLUS_BUCKETS = {
     healing: new Set(['diagnosis', 'heal_energy', 'heal_health', 'heal_reflex'])
 };
 
-function parseDiceInput(str) {
-    if (!str || !str.trim()) return { dice: [], invalid: [] };
-
-    const tokens = str
-        .split(',')
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean);
-
-    return {
-        dice: tokens.filter(die => VALID_DICE.has(die)),
-        invalid: tokens.filter(die => !VALID_DICE.has(die))
-    };
-}
-
-function parseDiceString(str) {
-    return parseDiceInput(str).dice;
-}
-
-function getDiceValidationMessage(label = 'Dice') {
-    return `${label} must use only: d3, d4, d6, d8, d10, d12, d14, or d16.`;
-}
-
-function summarizeTagLimitExemptions(tagLimit) {
-    const exemptNames = tagLimit.exemptTags.map(tag => tag.name).filter(Boolean);
-    if (exemptNames.length === 0) return '';
-
-    const visibleNames = exemptNames.slice(0, 3).join(', ');
-    const remaining = exemptNames.length > 3 ? ` +${exemptNames.length - 3} more` : '';
-    return ` Exempt: ${visibleNames}${remaining}.`;
-}
-
-function formatTagLimitStatus(tagLimit) {
-    const exemptText = summarizeTagLimitExemptions(tagLimit);
-    if (tagLimit.valid) {
-        return `Tag limit: ${tagLimit.count}/${tagLimit.limit} countable tags.${exemptText}`;
-    }
-
-    return `Too many countable tags: ${tagLimit.count}/${tagLimit.limit}. Remove ${tagLimit.overage} or increase dice.${exemptText}`;
-}
-
-function tagLimitErrorMessage(subject, tagLimit) {
-    const countableNames = tagLimit.countableTags.map(tag => tag.name).filter(Boolean).join(', ');
-    const tagsText = countableNames ? ` Countable tags: ${countableNames}.` : '';
-    return `${subject} has ${tagLimit.count} countable tags, but its dice allow ${tagLimit.limit}. Remove ${tagLimit.overage} countable tag${tagLimit.overage === 1 ? '' : 's'} or increase its dice.${tagsText}`;
-}
-
 function renderTagLimitStatus(el, diceStr, tagsArray) {
     if (!el) return null;
 
@@ -269,14 +231,6 @@ function renderTagLimitStatus(el, diceStr, tagsArray) {
 
 function renderTileTagLimitStatus() {
     return renderTagLimitStatus(els.tileTagLimitStatus, els.tileDice.value, currentFormTags);
-}
-
-function escapeAttribute(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
 }
 
 function renderOptionalStatsVisibility() {
@@ -698,7 +652,7 @@ function renderJournal() {
         div.className = 'journal-entry';
         div.innerHTML = `
             <div class="journal-entry-header">
-                <h3>${entry.title}</h3>
+                <h3>${escapeHtml(entry.title)}</h3>
                 <div class="journal-actions">
                     <button class="btn-rename-journal" title="Rename">✏️</button>
                     <button class="btn-toggle-journal" title="Expand/Collapse">▼</button>
@@ -706,7 +660,7 @@ function renderJournal() {
                 </div>
             </div>
             <div class="journal-entry-body" style="display: none;">
-                <textarea placeholder="Write your notes here...">${entry.content || ''}</textarea>
+                <textarea placeholder="Write your notes here...">${escapeHtml(entry.content || '')}</textarea>
             </div>
         `;
 
@@ -907,7 +861,7 @@ function renderCards() {
     filteredTiles.forEach(tile => {
         const div = document.createElement('div');
         div.className = 'tile-card';
-        const tileNameLabel = escapeAttribute(tile.name);
+        const tileNameLabel = escapeHtml(tile.name);
         const armorLabel = formatArmorBase(tile.armorType);
         
         // Gradient background based on 2 colors
@@ -922,23 +876,23 @@ function renderCards() {
 
         div.innerHTML = `
             <div class="tile-badges">
-                ${tile.colors.map(c => `<span class="badge" style="background:${COLOR_HEX[c]}; color:${c==='White'||c==='Yellow'?'black':'white'}">${c}</span>`).join('')}
-                ${tile.type ? `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">${tile.type.toUpperCase()}</span>` : `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">SKILL</span>`}
-                <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost !== undefined ? tile.xpCost : 0} XP</span>
+                ${tile.colors.map(c => `<span class="badge" style="background:${COLOR_HEX[c]}; color:${c==='White'||c==='Yellow'?'black':'white'}">${escapeHtml(c)}</span>`).join('')}
+                ${tile.type ? `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">${escapeHtml(String(tile.type).toUpperCase())}</span>` : `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">SKILL</span>`}
+                <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost !== undefined ? escapeHtml(tile.xpCost) : 0} XP</span>
             </div>
             <div class="tile-card-content">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div class="tile-name" style="margin-bottom: 0;">${tile.name}</div>
+                    <div class="tile-name" style="margin-bottom: 0;">${escapeHtml(tile.name)}</div>
                     <button class="btn-favorite ${tile.isFavorite ? 'active' : ''}" title="Toggle Favorite" aria-label="Toggle Favorite">★</button>
                 </div>
-                <div class="tile-tags">${tile.tags}</div>
-                ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">🛡️ ${armorLabel}</div>` : ''}
-                <div class="tile-dice">${tile.dice.join(', ')}</div>
+                <div class="tile-tags">${escapeHtml(tile.tags || '')}</div>
+                ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">🛡️ ${escapeHtml(armorLabel)}</div>` : ''}
+                <div class="tile-dice">${escapeHtml(tile.dice.join(', '))}</div>
                 <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
                     <button class="btn-edit-tile" aria-label="Edit ${tileNameLabel}" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">✏️ Edit</button>
                     ${tile.description ? `<button class="btn-details" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">Details ▼</button>` : ''}
                 </div>
-                ${tile.description ? `<div class="tile-description" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; font-style: italic; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; white-space: pre-wrap;">${tile.description}</div>` : ''}
+                ${tile.description ? `<div class="tile-description" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; font-style: italic; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; white-space: pre-wrap;">${escapeHtml(tile.description)}</div>` : ''}
             </div>
             ${tile.isBurnt 
                 ? `<button class="btn-unburn" title="Restore this tile" aria-label="Restore ${tileNameLabel}">🔥 Restore</button>`
@@ -1350,19 +1304,19 @@ function renderResolutionExtraFields() {
             <div class="resolution-extra-grid">
                 <div class="resolution-field">
                     <label for="target-evasion">Target Evasion</label>
-                    <input id="target-evasion" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('target-evasion'))}">
+                    <input id="target-evasion" class="resolution-extra" type="text" inputmode="numeric" value="${escapeHtml(getResolutionExtraValue('target-evasion'))}">
                 </div>
                 <div class="resolution-field">
                     <label for="target-soak">Target Soak</label>
-                    <input id="target-soak" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('target-soak'))}">
+                    <input id="target-soak" class="resolution-extra" type="text" inputmode="numeric" value="${escapeHtml(getResolutionExtraValue('target-soak'))}">
                 </div>
                 <div class="resolution-field">
                     <label for="target-grit">Target Grit</label>
-                    <input id="target-grit" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('target-grit'))}">
+                    <input id="target-grit" class="resolution-extra" type="text" inputmode="numeric" value="${escapeHtml(getResolutionExtraValue('target-grit'))}">
                 </div>
                 <div class="resolution-field">
                     <label for="attack-crits">Crit Tags</label>
-                    <input id="attack-crits" class="resolution-extra" type="text" value="${escapeAttribute(getResolutionExtraValue('attack-crits'))}" placeholder="e.g. JOLT, DOWN">
+                    <input id="attack-crits" class="resolution-extra" type="text" value="${escapeHtml(getResolutionExtraValue('attack-crits'))}" placeholder="e.g. JOLT, DOWN">
                 </div>
             </div>
         `;
@@ -1373,19 +1327,19 @@ function renderResolutionExtraFields() {
             <div class="resolution-extra-grid">
                 <div class="resolution-field">
                     <label for="incoming-attack">Incoming Attack</label>
-                    <input id="incoming-attack" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('incoming-attack'))}">
+                    <input id="incoming-attack" class="resolution-extra" type="text" inputmode="numeric" value="${escapeHtml(getResolutionExtraValue('incoming-attack'))}">
                 </div>
                 <div class="resolution-field">
                     <label for="incoming-impact">Incoming Impact</label>
-                    <input id="incoming-impact" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('incoming-impact'))}">
+                    <input id="incoming-impact" class="resolution-extra" type="text" inputmode="numeric" value="${escapeHtml(getResolutionExtraValue('incoming-impact'))}">
                 </div>
                 <div class="resolution-field">
                     <label for="defense-soak">Other Soak</label>
-                    <input id="defense-soak" class="resolution-extra" type="text" inputmode="numeric" value="${escapeAttribute(getResolutionExtraValue('defense-soak'))}">
+                    <input id="defense-soak" class="resolution-extra" type="text" inputmode="numeric" value="${escapeHtml(getResolutionExtraValue('defense-soak'))}">
                 </div>
                 <div class="resolution-field">
                     <label for="incoming-crits">Incoming Crit Tags</label>
-                    <input id="incoming-crits" class="resolution-extra" type="text" value="${escapeAttribute(getResolutionExtraValue('incoming-crits'))}" placeholder="e.g. BLEED, DOWN">
+                    <input id="incoming-crits" class="resolution-extra" type="text" value="${escapeHtml(getResolutionExtraValue('incoming-crits'))}" placeholder="e.g. BLEED, DOWN">
                 </div>
             </div>
         `;
@@ -1422,12 +1376,12 @@ function renderResolutionAssignments(result) {
         return `
             <div class="resolution-die-row">
                 <span class="resolution-die-main">
-                    <span class="resolution-die-badge" title="${escapeAttribute(roll.die)} rolled ${roll.val}">
-                        <span class="resolution-die-type">${escapeAttribute(roll.die)}</span>
+                    <span class="resolution-die-badge" title="${escapeHtml(roll.die)} rolled ${roll.val}">
+                        <span class="resolution-die-type">${escapeHtml(roll.die)}</span>
                         <span class="resolution-die-label">rolled</span>
                         <span class="resolution-die-roll">${roll.val}</span>
                     </span>
-                    <span class="resolution-die-source">${escapeAttribute(roll.source)}</span>
+                    <span class="resolution-die-source">${escapeHtml(roll.source)}</span>
                 </span>
                 <select class="resolution-die-select" data-roll-id="${rollId}">
                     ${optionHtml}
@@ -1459,7 +1413,7 @@ function getHealingAssignments(result) {
 
 function renderBonusDetails(details) {
     if (!details.length) return '';
-    return `<p><strong>Tag Bonuses:</strong><br>${details.map(detail => escapeAttribute(detail)).join('<br>')}</p>`;
+    return `<p><strong>Tag Bonuses:</strong><br>${details.map(detail => escapeHtml(detail)).join('<br>')}</p>`;
 }
 
 function calculateResolutionSummary(result) {
@@ -1507,7 +1461,7 @@ function calculateResolutionSummary(result) {
                 const critsApply = crits && hpLoss > targetGrit;
                 lines.push(`<p><strong>After Soak:</strong> ${hpLoss} HP (${impactTotal} impact - ${targetSoak} soak).</p>`);
                 lines.push(`<p><strong>Grit Check:</strong> ${targetGrit} grit ${hpLoss > targetGrit ? 'does not prevent crits' : 'prevents crits'}.</p>`);
-                if (crits) lines.push(`<p><strong>Crits:</strong> ${escapeAttribute(crits)} ${critsApply ? 'apply' : 'do not apply'}.</p>`);
+                if (crits) lines.push(`<p><strong>Crits:</strong> ${escapeHtml(crits)} ${critsApply ? 'apply' : 'do not apply'}.</p>`);
             }
         }
 
@@ -1544,7 +1498,7 @@ function calculateResolutionSummary(result) {
                 const critsApply = incomingCrits && hpLoss > gritTotal;
                 lines.push(`<p><strong>After Soak:</strong> ${hpLoss} HP (${incomingImpact} impact - ${soakTotal} soak).</p>`);
                 lines.push(`<p><strong>Grit Check:</strong> ${gritTotal} grit ${hpLoss > gritTotal ? 'does not prevent crits' : 'prevents crits'}.</p>`);
-                if (incomingCrits) lines.push(`<p><strong>Crits:</strong> ${escapeAttribute(incomingCrits)} ${critsApply ? 'apply' : 'do not apply'}.</p>`);
+                if (incomingCrits) lines.push(`<p><strong>Crits:</strong> ${escapeHtml(incomingCrits)} ${critsApply ? 'apply' : 'do not apply'}.</p>`);
             }
         }
 
@@ -1603,11 +1557,11 @@ function renderRollGroups(result) {
     const groups = {};
     (result.originalRolls || []).forEach(r => {
         if (!groups[r.source]) groups[r.source] = [];
-        groups[r.source].push(`<strong>${escapeAttribute(r.die)}:</strong> ${r.val}`);
+        groups[r.source].push(`<strong>${escapeHtml(r.die)}:</strong> ${r.val}`);
     });
 
     return Object.entries(groups).map(([source, rolls]) => {
-        return `<div style="margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--glass-border);"><em>${escapeAttribute(source)}</em>: ${rolls.join(' | ')}</div>`;
+        return `<div style="margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--glass-border);"><em>${escapeHtml(source)}</em>: ${rolls.join(' | ')}</div>`;
     }).join('');
 }
 
@@ -1639,7 +1593,7 @@ function renderResolution() {
     const { usedCount } = calculateAssignedTotals(result);
     const adds = result.adds || 2;
     const summary = calculateResolutionSummary(result);
-    const warningHtml = summary.warnings.map(warning => `<p class="resolution-warning">${escapeAttribute(warning)}</p>`).join('');
+    const warningHtml = summary.warnings.map(warning => `<p class="resolution-warning">${escapeHtml(warning)}</p>`).join('');
 
     els.resolutionControls.innerHTML = `
         <div class="resolution-toolbar">
@@ -1666,12 +1620,12 @@ function updatePoolPreview() {
     const colors = [c1, c2].filter(c => c);
 
     // Update Dropzones visually
-    els.callTileZone.innerHTML = callTile ? `<div class="badge">${callTile.name} (${callTile.dice.join(', ')})</div>` : '';
-    els.burnTilesZone.innerHTML = burnTiles.map(t => `<div class="badge" style="margin:2px">${t.name}</div>`).join('');
+    els.callTileZone.innerHTML = callTile ? `<div class="badge">${escapeHtml(callTile.name)} (${escapeHtml(callTile.dice.join(', '))})</div>` : '';
+    els.burnTilesZone.innerHTML = burnTiles.map(t => `<div class="badge" style="margin:2px">${escapeHtml(t.name)}</div>`).join('');
 
     const extraDice = getExtraDice();
     if (extraDice.error) {
-        els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${extraDice.error}</span>`;
+        els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${escapeHtml(extraDice.error)}</span>`;
         els.poolAddsDisplay.innerText = `Adds: --`;
         renderChainOptions([]);
         renderTagBonusOptions([]);
@@ -1684,7 +1638,7 @@ function updatePoolPreview() {
     const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     
     if (res.error) {
-        els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${res.error}</span>`;
+        els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${escapeHtml(res.error)}</span>`;
         els.poolAddsDisplay.innerText = `Adds: --`;
         renderChainOptions(res.chainOptions || []);
         renderTagBonusOptions([]);
@@ -1692,7 +1646,7 @@ function updatePoolPreview() {
         if (res.dice.length === 0) {
             els.poolDiceDisplay.innerText = 'No dice in pool.';
         } else {
-            let diceStr = res.dice.map(d => d.die).join(' + ');
+            let diceStr = res.dice.map(d => escapeHtml(d.die)).join(' + ');
             if (res.dice.length % 2 !== 0) {
                 diceStr += ' <span style="color: #ffaa00; font-size: 0.85em; margin-left: 0.5rem;" title="Odd number of dice significantly increases the odds of a haywire">⚠️ Odd Dice (Haywire Risk)</span>';
             }
@@ -1728,8 +1682,8 @@ function renderManualInputs() {
         const div = document.createElement('div');
         div.className = 'manual-die-input';
         div.innerHTML = `
-            <label>${dObj.source} - Roll for ${dObj.die}:</label>
-            <input type="number" class="manual-val" data-die="${dObj.die}" data-source="${dObj.source}" min="1" max="${dObj.die.replace('d','')}" value="">
+            <label>${escapeHtml(dObj.source)} - Roll for ${escapeHtml(dObj.die)}:</label>
+            <input type="number" class="manual-val" data-die="${escapeHtml(dObj.die)}" data-source="${escapeHtml(dObj.source)}" min="1" max="${escapeHtml(dObj.die.replace('d',''))}" value="">
         `;
         els.manualInputsContainer.appendChild(div);
     });
