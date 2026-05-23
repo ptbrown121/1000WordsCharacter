@@ -1,4 +1,4 @@
-import { escapeHtml, parseDiceInput, getDiceValidationMessage, formatTagLimitStatus, tagLimitErrorMessage } from '../pool.js';
+import { parseDiceInput, getDiceValidationMessage, formatTagLimitStatus, tagLimitErrorMessage } from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { renderCards } from './cards.js';
@@ -190,8 +190,11 @@ export function openModal(tile = null) {
         document.getElementById('tile-name').value = tile.name;
         document.getElementById('tile-description').value = tile.description || '';
         document.getElementById('tile-dice').value = tile.dice.join(', ');
-        if (tile.tags) {
-            currentFormTags = tile.tags.split(',').map(t => t.trim()).filter(t => t);
+        if (Array.isArray(tile.tags)) {
+            currentFormTags = tile.tags.map(t => String(t).trim()).filter(Boolean);
+        } else if (tile.tags) {
+            // Legacy comma-string fallback (older exports).
+            currentFormTags = String(tile.tags).split(',').map(t => t.trim()).filter(Boolean);
         }
         
         tile.colors.forEach(c => {
@@ -263,7 +266,7 @@ export function saveTileFromForm() {
     const name = document.getElementById('tile-name').value.trim();
     const description = document.getElementById('tile-description').value.trim();
     const diceStr = document.getElementById('tile-dice').value.trim();
-    const tags = currentFormTags.join(', ');
+    const tags = [...currentFormTags];
     const xpCost = parseInt(els.tileXp.value, 10) || 0;
     
     const checkedColors = Array.from(document.querySelectorAll('.color-cb:checked')).map(cb => cb.value);

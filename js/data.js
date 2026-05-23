@@ -22,6 +22,54 @@ export const COLOR_HEX = {
 
 export const VALID_DICE = new Set(['d3', 'd4', 'd6', 'd8', 'd10', 'd12', 'd14', 'd16']);
 
+/**
+ * In-place migration: ensure tile.tags is a string[] of trimmed tag strings.
+ * Legacy saves stored it as a comma-separated string; SpellBuilder once
+ * stored it as a list of {name, xp} objects. This normalizer is idempotent
+ * and is called both when loading from localStorage and when importing JSON.
+ */
+function normalizeTileTags(tile) {
+    if (!tile || typeof tile !== 'object') return;
+    const raw = tile.tags;
+
+    if (raw == null || raw === '') {
+        tile.tags = [];
+        return;
+    }
+
+    const items = Array.isArray(raw) ? raw : String(raw).split(',');
+    tile.tags = items
+        .map(item => {
+            if (item && typeof item === 'object') return String(item.name || '').trim();
+            return String(item || '').trim();
+        })
+        .filter(Boolean);
+}
+
+/**
+ * Effective max for a vital resource: base max + permanent bonus + temporary bonus.
+ *
+ * `key` is the resource prefix used in state: 'hp' | 'en' | 'rx' | 'sh'.
+ * For HP/EN/RX, the base is `${key}Max`. SH has no stored max - its base is
+ * derived from the tile mosaic at call time, so callers pass it via the
+ * optional `baseOverride` argument.
+ *
+ * Always returns a finite integer, defaulting any missing/non-numeric piece
+ * to 0. This is the single source of truth for the (max + perm + temp) sum
+ * that previously appeared inline in render.js, vitals.js Rest, and vitals.js
+ * Auto-Calculate Vitals.
+ */
+export function getEffectiveMax(state, key, baseOverride) {
+    const toInt = (v) => {
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) ? n : 0;
+    };
+    const base = baseOverride !== undefined ? toInt(baseOverride) : toInt(state?.[`${key}Max`]);
+    const perm = toInt(state?.[`${key}Perm`]);
+    const temp = toInt(state?.[`${key}Temp`]);
+    return base + perm + temp;
+}
+
 function inferShowOptionalStats(state) {
     const hasOptionalStats = Boolean(state?.stats?.Id || state?.stats?.Qi);
     const hasOptionalTiles = (state?.tiles || []).some(tile =>
@@ -86,7 +134,10 @@ export class DataManager {
         } else if (legacySave) {
             const charId = crypto.randomUUID();
             let name = 'Hero Name';
-            try { name = JSON.parse(legacySave).name || 'Hero Name'; } catch(e){}
+            try { name = JSON.parse(legacySave).name || 'Hero Name'; } catch (_e) {
+                // Legacy save is unreadable - keep the default name and continue migrating
+                // the raw blob below; the user can rename later.
+            }
             this.roster = [{ id: charId, name }];
             this.activeCharId = charId;
             try {
@@ -138,6 +189,7 @@ export class DataManager {
                 if (!hadShowOptionalStats) {
                     state.showOptionalStats = inferShowOptionalStats(state);
                 }
+                (state.tiles || []).forEach(normalizeTileTags);
                 return state;
             } catch (e) {
                 console.error("Failed to parse saved state", e);
@@ -180,11 +232,13 @@ export class DataManager {
 
     addTile(tile) {
         if (!tile.id) tile.id = crypto.randomUUID();
+        normalizeTileTags(tile);
         this.state.tiles.push(tile);
         this.saveState();
     }
 
     updateTile(updatedTile) {
+        normalizeTileTags(updatedTile);
         const idx = this.state.tiles.findIndex(t => t.id === updatedTile.id);
         if (idx !== -1) {
             this.state.tiles[idx] = updatedTile;
@@ -259,6 +313,7 @@ export class DataManager {
                 newState.tiles.forEach(t => {
                     if (t.xpCost === undefined) t.xpCost = 0;
                     if (t.isBurnt === undefined) t.isBurnt = false;
+                    normalizeTileTags(t);
                 });
                 
                 if (overwrite) {

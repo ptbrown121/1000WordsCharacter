@@ -2,7 +2,7 @@
 // This is safe because all cross-imported symbols are functions that are
 // only called at runtime (inside event handlers or render cycles), never
 // during module evaluation.
-import { escapeHtml } from '../pool.js';
+import { escapeHtml, tileTagList } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
@@ -78,7 +78,8 @@ export function renderCards() {
     const filteredTiles = dataManager.state.tiles.filter(tile => {
         // Text Search
         if (searchTerm) {
-            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.tags || ''} ${formatArmorBase(tile.armorType)} ${tile.description || ''}`.toLowerCase();
+            const tagsText = tileTagList(tile).join(' ');
+            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tagsText} ${formatArmorBase(tile.armorType)} ${tile.description || ''}`.toLowerCase();
             if (!searchableText.includes(searchTerm)) return false;
         }
         
@@ -154,7 +155,7 @@ export function renderCards() {
                     <div class="tile-name" style="margin-bottom: 0;">${escapeHtml(tile.name)}</div>
                     <button class="btn-favorite ${tile.isFavorite ? 'active' : ''}" title="Toggle Favorite" aria-label="Toggle Favorite">\u2605</button>
                 </div>
-                <div class="tile-tags">${escapeHtml(tile.tags || '')}</div>
+                <div class="tile-tags">${escapeHtml(tileTagList(tile).join(', '))}</div>
                 ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">\ud83d\udee1\ufe0f ${escapeHtml(armorLabel)}</div>` : ''}
                 <div class="tile-dice">${escapeHtml(tile.dice.join(', '))}</div>
                 <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
