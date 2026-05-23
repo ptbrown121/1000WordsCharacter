@@ -43,9 +43,12 @@ const els = {
     optionalStatBoxes: document.querySelectorAll('.optional-stat'),
     cardContainer: document.getElementById('card-container'),
     btnAddTile: document.getElementById('btn-add-tile'),
+    charRosterSelect: document.getElementById('char-roster-select'),
+    btnDelChar: document.getElementById('btn-del-char'),
     searchTiles: document.getElementById('search-tiles'),
     sortTilesBy: document.getElementById('sort-tiles-by'),
     btnSortDir: document.getElementById('btn-sort-dir'),
+    ignoreFavoritesSort: document.getElementById('ignore-favorites-sort'),
     modal: document.getElementById('tile-modal'),
     form: document.getElementById('tile-form'),
     btnCancel: document.getElementById('btn-modal-cancel'),
@@ -293,7 +296,30 @@ function init() {
 
 function bindEvents() {
     // Header
-    els.charName.addEventListener('blur', (e) => dataManager.updateName(e.target.value));
+    els.charName.addEventListener('blur', (e) => {
+        dataManager.updateName(e.target.value);
+        renderRosterSelect();
+    });
+    
+    if (els.charRosterSelect) {
+        els.charRosterSelect.addEventListener('change', (e) => {
+            dataManager.switchCharacter(e.target.value);
+            callTile = null;
+            burnTiles = [];
+            renderAll();
+        });
+    }
+
+    if (els.btnDelChar) {
+        els.btnDelChar.addEventListener('click', () => {
+            if (confirm("WARNING: Are you sure you want to delete this character permanently?")) {
+                dataManager.deleteCurrentCharacter();
+                callTile = null;
+                burnTiles = [];
+                renderAll();
+            }
+        });
+    }
     
     els.valXpEarned.addEventListener('change', (e) => {
         dataManager.state.xpEarned = parseInt(e.target.value, 10) || 0;
@@ -361,8 +387,9 @@ function bindEvents() {
 
     // New Character Button
     els.btnNewChar.addEventListener('click', () => {
-        if (confirm("WARNING: This will completely clear your current character! Are you sure you want to start a blank character?")) {
-            dataManager.clearState();
+        const name = prompt("Enter a name for your new character:");
+        if (name) {
+            dataManager.createNewCharacter(name);
             callTile = null;
             burnTiles = [];
             renderAll();
@@ -399,11 +426,15 @@ function bindEvents() {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            if (dataManager.importState(ev.target.result)) {
+            const overwrite = confirm("Do you want to overwrite your current character? (Click 'Cancel' to import as a new character slot)");
+            if (dataManager.importState(ev.target.result, overwrite)) {
+                callTile = null;
+                burnTiles = [];
                 renderAll();
             } else {
                 alert("Failed to import invalid file.");
             }
+            els.fileImport.value = '';
         };
         reader.readAsText(file);
     });
@@ -429,6 +460,7 @@ function bindEvents() {
     if (els.searchTiles) {
         els.searchTiles.addEventListener('input', () => renderCards());
         if (els.sortTilesBy) els.sortTilesBy.addEventListener('change', () => renderCards());
+        if (els.ignoreFavoritesSort) els.ignoreFavoritesSort.addEventListener('change', () => renderCards());
         if (els.btnSortDir) {
             els.btnSortDir.addEventListener('click', () => {
                 const dir = els.btnSortDir.dataset.dir === 'asc' ? 'desc' : 'asc';
@@ -714,6 +746,19 @@ function renderAll() {
     updateXpTracker();
     updateShadowMax();
     renderJournal();
+    renderRosterSelect();
+}
+
+function renderRosterSelect() {
+    if (!els.charRosterSelect) return;
+    els.charRosterSelect.innerHTML = '';
+    dataManager.roster.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.name || 'Unnamed';
+        if (r.id === dataManager.activeCharId) opt.selected = true;
+        els.charRosterSelect.appendChild(opt);
+    });
 }
 
 function renderTempBadge(badgeEl, tempVal) {
@@ -782,6 +827,7 @@ function renderCards() {
 
     let sortDir = els.btnSortDir ? els.btnSortDir.dataset.dir || 'asc' : 'asc';
     let sortVal = els.sortTilesBy ? els.sortTilesBy.value || 'default' : 'default';
+    let ignoreFavs = els.ignoreFavoritesSort ? els.ignoreFavoritesSort.checked : false;
 
     if (sortVal !== 'default') {
         filteredTiles.sort((a, b) => {
@@ -807,6 +853,14 @@ function renderCards() {
         }
     }
 
+    if (!ignoreFavs) {
+        filteredTiles.sort((a, b) => {
+            const aFav = a.isFavorite ? 1 : 0;
+            const bFav = b.isFavorite ? 1 : 0;
+            return bFav - aFav;
+        });
+    }
+
     filteredTiles.forEach(tile => {
         const div = document.createElement('div');
         div.className = 'tile-card';
@@ -829,7 +883,10 @@ function renderCards() {
                 <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost !== undefined ? tile.xpCost : 0} XP</span>
             </div>
             <div class="tile-card-content">
-                <div class="tile-name">${tile.name}</div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div class="tile-name" style="margin-bottom: 0;">${tile.name}</div>
+                    <button class="btn-favorite ${tile.isFavorite ? 'active' : ''}" title="Toggle Favorite" aria-label="Toggle Favorite">★</button>
+                </div>
                 <div class="tile-tags">${tile.tags}</div>
                 <div class="tile-dice">${tile.dice.join(', ')}</div>
                 <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
@@ -843,6 +900,16 @@ function renderCards() {
                 : `<button class="btn-burn-instant" title="Burn ${tileNameLabel}" aria-label="Burn ${tileNameLabel}">🔥 Burn</button>`
             }
         `;
+
+        const btnFavorite = div.querySelector('.btn-favorite');
+        if (btnFavorite) {
+            btnFavorite.addEventListener('click', (e) => {
+                e.stopPropagation();
+                tile.isFavorite = !tile.isFavorite;
+                dataManager.saveState();
+                renderCards();
+            });
+        }
 
         if (tile.isBurnt) {
             const btnUnburn = div.querySelector('.btn-unburn');

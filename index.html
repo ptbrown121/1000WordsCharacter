@@ -11,10 +11,14 @@
     <header class="glass-panel">
         <div class="header-top">
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; width: 100%; justify-content: space-between;">
-                <input type="text" id="char-name" value="Hero Name" style="font-size: 1.5rem; background: transparent; border: none; color: white; flex: 1 1 120px; min-width: 120px;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1 1 200px;">
+                    <select id="char-roster-select" class="btn btn-outline" style="padding: 0.3rem; border-radius: 4px; max-width: 150px; text-overflow: ellipsis;" title="Switch Character"></select>
+                    <input type="text" id="char-name" value="Hero Name" style="font-size: 1.5rem; background: transparent; border: none; color: white; width: 100%; min-width: 120px;">
+                </div>
                 <div class="header-actions" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                     <button id="btn-rest" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.9rem;">🏕️ Rest</button>
                     <button id="btn-new-char" class="btn btn-outline" title="Start a Blank Character">📄 New</button>
+                    <button id="btn-del-char" class="btn btn-outline" title="Delete Current Character" style="color: #ff4444; border-color: rgba(255,68,68,0.3);">🗑️ Del</button>
                     <button id="btn-export" class="btn btn-outline" title="Export Character">⬇️ Export</button>
                     <label for="file-import" class="btn btn-outline" title="Import Character">⬆️ Import</label>
                     <input type="file" id="file-import" accept=".json" style="display: none;">
@@ -146,6 +150,9 @@
                                 <option value="type">By Type</option>
                             </select>
                             <button id="btn-sort-dir" class="btn btn-outline" style="padding: 0.5rem 0.8rem;" title="Reverse Order" data-dir="asc">↓</button>
+                            <label style="display: flex; align-items: center; gap: 0.3rem; color: var(--text-muted); font-size: 0.9rem; margin-left: 0.5rem;">
+                                <input type="checkbox" id="ignore-favorites-sort"> Ignore Favs
+                            </label>
                         </div>
                     </div>
                 </div>

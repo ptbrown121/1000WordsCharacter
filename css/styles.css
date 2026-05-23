@@ -364,6 +364,27 @@ header {
     background: rgba(255, 165, 0, 0.5);
 }
 
+.btn-favorite {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+    padding: 0;
+    line-height: 1;
+    z-index: 3;
+}
+
+.btn-favorite:hover {
+    transform: scale(1.1);
+}
+
+.btn-favorite.active {
+    color: #ffd700;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
 .tile-badges {
     display: flex;
     gap: 0.3rem;

@@ -66,11 +66,55 @@ const DEFAULT_STATE = {
 
 export class DataManager {
     constructor() {
-        this.state = this.loadState();
+        this.loadRoster();
+        this.state = this.loadState(this.activeCharId);
     }
 
-    loadState() {
-        const saved = localStorage.getItem('1000words_state');
+    loadRoster() {
+        const savedRoster = localStorage.getItem('1000words_roster');
+        const active = localStorage.getItem('1000words_active_char');
+        
+        // Migration of old single-character save
+        const legacySave = localStorage.getItem('1000words_state');
+        
+        if (savedRoster) {
+            this.roster = JSON.parse(savedRoster);
+            this.activeCharId = active || (this.roster.length > 0 ? this.roster[0].id : null);
+            
+            // If legacy save exists and roster somehow loaded, we should probably just leave it alone or migrate it.
+            // Assuming normal case where legacy save is migrated below.
+        } else if (legacySave) {
+            const charId = 'char_' + Date.now();
+            let name = 'Hero Name';
+            try { name = JSON.parse(legacySave).name || 'Hero Name'; } catch(e){}
+            this.roster = [{ id: charId, name }];
+            this.activeCharId = charId;
+            localStorage.setItem('1000words_state_' + charId, legacySave);
+            localStorage.removeItem('1000words_state'); // Migrate it out
+            this.saveRoster();
+        } else {
+            const charId = 'char_' + Date.now();
+            this.roster = [{ id: charId, name: 'Hero Name' }];
+            this.activeCharId = charId;
+            this.saveRoster();
+        }
+        
+        // Ensure activeCharId is valid
+        if (!this.roster.find(r => r.id === this.activeCharId) && this.roster.length > 0) {
+            this.activeCharId = this.roster[0].id;
+        }
+    }
+
+    saveRoster() {
+        localStorage.setItem('1000words_roster', JSON.stringify(this.roster));
+        if (this.activeCharId) {
+            localStorage.setItem('1000words_active_char', this.activeCharId);
+        }
+    }
+
+    loadState(charId) {
+        if (!charId) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        const saved = localStorage.getItem('1000words_state_' + charId);
         if (saved) {
             try {
                 const state = JSON.parse(saved);
@@ -93,7 +137,15 @@ export class DataManager {
     }
 
     saveState() {
-        localStorage.setItem('1000words_state', JSON.stringify(this.state));
+        if (!this.activeCharId) return;
+        localStorage.setItem('1000words_state_' + this.activeCharId, JSON.stringify(this.state));
+        
+        // Also update roster name if it changed
+        const rosterEntry = this.roster.find(r => r.id === this.activeCharId);
+        if (rosterEntry && rosterEntry.name !== this.state.name) {
+            rosterEntry.name = this.state.name;
+            this.saveRoster();
+        }
     }
 
     updateStat(statName, value) {
@@ -130,6 +182,38 @@ export class DataManager {
         this.saveState();
     }
 
+    switchCharacter(id) {
+        if (this.roster.find(r => r.id === id)) {
+            this.activeCharId = id;
+            this.saveRoster();
+            this.state = this.loadState(this.activeCharId);
+        }
+    }
+
+    createNewCharacter(name = "Hero Name") {
+        const charId = 'char_' + Date.now();
+        this.roster.push({ id: charId, name });
+        this.activeCharId = charId;
+        this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        this.state.name = name;
+        this.saveState();
+        this.saveRoster();
+        return charId;
+    }
+
+    deleteCurrentCharacter() {
+        if (this.roster.length === 1) {
+            this.clearState();
+            return;
+        }
+        
+        localStorage.removeItem('1000words_state_' + this.activeCharId);
+        this.roster = this.roster.filter(r => r.id !== this.activeCharId);
+        this.activeCharId = this.roster[0].id;
+        this.saveRoster();
+        this.state = this.loadState(this.activeCharId);
+    }
+
     exportState() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, null, 2));
         const dlAnchorElem = document.createElement('a');
@@ -138,7 +222,7 @@ export class DataManager {
         dlAnchorElem.click();
     }
 
-    importState(jsonString) {
+    importState(jsonString, overwrite = false) {
         try {
             const newState = JSON.parse(jsonString);
             if (newState.stats && newState.tiles) {
@@ -162,8 +246,19 @@ export class DataManager {
                     if (t.isBurnt === undefined) t.isBurnt = false;
                 });
                 
-                this.state = newState;
-                this.saveState();
+                if (overwrite) {
+                    this.state = newState;
+                    this.saveState();
+                } else {
+                    const charId = 'char_' + Date.now();
+                    const name = newState.name || 'Imported Hero';
+                    this.roster.push({ id: charId, name });
+                    this.activeCharId = charId;
+                    this.state = newState;
+                    this.saveState();
+                    this.saveRoster();
+                }
+                
                 return true;
             }
         } catch (e) {
