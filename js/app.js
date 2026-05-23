@@ -118,6 +118,28 @@ const els = {
 // Math Utilities
 const BASE_XP = { 'd3': 0, 'd4': 1, 'd6': 3, 'd8': 6, 'd10': 10, 'd12': 15, 'd14': 21, 'd16': 28 };
 
+// Armor base (page 29): material x coverage. Coverage sets intrinsic Base Soak.
+const ARMOR_MATERIALS = new Set(['Soft', 'Hard']);
+const ARMOR_COVERAGE_SOAK = { Open: 0, Full: 1, Closed: 3 };
+
+function formatArmorBase(armorType) {
+    if (!armorType || !ARMOR_MATERIALS.has(armorType.material) || !(armorType.coverage in ARMOR_COVERAGE_SOAK)) {
+        return '';
+    }
+    const soak = ARMOR_COVERAGE_SOAK[armorType.coverage];
+    return `${armorType.coverage} ${armorType.material} Armor · Base Soak +${soak}`;
+}
+
+function getFormArmorType() {
+    if (document.getElementById('tile-type').value !== 'Gear') return null;
+    const material = document.getElementById('armor-material').value;
+    const coverage = document.getElementById('armor-coverage').value;
+    if (ARMOR_MATERIALS.has(material) && coverage in ARMOR_COVERAGE_SOAK) {
+        return { material, coverage };
+    }
+    return null;
+}
+
 const RESOLUTION_MODES = {
     action: {
         label: 'Action',
@@ -550,7 +572,7 @@ function bindEvents() {
             alert(getDiceValidationMessage('Tile dice'));
             return;
         }
-        const xp = poolEngine.estimateTileXp(diceArray, currentFormTags);
+        const xp = poolEngine.estimateTileXp(diceArray, currentFormTags, getFormArmorType());
         els.tileXp.value = xp;
     });
 
@@ -817,7 +839,7 @@ function renderCards() {
     const filteredTiles = dataManager.state.tiles.filter(tile => {
         // Text Search
         if (searchTerm) {
-            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.tags || ''} ${tile.description || ''}`.toLowerCase();
+            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.tags || ''} ${formatArmorBase(tile.armorType)} ${tile.description || ''}`.toLowerCase();
             if (!searchableText.includes(searchTerm)) return false;
         }
         
@@ -870,6 +892,7 @@ function renderCards() {
         const div = document.createElement('div');
         div.className = 'tile-card';
         const tileNameLabel = escapeAttribute(tile.name);
+        const armorLabel = formatArmorBase(tile.armorType);
         
         // Gradient background based on 2 colors
         let c1 = COLOR_HEX[tile.colors[0]] || '#444';
@@ -893,6 +916,7 @@ function renderCards() {
                     <button class="btn-favorite ${tile.isFavorite ? 'active' : ''}" title="Toggle Favorite" aria-label="Toggle Favorite">★</button>
                 </div>
                 <div class="tile-tags">${tile.tags}</div>
+                ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">🛡️ ${armorLabel}</div>` : ''}
                 <div class="tile-dice">${tile.dice.join(', ')}</div>
                 <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
                     <button class="btn-edit-tile" aria-label="Edit ${tileNameLabel}" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">✏️ Edit</button>
@@ -1808,11 +1832,19 @@ function openModal(tile = null) {
     currentFormTags = [];
     els.tagCustomInput.style.display = 'none';
 
+    const armorMaterial = document.getElementById('armor-material');
+    const armorCoverage = document.getElementById('armor-coverage');
+    const armorContainer = document.getElementById('armor-base-container');
+
     if (tile) {
         document.getElementById('modal-title').innerText = 'Edit Tile';
         document.getElementById('tile-id').value = tile.id;
-        document.getElementById('tile-type').value = tile.type || 'Skill';
-        document.getElementById('spellcast-skill-container').style.display = (tile.type || 'Skill') === 'Skill' ? 'block' : 'none';
+        const tileType = tile.type || 'Skill';
+        document.getElementById('tile-type').value = tileType;
+        document.getElementById('spellcast-skill-container').style.display = tileType === 'Skill' ? 'block' : 'none';
+        armorContainer.style.display = tileType === 'Gear' ? 'block' : 'none';
+        armorMaterial.value = tile.armorType?.material || '';
+        armorCoverage.value = tile.armorType?.coverage || '';
         document.getElementById('tile-is-spellcast').checked = !!tile.isSpellcastSkill;
         document.getElementById('tile-name').value = tile.name;
         document.getElementById('tile-description').value = tile.description || '';
@@ -1832,6 +1864,9 @@ function openModal(tile = null) {
         document.getElementById('tile-id').value = '';
         document.getElementById('tile-type').value = 'Skill';
         document.getElementById('spellcast-skill-container').style.display = 'block';
+        armorContainer.style.display = 'none';
+        armorMaterial.value = '';
+        armorCoverage.value = '';
         document.getElementById('tile-is-spellcast').checked = false;
         document.getElementById('tile-description').value = '';
         els.tileXp.value = 0;
@@ -1910,6 +1945,8 @@ function saveTileFromForm() {
         return;
     }
 
+    const armorType = getFormArmorType();
+
     const tile = {
         id: id || null,
         type,
@@ -1919,7 +1956,8 @@ function saveTileFromForm() {
         dice: diceArray,
         tags,
         xpCost,
-        isSpellcastSkill
+        isSpellcastSkill,
+        armorType
     };
 
     if (id) {

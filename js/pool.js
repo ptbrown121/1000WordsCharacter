@@ -26,6 +26,15 @@ const RESOURCE_TAGS = {
 const FLAW_TAGS = new Set(['old', 'primitive', 'rare', 'risky', 'worn', 'hitch', 'bulky', 'heavy']);
 const EXOTIC_TAGS = new Set(['bestial', 'celestial', 'cyber']);
 
+// Armor base XP (page 29): material + coverage. Hard armor discounts Detail tags by 1 XP.
+const ARMOR_MATERIAL_XP = { Soft: 0, Hard: 4 };
+const ARMOR_COVERAGE_XP = { Open: 0, Full: 2, Closed: 4 };
+const ARMOR_DETAIL_TAGS = new Set([
+    'quick', 'tough', 'vital', 'motorized',
+    'agile', 'hidden', 'ironclad', 'loose', 'rugged', 'sealed',
+    'adamant'
+]);
+
 const DIE_STEPS = {
     d3: 0,
     d4: 1,
@@ -147,9 +156,10 @@ export class PoolEngine {
         return totalXp;
     }
 
-    estimateTileXp(diceArray, tagsArray) {
+    estimateTileXp(diceArray, tagsArray, armorType = null) {
         let xp = this.calculateOptimalXpCost(diceArray);
-        
+        const isHardArmor = Boolean(armorType) && armorType.material === 'Hard';
+
         // Tag modifiers
         tagsArray.forEach(tag => {
             const t = tag.toLowerCase().replace(' (exempt)', '');
@@ -159,7 +169,7 @@ export class PoolEngine {
                 xp -= 2;
             } else if (t.startsWith('hitch')) {
                 // Hitch can give up to 6 XP, default guess -3
-                xp -= 3; 
+                xp -= 3;
             } else if (['slow', 'pain'].includes(t)) {
                 xp += 3;
             } else if (['bleed', 'wound'].includes(t)) {
@@ -168,10 +178,20 @@ export class PoolEngine {
                 xp += 2;
             } else {
                 // generic tag guess
-                xp += 2; 
+                xp += 2;
+            }
+
+            // Hard armor makes Detail tags cost 1 XP less.
+            if (isHardArmor && ARMOR_DETAIL_TAGS.has(t)) {
+                xp -= 1;
             }
         });
-        
+
+        // Armor base cost: material + coverage.
+        if (armorType) {
+            xp += (ARMOR_MATERIAL_XP[armorType.material] || 0) + (ARMOR_COVERAGE_XP[armorType.coverage] || 0);
+        }
+
         return Math.max(0, xp);
     }
 
