@@ -84,6 +84,12 @@ function getAmmoResolutionOptions(calledTileIds = []) {
         }));
 }
 
+function resetMosaicFilterAfterRoll() {
+    if (!els.autoFilterCall.checked) return;
+    els.autoFilterCall.checked = false;
+    renderCards();
+}
+
 function applyResourceCosts(resourceCosts = []) {
     const enCost = resourceCosts
         .filter(cost => cost.resource === 'en')
@@ -324,6 +330,7 @@ export function executeVirtualRoll() {
     result.appliedTagBonuses = appliedTagBonuses;
     result.ammoOptions = getAmmoResolutionOptions(res.calledTileIds || []);
     showResults(result);
+    resetMosaicFilterAfterRoll();
     processBurns();
 }
 
@@ -372,6 +379,7 @@ export function executeManualCalculate() {
     result.appliedTagBonuses = appliedTagBonuses;
     result.ammoOptions = getAmmoResolutionOptions(res.calledTileIds || []);
     showResults(result);
+    resetMosaicFilterAfterRoll();
     processBurns();
 }
 

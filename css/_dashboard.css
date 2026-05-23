@@ -14,6 +14,27 @@
     margin-top: 0.5rem;
 }
 
+.filter-toggle {
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    font-size: 0.85rem;
+    gap: 0.45rem;
+    line-height: 1.3;
+    padding: 0.55rem 0.65rem;
+    user-select: none;
+}
+
+.filter-toggle:has(input:checked) {
+    background: rgba(0,255,200,0.1);
+    border-color: rgba(0,255,200,0.4);
+    color: var(--text-primary);
+}
+
 .pool-tiles {
     margin-top: 1.5rem;
 }
