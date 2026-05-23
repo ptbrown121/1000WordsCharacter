@@ -43,6 +43,30 @@ export function parseDiceString(str) {
     return parseDiceInput(str).dice;
 }
 
+/**
+ * Normalize a tile's `tags` field into a clean string[] regardless of how it
+ * is stored. The current storage format is an array of strings, but legacy
+ * saves and the existing pool.test.js fixtures store it as a comma-separated
+ * string, so this helper accepts both. Returns a fresh array (callers may
+ * mutate / map without surprising side effects on the tile).
+ *
+ * Object-shaped tags (e.g. SpellBuilder's `{name, xp}` items) are flattened
+ * to their `name` so downstream rule logic can treat them uniformly.
+ */
+export function tileTagList(tile) {
+    if (!tile) return [];
+    const raw = tile.tags;
+    if (raw == null || raw === '') return [];
+
+    const items = Array.isArray(raw) ? raw : String(raw).split(',');
+    return items
+        .map(item => {
+            if (item && typeof item === 'object') return String(item.name || '').trim();
+            return String(item || '').trim();
+        })
+        .filter(Boolean);
+}
+
 export function getDiceValidationMessage(label = 'Dice') {
     return `${label} must use only: d3, d4, d6, d8, d10, d12, d14, or d16.`;
 }
@@ -280,7 +304,7 @@ export class PoolEngine {
             });
 
             const tileSteps = this.calculateSteps(tile.dice || []);
-            const tags = tile.tags ? tile.tags.split(',').map(normalizeMechanicalTag) : [];
+            const tags = tileTagList(tile).map(normalizeMechanicalTag);
             tags.forEach(tag => {
                 const resource = RESOURCE_TAGS[tag];
                 if (resource) maxes[resource] += tileSteps;
@@ -380,7 +404,7 @@ export class PoolEngine {
             if (!isCallTile) adds += 1;
 
             // Parse tags
-            const tags = tile.tags ? tile.tags.split(',').map(t => t.trim().toLowerCase()) : [];
+            const tags = tileTagList(tile).map(t => t.toLowerCase());
             
             // Contextual tag bonuses are surfaced for user selection.
             tags.forEach((tag, index) => {

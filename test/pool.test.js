@@ -229,7 +229,8 @@ import {
     parseDiceString,
     getDiceValidationMessage,
     formatTagLimitStatus,
-    tagLimitErrorMessage
+    tagLimitErrorMessage,
+    tileTagList
 } from '../js/pool.js';
 
 describe('escapeHtml', () => {
@@ -294,5 +295,33 @@ describe('formatTagLimitStatus / tagLimitErrorMessage', () => {
         const msg = tagLimitErrorMessage('This tile', limit);
         assert.match(msg, /This tile has 3 countable tags, but its dice allow 1/);
         assert.match(msg, /Countable tags: Keen, Sharp, Expert\./);
+    });
+});
+
+
+describe('tileTagList', () => {
+    it('returns the array as-is for the new storage format', () => {
+        assert.deepEqual(tileTagList({ tags: ['Keen', 'Sharp'] }), ['Keen', 'Sharp']);
+    });
+
+    it('parses a legacy comma-separated tags string', () => {
+        assert.deepEqual(tileTagList({ tags: 'Keen, Sharp , Vital' }), ['Keen', 'Sharp', 'Vital']);
+    });
+
+    it('flattens object-shaped tags ({name, xp}) to their name', () => {
+        const tile = { tags: [{ name: 'Keen', xp: 2 }, { name: 'Sharp', xp: 2 }] };
+        assert.deepEqual(tileTagList(tile), ['Keen', 'Sharp']);
+    });
+
+    it('drops empty entries from either format', () => {
+        assert.deepEqual(tileTagList({ tags: ['Keen', '', '  '] }), ['Keen']);
+        assert.deepEqual(tileTagList({ tags: ',Keen,, ,Sharp,' }), ['Keen', 'Sharp']);
+    });
+
+    it('returns an empty array for missing or blank tags', () => {
+        assert.deepEqual(tileTagList({}), []);
+        assert.deepEqual(tileTagList({ tags: null }), []);
+        assert.deepEqual(tileTagList({ tags: '' }), []);
+        assert.deepEqual(tileTagList(null), []);
     });
 });

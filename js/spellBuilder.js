@@ -1,7 +1,6 @@
 import { VALID_DICE } from './data.js';
 import {
     PoolEngine,
-    escapeHtml,
     formatTagLimitStatus,
     tagLimitErrorMessage as buildTagLimitErrorMessage
 } from './pool.js';
@@ -567,7 +566,7 @@ export class SpellBuilder {
             description,
             colors: colors.slice(0, 2),
             dice: diceArray,
-            tags: tagsArr.join(', '),
+            tags: tagsArr,
             xpCost: this.calculateXP(),
             isBurnt: false,
             isSpell: true,
