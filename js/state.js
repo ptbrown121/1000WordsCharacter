@@ -1,0 +1,33 @@
+// Shared mutable UI state.
+//
+// Per refactor PR #2 (split-app-js): we keep these as properties on a single
+// exported object so consumer code can read AND write through one import,
+// while still getting them out of true module-global `let` bindings.
+// A future PR can tighten access (getters/setters, scoping per-feature)
+// without touching every call site again.
+
+export const uiState = {
+    // The single tile selected as the "Call" for a roll, or null.
+    callTile: null,
+    // Tiles being burned for this roll. Array of tile objects.
+    burnTiles: [],
+    // Chain IDs the user has explicitly disabled for this roll.
+    disabledChainIds: new Set(),
+    // Tag-bonus IDs the user has opted into for this roll.
+    selectedTagBonusIds: new Set(),
+    // Result of the most recent roll/calculate, kept for re-renders.
+    lastRollResult: null,
+    // Active resolution mode: 'action' | 'attack' | 'defense' | 'healing'.
+    currentResolutionMode: 'action',
+    // Map of roll-id -> assignment slot for the current resolution.
+    currentResolutionAssignments: {},
+    // Whether healing-in-combat penalties apply to the current roll.
+    healingInCombat: false
+};
+
+// NOTE: a `resetTransientState()` helper is intentionally NOT added here.
+// The four sites in app.js that reset transient state today only clear
+// `callTile` and `burnTiles` - they do NOT clear lastRollResult,
+// disabledChainIds, etc. A reset helper would have to either match that
+// narrow scope (low value) or expand it (behavior change). Deferring to a
+// follow-up PR per the no-behavior-change rule of the split.
