@@ -44,6 +44,8 @@ const els = {
     cardContainer: document.getElementById('card-container'),
     btnAddTile: document.getElementById('btn-add-tile'),
     searchTiles: document.getElementById('search-tiles'),
+    sortTilesBy: document.getElementById('sort-tiles-by'),
+    btnSortDir: document.getElementById('btn-sort-dir'),
     modal: document.getElementById('tile-modal'),
     form: document.getElementById('tile-form'),
     btnCancel: document.getElementById('btn-modal-cancel'),
@@ -426,6 +428,15 @@ function bindEvents() {
     // Search
     if (els.searchTiles) {
         els.searchTiles.addEventListener('input', () => renderCards());
+        if (els.sortTilesBy) els.sortTilesBy.addEventListener('change', () => renderCards());
+        if (els.btnSortDir) {
+            els.btnSortDir.addEventListener('click', () => {
+                const dir = els.btnSortDir.dataset.dir === 'asc' ? 'desc' : 'asc';
+                els.btnSortDir.dataset.dir = dir;
+                els.btnSortDir.innerHTML = dir === 'asc' ? '↓' : '↑';
+                renderCards();
+            });
+        }
     }
 
     // Modal
@@ -768,6 +779,33 @@ function renderCards() {
         
         return true;
     });
+
+    let sortDir = els.btnSortDir ? els.btnSortDir.dataset.dir || 'asc' : 'asc';
+    let sortVal = els.sortTilesBy ? els.sortTilesBy.value || 'default' : 'default';
+
+    if (sortVal !== 'default') {
+        filteredTiles.sort((a, b) => {
+            let result = 0;
+            if (sortVal === 'alpha') {
+                result = a.name.localeCompare(b.name);
+            } else if (sortVal === 'color') {
+                const aColor = (a.colors && a.colors.length > 0) ? a.colors[0] : '';
+                const bColor = (b.colors && b.colors.length > 0) ? b.colors[0] : '';
+                result = aColor.localeCompare(bColor);
+                if (result === 0) result = a.name.localeCompare(b.name);
+            } else if (sortVal === 'type') {
+                const aType = a.isSpell ? 'Spell' : (a.type || 'Skill');
+                const bType = b.isSpell ? 'Spell' : (b.type || 'Skill');
+                result = aType.localeCompare(bType);
+                if (result === 0) result = a.name.localeCompare(b.name);
+            }
+            return sortDir === 'asc' ? result : -result;
+        });
+    } else {
+        if (sortDir === 'desc') {
+            filteredTiles.reverse();
+        }
+    }
 
     filteredTiles.forEach(tile => {
         const div = document.createElement('div');

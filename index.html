@@ -135,7 +135,19 @@
                             <button id="btn-add-spell" class="btn btn-primary" style="background: linear-gradient(135deg, #00b09b, #96c93d); color: #111;">+ Add Spell</button>
                         </div>
                     </div>
-                    <input type="text" id="search-tiles" placeholder="Search by name, color, type, or tags..." style="width: 100%; padding: 0.8rem; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); font-size: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%;">
+                        <input type="text" id="search-tiles" placeholder="Search by name, color, type, or tags..." style="flex: 1; min-width: 200px; padding: 0.8rem; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); font-size: 1rem;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <label style="color: var(--text-muted); font-size: 0.9rem;">Sort:</label>
+                            <select id="sort-tiles-by" style="padding: 0.6rem; border-radius: 6px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border);">
+                                <option value="default">Added (Default)</option>
+                                <option value="alpha">Alphabetical</option>
+                                <option value="color">By Color</option>
+                                <option value="type">By Type</option>
+                            </select>
+                            <button id="btn-sort-dir" class="btn btn-outline" style="padding: 0.5rem 0.8rem;" title="Reverse Order" data-dir="asc">↓</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-grid" id="card-container">
                     <!-- Cards injected via JS -->
