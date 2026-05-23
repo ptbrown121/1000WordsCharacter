@@ -8,6 +8,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Surfaced when data.js fires a 'storage-error' CustomEvent (quota
+         exceeded, private mode, blocked storage). Wired in
+         js/ui/notifications.js. Hidden by default. -->
+    <div id="storage-error-banner" class="storage-error-banner" role="alert" aria-live="assertive" hidden>
+        <span class="storage-error-banner-icon" aria-hidden="true">⚠️</span>
+        <div class="storage-error-banner-message">
+            <strong>Your character isn't being saved.</strong>
+            <span id="storage-error-banner-detail"> Browser storage is unavailable.</span>
+            Export to JSON now to avoid losing changes.
+        </div>
+        <div class="storage-error-banner-actions">
+            <button id="btn-storage-error-export" class="btn btn-outline" type="button">⬇️ Export now</button>
+            <button id="btn-storage-error-dismiss" class="btn btn-outline" type="button" aria-label="Dismiss banner">Dismiss</button>
+        </div>
+    </div>
+
     <header class="glass-panel">
         <div class="header-top">
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; width: 100%; justify-content: space-between;">

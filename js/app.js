@@ -10,6 +10,7 @@ import { init as initJournal } from './ui/journal.js';
 import { init as initRoster } from './ui/roster.js';
 import { init as initStats } from './ui/stats.js';
 import { init as initVitals } from './ui/vitals.js';
+import { init as initNotifications } from './ui/notifications.js';
 
 const dataManager = new DataManager();
 const poolEngine = new PoolEngine();
@@ -27,5 +28,6 @@ initJournal(deps);
 initRoster(deps);
 initStats(deps);
 initVitals(deps);
+initNotifications(deps);
 
 renderAll();

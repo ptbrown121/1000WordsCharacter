@@ -188,10 +188,30 @@ export class SpellBuilder {
                 }
             });
             
-            if (tile.description) {
-                document.getElementById('spell-description').value = tile.description;
+            // Restore the user-typed details textarea. Prefer the explicit
+            // spellState.userDetails (saved post-fix) over tile.description
+            // (which on legacy saves contains generatedPreview+userDetails
+            // merged, and on even older saves contains only userDetails).
+            const detailsEl = document.getElementById('spell-description');
+            if (tile.spellState && typeof tile.spellState.userDetails === 'string') {
+                detailsEl.value = tile.spellState.userDetails;
+            } else if (tile.description) {
+                // Best-effort migration for spells saved before userDetails
+                // was tracked separately. Strip the leading auto-generated
+                // preview ("Effect: ...") if present so we don't duplicate
+                // it on the next save.
+                const desc = tile.description;
+                const effectIdx = desc.indexOf('Effect:');
+                if (effectIdx === 0) {
+                    // Whole description starts with the preview; the user
+                    // half (if any) is everything after the first blank line.
+                    const blankLine = desc.indexOf('\n\n');
+                    detailsEl.value = blankLine === -1 ? '' : desc.slice(blankLine + 2);
+                } else {
+                    detailsEl.value = desc;
+                }
             } else {
-                document.getElementById('spell-description').value = '';
+                detailsEl.value = '';
             }
             
             document.querySelectorAll('.spell-mod').forEach(input => {
@@ -524,9 +544,17 @@ export class SpellBuilder {
                 if(t.trim()) tagsArr.push(t.trim());
             });
         }
-        
+
+        // Build the spell's textual description. The wizard auto-generates a
+        // preview sentence ("Effect: ... Range: ... Duration: ...") and the
+        // user can type extra detail in the optional textarea. Both belong in
+        // tile.description; NEITHER belongs in tile.tags. (Earlier versions
+        // pushed the preview sentence onto tagsArr, which polluted the tag
+        // limit, the chain matcher, and the contextual-tag-bonus surface.)
         this.generatePreview();
-        tagsArr.push(document.getElementById('spell-preview-desc').textContent);
+        const generatedPreview = document.getElementById('spell-preview-desc').textContent.trim();
+        const userDetails = document.getElementById('spell-description').value.trim();
+        const description = [generatedPreview, userDetails].filter(Boolean).join('\n\n');
 
         // Spell State for editing
         const spellState = {
@@ -550,14 +578,17 @@ export class SpellBuilder {
             'spell-custom-tags': document.getElementById('spell-custom-tags').value,
             'spell-unchained': document.getElementById('spell-unchained').checked,
             'spell-chain-target': document.getElementById('spell-chain-target') ? document.getElementById('spell-chain-target').value : '',
-            tagsList: [...this.currentFormTags]
+            tagsList: [...this.currentFormTags],
+            // The user-typed details, separate from the auto-generated
+            // preview sentence. Saved here so re-editing repopulates only
+            // the user half of tile.description and the next save does not
+            // double-prepend the preview.
+            userDetails: userDetails
         };
         
         document.querySelectorAll('.spell-mod').forEach(input => {
             spellState[`spell-mod-val-${input.dataset.label}`] = input.value;
         });
-
-        const description = document.getElementById('spell-description').value.trim();
 
         const newSpell = {
             id: this.editingTileId || crypto.randomUUID(),

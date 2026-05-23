@@ -106,5 +106,12 @@ export const els = {
     // Info
     btnInfo: document.getElementById('btn-info'),
     infoModal: document.getElementById('info-modal'),
-    btnInfoClose: document.getElementById('btn-info-close')
+    btnInfoClose: document.getElementById('btn-info-close'),
+
+    // Storage-error banner (surfaced by js/ui/notifications.js when
+    // data.js dispatches a 'storage-error' CustomEvent).
+    storageErrorBanner: document.getElementById('storage-error-banner'),
+    storageErrorBannerDetail: document.getElementById('storage-error-banner-detail'),
+    btnStorageErrorDismiss: document.getElementById('btn-storage-error-dismiss'),
+    btnStorageErrorExport: document.getElementById('btn-storage-error-export')
 };
