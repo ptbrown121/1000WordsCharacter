@@ -6,7 +6,7 @@ import { escapeHtml, tileTagList } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
-import { formatArmorBase, formatWeaponBase } from './modals.js';
+import { formatAmmoBase, formatArmorBase, formatWeaponBase } from './modals.js';
 import { updatePoolPreview } from './pool.js';
 import { updateShadowMax } from './vitals.js';
 
@@ -39,7 +39,7 @@ export function init(deps) {
 }
 
 export function handleCardClick(tile) {
-    if (tile.isBurnt || tile.isBuried) {
+    if (tile.isBurnt || tile.isBuried || tile.gearSubtype === 'Ammo') {
         // Cannot select unavailable tiles.
         return;
     }
@@ -80,13 +80,13 @@ export function renderCards() {
         // Text Search
         if (searchTerm) {
             const tagsText = tileTagList(tile).join(' ');
-            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.gearSubtype || ''} ${tagsText} ${formatArmorBase(tile.armorType)} ${formatWeaponBase(tile.weapon)} ${tile.description || ''}`.toLowerCase();
+            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.gearSubtype || ''} ${tagsText} ${formatArmorBase(tile.armorType)} ${formatWeaponBase(tile.weapon)} ${formatAmmoBase(tile.ammo)} ${tile.description || ''}`.toLowerCase();
             if (!searchableText.includes(searchTerm)) return false;
         }
         
         // Auto-Filter by Call Colors
         if (activeCallColors.length > 0) {
-            const hasMatchingColor = tile.colors.some(c => activeCallColors.includes(c));
+            const hasMatchingColor = (tile.colors || []).some(c => activeCallColors.includes(c));
             if (!hasMatchingColor) return false;
         }
         
@@ -135,10 +135,18 @@ export function renderCards() {
         const tileNameLabel = escapeHtml(tile.name);
         const armorLabel = formatArmorBase(tile.armorType);
         const weaponLabel = formatWeaponBase(tile.weapon);
+        const ammoLabel = formatAmmoBase(tile.ammo);
+        const isAmmo = tile.type === 'Gear' && tile.gearSubtype === 'Ammo';
+        const linkedAmmoTiles = tile.weapon
+            ? dataManager.state.tiles.filter(t => t.gearSubtype === 'Ammo' && t.ammo?.targetTileId === tile.id && !t.isBuried)
+            : [];
+        const needsAmmoLink = Boolean(tile.weapon)
+            && tileTagList(tile).some(tag => String(tag).toLowerCase() === 'reload')
+            && linkedAmmoTiles.length === 0;
         
         // Gradient background based on 2 colors
-        let c1 = COLOR_HEX[tile.colors[0]] || '#444';
-        let c2 = COLOR_HEX[tile.colors[1]] || c1;
+        let c1 = COLOR_HEX[(tile.colors || [])[0]] || '#444';
+        let c2 = COLOR_HEX[(tile.colors || [])[1]] || c1;
         div.style.background = `linear-gradient(135deg, ${c1}44, ${c2}44)`;
         div.style.border = `1px solid ${c1}88`;
 
@@ -149,6 +157,12 @@ export function renderCards() {
 
         const actionButtons = tile.isBuried
             ? `<button class="btn-restore-tile" title="Restore ${tileNameLabel}" aria-label="Restore ${tileNameLabel}">Restore</button>`
+            : isAmmo
+                ? `<div class="tile-card-actions">
+                    <button class="btn-use-ammo" ${tile.ammo?.currentSupply > 0 ? '' : 'disabled'} title="Use ammo from ${tileNameLabel}" aria-label="Use ammo from ${tileNameLabel}">Use</button>
+                    <button class="btn-restock-ammo" title="Restock ${tileNameLabel}" aria-label="Restock ${tileNameLabel}">Restock</button>
+                    <button class="btn-bury-tile" title="Bury ${tileNameLabel}" aria-label="Bury ${tileNameLabel}">Bury</button>
+                </div>`
             : tile.isBurnt
                 ? `<button class="btn-unburn" title="Un-burn ${tileNameLabel}" aria-label="Un-burn ${tileNameLabel}">Un-burn</button>`
                 : `<div class="tile-card-actions">
@@ -158,8 +172,10 @@ export function renderCards() {
 
         div.innerHTML = `
             <div class="tile-badges">
-                ${tile.colors.map(c => `<span class="badge" style="background:${COLOR_HEX[c]}; color:${c==='White'||c==='Yellow'?'black':'white'}">${escapeHtml(c)}</span>`).join('')}
+                ${(tile.colors || []).map(c => `<span class="badge" style="background:${COLOR_HEX[c]}; color:${c==='White'||c==='Yellow'?'black':'white'}">${escapeHtml(c)}</span>`).join('')}
                 ${tile.type ? `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">${escapeHtml(String(tile.type).toUpperCase())}</span>` : `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">SKILL</span>`}
+                ${tile.gearSubtype ? `<span class="badge tile-subtype-badge" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);">${escapeHtml(String(tile.gearSubtype).toUpperCase())}</span>` : ''}
+                ${tile.weapon?.category ? `<span class="badge weapon-category-badge" style="background: rgba(51, 153, 255, 0.2); color: #99ccff; border: 1px solid rgba(153,204,255,0.6);">${escapeHtml(tile.weapon.category)}</span>` : ''}
                 <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost !== undefined ? escapeHtml(tile.xpCost) : 0} XP</span>
             </div>
             <div class="tile-card-content">
@@ -170,7 +186,10 @@ export function renderCards() {
                 <div class="tile-tags">${escapeHtml(tileTagList(tile).join(', '))}</div>
                 ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">\ud83d\udee1\ufe0f ${escapeHtml(armorLabel)}</div>` : ''}
                 ${weaponLabel ? `<div class="tile-weapon" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(weaponLabel)}</div>` : ''}
-                <div class="tile-dice">${escapeHtml(tile.dice.join(', '))}</div>
+                ${linkedAmmoTiles.length ? `<div class="tile-ammo-links" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Ammo: ${escapeHtml(linkedAmmoTiles.map(t => `${t.name} ${t.ammo?.currentSupply ?? 0}/${t.ammo?.maxSupply ?? 0}`).join(', '))}</div>` : ''}
+                ${needsAmmoLink ? `<div class="tile-ammo-warning" style="font-size: 0.8rem; color: #ffd166; margin-top: 0.25rem;">Reload weapon has no linked ammo</div>` : ''}
+                ${ammoLabel ? `<div class="tile-ammo" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(ammoLabel)}</div>` : ''}
+                <div class="tile-dice">${isAmmo ? 'No dice' : escapeHtml((tile.dice || []).join(', '))}</div>
                 <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
                     <button class="btn-edit-tile" aria-label="Edit ${tileNameLabel}" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">\u270f\ufe0f Edit</button>
                     ${tile.description ? `<button class="btn-details" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">Details \u25bc</button>` : ''}
@@ -195,6 +214,34 @@ export function renderCards() {
             btnRestore.addEventListener('click', (e) => {
                 e.stopPropagation();
                 tile.isBuried = false;
+                dataManager.updateTile(tile);
+                renderCards();
+                updatePoolPreview();
+                updateShadowMax();
+            });
+        } else if (isAmmo) {
+            const btnUseAmmo = div.querySelector('.btn-use-ammo');
+            const btnRestockAmmo = div.querySelector('.btn-restock-ammo');
+            const btnBury = div.querySelector('.btn-bury-tile');
+
+            btnUseAmmo.addEventListener('click', (e) => {
+                e.stopPropagation();
+                tile.ammo = tile.ammo || { currentSupply: 0, maxSupply: 0, replacesTag: 'Reload' };
+                tile.ammo.currentSupply = Math.max(0, (parseInt(tile.ammo.currentSupply, 10) || 0) - 1);
+                dataManager.updateTile(tile);
+                renderCards();
+            });
+            btnRestockAmmo.addEventListener('click', (e) => {
+                e.stopPropagation();
+                tile.ammo = tile.ammo || { currentSupply: 0, maxSupply: 0, replacesTag: 'Reload' };
+                tile.ammo.currentSupply = Math.max(0, parseInt(tile.ammo.maxSupply, 10) || 0);
+                dataManager.updateTile(tile);
+                renderCards();
+            });
+            btnBury.addEventListener('click', (e) => {
+                e.stopPropagation();
+                tile.isBuried = true;
+                tile.isBurnt = false;
                 dataManager.updateTile(tile);
                 renderCards();
                 updatePoolPreview();

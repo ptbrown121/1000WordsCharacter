@@ -317,6 +317,7 @@
                             <option value="Custom">Custom Gear</option>
                             <option value="Weapon">Weapon</option>
                             <option value="Armor">Armor</option>
+                            <option value="Ammo">Ammo</option>
                             <option value="Tool">Tool</option>
                         </select>
                     </div>
@@ -325,6 +326,16 @@
                         <select id="weapon-template" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 0.95rem; margin-top: 0.3rem;">
                             <option value="">-- Custom Weapon --</option>
                         </select>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 0.5rem;">
+                            <label style="font-weight: normal; font-size: 0.85rem; flex: 1 1 190px;">
+                                Template Tag Mode
+                                <select id="weapon-template-mode" style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                                    <option value="add">Add missing template tags</option>
+                                    <option value="replace">Replace current tags</option>
+                                </select>
+                            </label>
+                            <div id="weapon-template-preview" style="flex: 2 1 260px; color: var(--text-secondary); font-size: 0.85rem;"></div>
+                        </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
                             <label style="font-weight: normal; font-size: 0.85rem;">
                                 Category
@@ -340,6 +351,27 @@
                             </label>
                         </div>
                         <small id="weapon-template-note" style="display: block; margin-top: 0.3rem; color: var(--text-secondary); font-size: 0.8rem;">Templates fill the weapon's range, skill, and starting tags. Existing custom tags are preserved.</small>
+                    </div>
+                    <div id="ammo-builder-container" style="display: none; margin-top: 0.5rem;">
+                        <label style="font-weight: normal; font-size: 0.9rem;">Ammo Target</label>
+                        <select id="ammo-target" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 0.95rem; margin-top: 0.3rem;">
+                            <option value="">-- Select weapon --</option>
+                        </select>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
+                            <label style="font-weight: normal; font-size: 0.85rem;">
+                                Current Supply
+                                <input type="number" id="ammo-current-supply" min="0" value="0" style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            </label>
+                            <label style="font-weight: normal; font-size: 0.85rem;">
+                                Max Supply
+                                <input type="number" id="ammo-max-supply" min="0" value="1" style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            </label>
+                            <label style="font-weight: normal; font-size: 0.85rem;">
+                                Replaces Tag
+                                <input type="text" id="ammo-replaces-tag" placeholder="Reload" value="Reload" style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            </label>
+                        </div>
+                        <small style="display: block; margin-top: 0.3rem; color: var(--text-secondary); font-size: 0.8rem;">Ammo is tracked as gear without dice. It can link to a weapon, replace a flaw such as Reload, and be spent from its card.</small>
                     </div>
                     <div id="armor-base-container" style="display: none; margin-top: 0.5rem;">
                         <label style="font-weight: normal; font-size: 0.9rem;">Armor Base (optional)</label>
@@ -381,7 +413,8 @@
 
                 <div class="form-group">
                     <label>Dice (comma separated, e.g., d4, d6)</label>
-                    <input type="text" id="tile-dice" required placeholder="d4">
+                    <input type="text" id="tile-dice" placeholder="d4">
+                    <small id="tile-dice-note" style="display: block; margin-top: 0.3rem; color: var(--text-secondary); font-size: 0.8rem;"></small>
                 </div>
 
                 <div class="form-group">

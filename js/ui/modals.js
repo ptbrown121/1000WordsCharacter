@@ -1,6 +1,7 @@
 import {
-    WEAPON_TEMPLATES,
+    formatWeaponTemplateDetails,
     getWeaponTemplateById,
+    getWeaponTemplatesByCategory,
     parseDiceInput,
     getDiceValidationMessage,
     formatTagLimitStatus,
@@ -47,6 +48,14 @@ export function formatWeaponBase(weapon) {
     return parts.length ? `${parts.join(' · ')}` : '';
 }
 
+export function formatAmmoBase(ammo) {
+    if (!ammo) return '';
+    const target = ammo.targetName ? `for ${ammo.targetName}` : 'unlinked';
+    const supply = `${ammo.currentSupply ?? 0}/${ammo.maxSupply ?? 0}`;
+    const replaces = ammo.replacesTag ? ` · replaces ${ammo.replacesTag}` : '';
+    return `Ammo ${target} · Supply ${supply}${replaces}`;
+}
+
 function getFormWeapon() {
     if (document.getElementById('tile-type').value !== 'Gear') return null;
     if (document.getElementById('gear-subtype').value !== 'Weapon') return null;
@@ -61,6 +70,20 @@ function getFormWeapon() {
     return { templateId, category, range, skill };
 }
 
+function getFormAmmo() {
+    if (document.getElementById('tile-type').value !== 'Gear') return null;
+    if (document.getElementById('gear-subtype').value !== 'Ammo') return null;
+
+    const targetSelect = document.getElementById('ammo-target');
+    const targetTileId = targetSelect.value;
+    const targetName = targetSelect.selectedOptions[0]?.dataset.weaponName || '';
+    const maxSupply = Math.max(0, parseInt(document.getElementById('ammo-max-supply').value, 10) || 0);
+    const currentSupply = Math.min(maxSupply, Math.max(0, parseInt(document.getElementById('ammo-current-supply').value, 10) || 0));
+    const replacesTag = document.getElementById('ammo-replaces-tag').value.trim();
+
+    return { targetTileId, targetName, currentSupply, maxSupply, replacesTag };
+}
+
 function getFormGearSubtype() {
     if (document.getElementById('tile-type').value !== 'Gear') return '';
     return document.getElementById('gear-subtype').value || 'Custom';
@@ -70,24 +93,59 @@ function populateWeaponTemplates() {
     const select = document.getElementById('weapon-template');
     if (!select || select.dataset.populated === 'true') return;
 
-    WEAPON_TEMPLATES.forEach(template => {
-        const option = document.createElement('option');
-        option.value = template.id;
-        option.textContent = template.name;
-        select.appendChild(option);
+    getWeaponTemplatesByCategory().forEach(group => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = group.category;
+        group.templates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.name;
+            optgroup.appendChild(option);
+        });
+        select.appendChild(optgroup);
     });
 
     select.dataset.populated = 'true';
 }
 
+function populateAmmoTargets(selectedId = '', editingTileId = '') {
+    const select = document.getElementById('ammo-target');
+    if (!select) return;
+
+    const previousValue = selectedId || select.value;
+    select.innerHTML = '<option value="">-- Select weapon --</option>';
+    const weaponTiles = (dataManager?.state?.tiles || [])
+        .filter(tile => tile.id !== editingTileId)
+        .filter(tile => tile.type === 'Gear' && tile.gearSubtype === 'Weapon' && tile.weapon);
+
+    weaponTiles.forEach(tile => {
+        const option = document.createElement('option');
+        option.value = tile.id;
+        option.textContent = `${tile.name} (${formatWeaponBase(tile.weapon)})`;
+        option.dataset.weaponName = tile.name;
+        select.appendChild(option);
+    });
+
+    select.value = Array.from(select.options).some(option => option.value === previousValue) ? previousValue : '';
+}
+
 function syncTileTypeSections() {
     const type = document.getElementById('tile-type').value;
     const gearSubtype = document.getElementById('gear-subtype').value || 'Custom';
+    const isAmmo = type === 'Gear' && gearSubtype === 'Ammo';
 
     document.getElementById('spellcast-skill-container').style.display = type === 'Skill' ? 'block' : 'none';
     document.getElementById('gear-subtype-container').style.display = type === 'Gear' ? 'block' : 'none';
     document.getElementById('weapon-builder-container').style.display = type === 'Gear' && gearSubtype === 'Weapon' ? 'block' : 'none';
     document.getElementById('armor-base-container').style.display = type === 'Gear' && gearSubtype === 'Armor' ? 'block' : 'none';
+    document.getElementById('ammo-builder-container').style.display = isAmmo ? 'block' : 'none';
+
+    const diceInput = document.getElementById('tile-dice');
+    const diceNote = document.getElementById('tile-dice-note');
+    diceInput.required = !isAmmo;
+    diceInput.placeholder = isAmmo ? 'Ammo has no dice' : 'd4';
+    diceNote.textContent = isAmmo ? 'Ammo gear is saved without dice and does not contribute to resource pools.' : '';
+    if (isAmmo) populateAmmoTargets(document.getElementById('ammo-target').value, document.getElementById('tile-id').value);
 }
 
 function addMissingTemplateTags(tags) {
@@ -101,8 +159,16 @@ function addMissingTemplateTags(tags) {
     if (changed) renderFormTags();
 }
 
+function renderWeaponTemplatePreview(templateId) {
+    const preview = document.getElementById('weapon-template-preview');
+    if (!preview) return;
+    const template = getWeaponTemplateById(templateId);
+    preview.textContent = template ? formatWeaponTemplateDetails(template) : '';
+}
+
 function applyWeaponTemplate(templateId) {
     const template = getWeaponTemplateById(templateId);
+    renderWeaponTemplatePreview(templateId);
     if (!template) return;
 
     const nameInput = document.getElementById('tile-name');
@@ -113,13 +179,28 @@ function applyWeaponTemplate(templateId) {
     document.getElementById('weapon-category').value = template.category || '';
     document.getElementById('weapon-range').value = template.range || '';
     document.getElementById('weapon-skill').value = template.skill || '';
-    addMissingTemplateTags(template.startingTags || []);
+    const tagMode = document.getElementById('weapon-template-mode').value;
+    if (tagMode === 'replace') {
+        currentFormTags = [...(template.startingTags || [])];
+        renderFormTags();
+    } else {
+        addMissingTemplateTags(template.startingTags || []);
+    }
 }
 
 export function renderTagLimitStatus(el, diceStr, tagsArray) {
     if (!el) return null;
 
     el.classList.remove('valid', 'invalid');
+
+    const isAmmo = document.getElementById('tile-type')?.value === 'Gear'
+        && document.getElementById('gear-subtype')?.value === 'Ammo';
+    if (isAmmo && !diceStr.trim()) {
+        const tagLimit = poolEngine.calculateTagLimit([], tagsArray);
+        el.textContent = `Ammo has no dice. Countable tags: ${tagLimit.count}/0.`;
+        el.classList.add(tagLimit.valid ? 'valid' : 'invalid');
+        return tagLimit;
+    }
 
     if (!diceStr.trim()) {
         el.textContent = 'Enter dice to check the tag limit.';
@@ -255,6 +336,21 @@ export function init(deps) {
     document.getElementById('weapon-template').addEventListener('change', (e) => {
         applyWeaponTemplate(e.target.value);
     });
+    document.getElementById('weapon-template-mode').addEventListener('change', () => {
+        renderWeaponTemplatePreview(document.getElementById('weapon-template').value);
+    });
+    document.getElementById('ammo-target').addEventListener('change', (e) => {
+        const selectedName = e.target.selectedOptions[0]?.dataset.weaponName || '';
+        if (selectedName && !document.getElementById('tile-name').value.trim()) {
+            document.getElementById('tile-name').value = `${selectedName} Ammo`;
+        }
+    });
+    document.getElementById('ammo-max-supply').addEventListener('input', () => {
+        const maxSupply = Math.max(0, parseInt(document.getElementById('ammo-max-supply').value, 10) || 0);
+        const currentInput = document.getElementById('ammo-current-supply');
+        const currentSupply = Math.max(0, parseInt(currentInput.value, 10) || 0);
+        if (currentSupply > maxSupply) currentInput.value = String(maxSupply);
+    });
 
     // XP Estimation
     els.btnEstimateXp.addEventListener('click', () => {
@@ -282,26 +378,37 @@ export function openModal(tile = null) {
     const armorCoverage = document.getElementById('armor-coverage');
     const gearSubtype = document.getElementById('gear-subtype');
     const weaponTemplate = document.getElementById('weapon-template');
+    const weaponTemplateMode = document.getElementById('weapon-template-mode');
     const weaponCategory = document.getElementById('weapon-category');
     const weaponRange = document.getElementById('weapon-range');
     const weaponSkill = document.getElementById('weapon-skill');
+    const ammoTarget = document.getElementById('ammo-target');
+    const ammoCurrentSupply = document.getElementById('ammo-current-supply');
+    const ammoMaxSupply = document.getElementById('ammo-max-supply');
+    const ammoReplacesTag = document.getElementById('ammo-replaces-tag');
 
     if (tile) {
         document.getElementById('modal-title').innerText = 'Edit Tile';
         document.getElementById('tile-id').value = tile.id;
         const tileType = tile.type || 'Skill';
         document.getElementById('tile-type').value = tileType;
-        gearSubtype.value = tile.gearSubtype || (tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom');
+        gearSubtype.value = tile.gearSubtype || (tile.ammo ? 'Ammo' : tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom');
         weaponTemplate.value = tile.weapon?.templateId || '';
+        weaponTemplateMode.value = 'add';
         weaponCategory.value = tile.weapon?.category || '';
         weaponRange.value = tile.weapon?.range || '';
         weaponSkill.value = tile.weapon?.skill || '';
+        populateAmmoTargets(tile.ammo?.targetTileId || '', tile.id);
+        ammoTarget.value = tile.ammo?.targetTileId || '';
+        ammoCurrentSupply.value = tile.ammo?.currentSupply ?? 0;
+        ammoMaxSupply.value = tile.ammo?.maxSupply ?? 1;
+        ammoReplacesTag.value = tile.ammo?.replacesTag || 'Reload';
         armorMaterial.value = tile.armorType?.material || '';
         armorCoverage.value = tile.armorType?.coverage || '';
         document.getElementById('tile-is-spellcast').checked = !!tile.isSpellcastSkill;
         document.getElementById('tile-name').value = tile.name;
         document.getElementById('tile-description').value = tile.description || '';
-        document.getElementById('tile-dice').value = tile.dice.join(', ');
+        document.getElementById('tile-dice').value = (tile.dice || []).join(', ');
         if (Array.isArray(tile.tags)) {
             currentFormTags = tile.tags.map(t => String(t).trim()).filter(Boolean);
         } else if (tile.tags) {
@@ -309,7 +416,7 @@ export function openModal(tile = null) {
             currentFormTags = String(tile.tags).split(',').map(t => t.trim()).filter(Boolean);
         }
         
-        tile.colors.forEach(c => {
+        (tile.colors || []).forEach(c => {
             const cb = document.querySelector(`.color-cb[value="${c}"]`);
             if (cb) cb.checked = true;
         });
@@ -321,9 +428,15 @@ export function openModal(tile = null) {
         document.getElementById('tile-type').value = 'Skill';
         gearSubtype.value = 'Custom';
         weaponTemplate.value = '';
+        weaponTemplateMode.value = 'add';
         weaponCategory.value = '';
         weaponRange.value = '';
         weaponSkill.value = '';
+        populateAmmoTargets();
+        ammoTarget.value = '';
+        ammoCurrentSupply.value = '0';
+        ammoMaxSupply.value = '1';
+        ammoReplacesTag.value = 'Reload';
         armorMaterial.value = '';
         armorCoverage.value = '';
         document.getElementById('tile-is-spellcast').checked = false;
@@ -332,6 +445,7 @@ export function openModal(tile = null) {
         els.btnDelete.style.display = 'none';
     }
     
+    renderWeaponTemplatePreview(weaponTemplate.value);
     syncTileTypeSections();
     renderFormTags();
 }
@@ -384,17 +498,27 @@ export function saveTileFromForm() {
     const diceStr = document.getElementById('tile-dice').value.trim();
     const tags = [...currentFormTags];
     const xpCost = parseInt(els.tileXp.value, 10) || 0;
+    const gearSubtype = getFormGearSubtype();
+    const isAmmo = type === 'Gear' && gearSubtype === 'Ammo';
     
     const checkedColors = Array.from(document.querySelectorAll('.color-cb:checked')).map(cb => cb.value);
 
-    if (checkedColors.length !== 2) {
+    if (!isAmmo && checkedColors.length !== 2) {
         alert('Please select exactly 2 colors.');
+        return;
+    }
+    if (isAmmo && ![0, 2].includes(checkedColors.length)) {
+        alert('Ammo can have no colors or exactly 2 colors.');
         return;
     }
 
     const { dice: diceArray, invalid } = parseDiceInput(diceStr);
-    if (invalid.length > 0 || diceArray.length === 0) {
+    if (invalid.length > 0 || (!isAmmo && diceArray.length === 0)) {
         alert(getDiceValidationMessage('Tile dice'));
+        return;
+    }
+    if (isAmmo && diceArray.length > 0) {
+        alert('Ammo gear does not use dice. Leave the Dice field blank.');
         return;
     }
 
@@ -406,8 +530,8 @@ export function saveTileFromForm() {
     }
 
     const armorType = getFormArmorType();
-    const gearSubtype = getFormGearSubtype();
     const weapon = getFormWeapon();
+    const ammo = getFormAmmo();
 
     const existingTile = id ? dataManager.state.tiles.find(t => t.id === id) : null;
     const tile = {
@@ -416,12 +540,13 @@ export function saveTileFromForm() {
         name,
         description,
         colors: checkedColors,
-        dice: diceArray,
+        dice: isAmmo ? [] : diceArray,
         tags,
         xpCost,
         isSpellcastSkill,
         gearSubtype,
         weapon,
+        ammo,
         armorType,
         isBurnt: existingTile?.isBurnt || false,
         isBuried: existingTile?.isBuried || false

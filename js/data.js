@@ -55,6 +55,38 @@ export function normalizeTileTags(tile) {
         .filter(tag => !(isSpell && tag.startsWith('Effect:')));
 }
 
+function normalizeNumber(value, fallback = 0) {
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeTileMetadata(tile) {
+    if (!tile || typeof tile !== 'object') return;
+
+    if (tile.isBurnt === undefined) tile.isBurnt = false;
+    if (tile.isBuried === undefined) tile.isBuried = false;
+    if (tile.gearSubtype === undefined && tile.type === 'Gear') {
+        tile.gearSubtype = tile.ammo ? 'Ammo' : tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
+    }
+
+    if (tile.type === 'Gear' && tile.gearSubtype === 'Ammo') {
+        const ammo = tile.ammo || {};
+        const maxSupply = Math.max(0, normalizeNumber(ammo.maxSupply ?? ammo.supplyMax, 1));
+        const currentSupply = Math.min(maxSupply, Math.max(0, normalizeNumber(ammo.currentSupply, maxSupply)));
+        tile.ammo = {
+            targetTileId: String(ammo.targetTileId || ''),
+            targetName: String(ammo.targetName || ''),
+            currentSupply,
+            maxSupply,
+            replacesTag: String(ammo.replacesTag || 'Reload').trim()
+        };
+        tile.dice = [];
+        if (!Array.isArray(tile.colors)) tile.colors = [];
+    }
+
+    normalizeTileTags(tile);
+}
+
 /**
  * Effective max for a vital resource: base max + permanent bonus + temporary bonus.
  *
@@ -198,14 +230,7 @@ export class DataManager {
                 if (!hadShowOptionalStats) {
                     state.showOptionalStats = inferShowOptionalStats(state);
                 }
-                (state.tiles || []).forEach(tile => {
-                    if (tile.isBurnt === undefined) tile.isBurnt = false;
-                    if (tile.isBuried === undefined) tile.isBuried = false;
-                    if (tile.gearSubtype === undefined && tile.type === 'Gear') {
-                        tile.gearSubtype = tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
-                    }
-                    normalizeTileTags(tile);
-                });
+                (state.tiles || []).forEach(normalizeTileMetadata);
                 return state;
             } catch (e) {
                 console.error("Failed to parse saved state", e);
@@ -248,23 +273,13 @@ export class DataManager {
 
     addTile(tile) {
         if (!tile.id) tile.id = crypto.randomUUID();
-        if (tile.isBurnt === undefined) tile.isBurnt = false;
-        if (tile.isBuried === undefined) tile.isBuried = false;
-        if (tile.gearSubtype === undefined && tile.type === 'Gear') {
-            tile.gearSubtype = tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
-        }
-        normalizeTileTags(tile);
+        normalizeTileMetadata(tile);
         this.state.tiles.push(tile);
         this.saveState();
     }
 
     updateTile(updatedTile) {
-        if (updatedTile.isBurnt === undefined) updatedTile.isBurnt = false;
-        if (updatedTile.isBuried === undefined) updatedTile.isBuried = false;
-        if (updatedTile.gearSubtype === undefined && updatedTile.type === 'Gear') {
-            updatedTile.gearSubtype = updatedTile.weapon ? 'Weapon' : updatedTile.armorType ? 'Armor' : 'Custom';
-        }
-        normalizeTileTags(updatedTile);
+        normalizeTileMetadata(updatedTile);
         const idx = this.state.tiles.findIndex(t => t.id === updatedTile.id);
         if (idx !== -1) {
             this.state.tiles[idx] = updatedTile;
@@ -338,12 +353,7 @@ export class DataManager {
                 
                 newState.tiles.forEach(t => {
                     if (t.xpCost === undefined) t.xpCost = 0;
-                    if (t.isBurnt === undefined) t.isBurnt = false;
-                    if (t.isBuried === undefined) t.isBuried = false;
-                    if (t.gearSubtype === undefined && t.type === 'Gear') {
-                        t.gearSubtype = t.weapon ? 'Weapon' : t.armorType ? 'Armor' : 'Custom';
-                    }
-                    normalizeTileTags(t);
+                    normalizeTileMetadata(t);
                 });
                 
                 if (overwrite) {

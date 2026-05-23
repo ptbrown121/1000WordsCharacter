@@ -130,12 +130,28 @@ export const WEAPON_TEMPLATES = [
     { id: 'flamethrower', name: 'Flamethrower', category: 'Burst', range: 'Medium', skill: 'Tinker', startingTags: ['Bulky', 'Inside', 'Bang'] }
 ];
 
+export const WEAPON_CATEGORY_ORDER = ['Melee', 'Near', 'Far', 'Burst'];
+
 export function getWeaponTemplateById(id) {
     return WEAPON_TEMPLATES.find(template => template.id === id) || null;
 }
 
 export function getWeaponTemplateTags(templateId) {
     return getWeaponTemplateById(templateId)?.startingTags || [];
+}
+
+export function getWeaponTemplatesByCategory() {
+    return WEAPON_CATEGORY_ORDER.map(category => ({
+        category,
+        templates: WEAPON_TEMPLATES.filter(template => template.category === category)
+    }));
+}
+
+export function formatWeaponTemplateDetails(template) {
+    if (!template) return '';
+    const tags = template.startingTags?.length ? template.startingTags.join(', ') : 'none';
+    const extra = template.extraXp ? ` · +${template.extraXp} XP` : '';
+    return `${template.category} · ${template.range} · ${template.skill} · Tags: ${tags}${extra}`;
 }
 
 const CONTEXTUAL_TAG_BONUSES = {
@@ -605,6 +621,7 @@ export class PoolEngine {
 
         tiles.forEach(tile => {
             if (tile.isBuried) return;
+            if (tile.gearSubtype === 'Ammo') return;
             const colors = tile.colors || [];
             Object.entries(RESOURCE_COLORS).forEach(([resource, resourceColors]) => {
                 colors.forEach(color => {
@@ -631,6 +648,7 @@ export class PoolEngine {
     getUnavailableReason(tile) {
         if (tile?.isBuried) return 'buried';
         if (tile?.isBurnt) return 'burnt';
+        if (tile?.gearSubtype === 'Ammo') return 'ammo';
         return null;
     }
 

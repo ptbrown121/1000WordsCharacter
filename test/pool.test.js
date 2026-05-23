@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { PoolEngine, getWeaponTemplateById, getWeaponTemplateTags } from '../js/pool.js';
+import {
+    PoolEngine,
+    formatWeaponTemplateDetails,
+    getWeaponTemplateById,
+    getWeaponTemplateTags,
+    getWeaponTemplatesByCategory
+} from '../js/pool.js';
 
 const engine = new PoolEngine();
 
@@ -195,6 +201,19 @@ describe('weapon templates', () => {
         );
         assert.deepEqual(getWeaponTemplateTags('machine-gun'), ['Reload', 'Recoil', 'Sweep']);
     });
+
+    it('groups weapon templates by range category for the builder UI', () => {
+        const groups = getWeaponTemplatesByCategory();
+        assert.deepEqual(groups.map(group => group.category), ['Melee', 'Near', 'Far', 'Burst']);
+        assert.ok(groups.find(group => group.category === 'Far').templates.some(template => template.id === 'machine-gun'));
+    });
+
+    it('formats template preview details including tags and extra XP', () => {
+        assert.equal(
+            formatWeaponTemplateDetails(getWeaponTemplateById('machine-gun')),
+            'Far · Short · Firearms · Tags: Reload, Recoil, Sweep · +2 XP'
+        );
+    });
 });
 
 describe('estimateTileXpDetails', () => {
@@ -281,6 +300,14 @@ describe('calculateResourceMaxes', () => {
         ];
         assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 0, en: 3, rx: 0, sh: 0 });
     });
+
+    it('ignores ammo gear for resource pools', () => {
+        const tiles = [
+            { type: 'Gear', gearSubtype: 'Ammo', colors: ['Red', 'Orange'], dice: [], tags: [] },
+            { colors: ['Blue', 'Purple'], dice: ['d4'], tags: [] }
+        ];
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 0, en: 0, rx: 2, sh: 0 });
+    });
 });
 
 describe('compilePool', () => {
@@ -315,6 +342,12 @@ describe('compilePool', () => {
         const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: '', isBuried: true };
         const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
         assert.match(res.error, /buried/i);
+    });
+
+    it('rejects ammo as a call tile', () => {
+        const callTile = { id: '1', name: 'Pistol Ammo', type: 'Gear', gearSubtype: 'Ammo', colors: [], dice: [], tags: '' };
+        const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
+        assert.match(res.error, /ammo/i);
     });
 
     it('rejects a call tile that shares no call color', () => {
