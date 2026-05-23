@@ -228,24 +228,45 @@ export class PoolEngine {
             .filter(die => VALID_DICE.has(die));
     }
 
+    /**
+     * XP cascade (rulebook "System Concept-Dice" chart). Each character starts
+     * with a free d3 in every stat. Past d3, each advance costs:
+     *
+     *     XP = {steps on the advanced die} + {count of other dice already on
+     *          this stat or tile}
+     *
+     * Worked example (2x d6):
+     *   - Add 1st d4:           1 + 0 = 1
+     *   - Promote d4 -> d6:     2 + 0 = 2   (subtotal 3 for the first d6)
+     *   - Add 2nd d4:           1 + 1 = 2
+     *   - Promote that d4 -> d6: 2 + 1 = 3   (subtotal 5 for the second d6)
+     *   - Total: 8
+     *
+     * d3s are skipped (free) and do NOT contribute to {count of other dice}.
+     * The optimal path always promotes the highest-rank die first; we sort
+     * descending so the cheaper dice pay the higher "other dice" surcharge.
+     *
+     * Used for both stat XP (ui/stats.js updateXpTracker) and tile XP
+     * (estimateTileXp). One formula, one source of truth.
+     */
     calculateOptimalXpCost(diceArray) {
         const sortedDice = [...diceArray].sort((a,b) => (DIE_STEPS[b] || 0) - (DIE_STEPS[a] || 0));
-        
+
         let totalXp = 0;
         let existingDiceCount = 0;
-        
+
         for (const die of sortedDice) {
             const targetSteps = DIE_STEPS[die] || 0;
-            if (targetSteps === 0) continue; 
-            
+            if (targetSteps === 0) continue;
+
             // Add a d4
             totalXp += 1 + existingDiceCount;
-            
+
             // Upgrade it to its target rank
             for (let s = 2; s <= targetSteps; s++) {
                 totalXp += s + existingDiceCount;
             }
-            
+
             existingDiceCount++;
         }
         return totalXp;
