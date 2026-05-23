@@ -1,3 +1,7 @@
+// NOTE: This module has circular imports with pool.js and modals.js.
+// This is safe because all cross-imported symbols are functions that are
+// only called at runtime (inside event handlers or render cycles), never
+// during module evaluation.
 import { escapeHtml } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
@@ -6,15 +10,13 @@ import { formatArmorBase } from './modals.js';
 import { updatePoolPreview } from './pool.js';
 
 let dataManager;
-let spellBuilderRef;
+let spellBuilder;
 let openTileModalFn;
 
 export function init(deps) {
     dataManager = deps.dataManager;
     openTileModalFn = deps.openTileModal;
-
-    // spellBuilder is set on deps after init, so read lazily via deps ref
-    spellBuilderRef = deps;
+    spellBuilder = deps.spellBuilder;
 
     // Search
     if (els.searchTiles) {
@@ -202,7 +204,7 @@ export function renderCards() {
         btnEdit.addEventListener('click', (e) => {
             e.stopPropagation();
             if (tile.isSpell) {
-                spellBuilderRef.spellBuilder.openWizard(tile);
+                spellBuilder.openWizard(tile);
             } else {
                 openTileModalFn(tile);
             }
@@ -230,7 +232,7 @@ export function renderCards() {
         div.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (tile.isSpell) {
-                spellBuilderRef.spellBuilder.openWizard(tile);
+                spellBuilder.openWizard(tile);
             } else {
                 openTileModalFn(tile);
             }

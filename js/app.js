@@ -13,10 +13,11 @@ import { init as initVitals } from './ui/vitals.js';
 
 const dataManager = new DataManager();
 const poolEngine = new PoolEngine();
+const spellBuilder = new SpellBuilder(dataManager, renderAll);
 
 setDataManager(dataManager);
 
-const deps = { dataManager, poolEngine, spellBuilder: null, renderAll, openTileModal };
+const deps = { dataManager, poolEngine, spellBuilder, renderAll, openTileModal };
 
 initCards(deps);
 initPool(deps);
@@ -26,8 +27,5 @@ initJournal(deps);
 initRoster(deps);
 initStats(deps);
 initVitals(deps);
-
-const spellBuilder = new SpellBuilder(dataManager, renderAll);
-deps.spellBuilder = spellBuilder;
 
 renderAll();
