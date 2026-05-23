@@ -502,12 +502,12 @@ export class SpellBuilder {
         let tagsArr = ["Spell"];
         
         if (!document.getElementById('spell-unchained').checked) {
-            tagsArr.push(`Chain ${school === 'Divergent' ? 'Skill' : school}`);
-        }
-        
-        const chainTarget = document.getElementById('spell-chain-target');
-        if (chainTarget && chainTarget.value) {
-            tagsArr.push(`Chain ${chainTarget.value}`);
+            const chainTarget = document.getElementById('spell-chain-target');
+            if (chainTarget && chainTarget.value) {
+                tagsArr.push(`Chain ${chainTarget.value}`);
+            } else if (school !== 'Divergent') {
+                tagsArr.push(`Chain ${school}`);
+            }
         }
         
         const customTags = document.getElementById('spell-custom-tags').value.trim();
