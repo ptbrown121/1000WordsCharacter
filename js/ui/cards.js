@@ -154,6 +154,7 @@ export function renderCards() {
         if (uiState.burnTiles.some(t => t.id === tile.id)) div.classList.add('selected-burn');
         if (tile.isBurnt) div.classList.add('tile-burnt');
         if (tile.isBuried) div.classList.add('tile-buried');
+        if (isAmmo) div.classList.add('tile-ammo-card');
 
         const actionButtons = tile.isBuried
             ? `<button class="btn-restore-tile" title="Restore ${tileNameLabel}" aria-label="Restore ${tileNameLabel}">Restore</button>`

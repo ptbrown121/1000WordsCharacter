@@ -126,7 +126,23 @@ function populateAmmoTargets(selectedId = '', editingTileId = '') {
         select.appendChild(option);
     });
 
-    select.value = Array.from(select.options).some(option => option.value === previousValue) ? previousValue : '';
+    const hasPreviousValue = Boolean(previousValue)
+        && Array.from(select.options).some(option => option.value === previousValue);
+    if (hasPreviousValue) {
+        select.value = previousValue;
+    } else if (!previousValue && weaponTiles.length === 1) {
+        select.value = weaponTiles[0].id;
+    } else {
+        select.value = '';
+    }
+}
+
+function syncAmmoNameFromTarget() {
+    const nameInput = document.getElementById('tile-name');
+    const selectedName = document.getElementById('ammo-target').selectedOptions[0]?.dataset.weaponName || '';
+    if (selectedName && !nameInput.value.trim()) {
+        nameInput.value = `${selectedName} Ammo`;
+    }
 }
 
 function syncTileTypeSections() {
@@ -145,7 +161,11 @@ function syncTileTypeSections() {
     diceInput.required = !isAmmo;
     diceInput.placeholder = isAmmo ? 'Ammo has no dice' : 'd4';
     diceNote.textContent = isAmmo ? 'Ammo gear is saved without dice and does not contribute to resource pools.' : '';
-    if (isAmmo) populateAmmoTargets(document.getElementById('ammo-target').value, document.getElementById('tile-id').value);
+    if (isAmmo) {
+        populateAmmoTargets(document.getElementById('ammo-target').value, document.getElementById('tile-id').value);
+        syncAmmoNameFromTarget();
+    }
+    renderTileTagLimitStatus();
 }
 
 function addMissingTemplateTags(tags) {
@@ -163,7 +183,13 @@ function renderWeaponTemplatePreview(templateId) {
     const preview = document.getElementById('weapon-template-preview');
     if (!preview) return;
     const template = getWeaponTemplateById(templateId);
-    preview.textContent = template ? formatWeaponTemplateDetails(template) : '';
+    if (!template) {
+        preview.textContent = '';
+        return;
+    }
+
+    const chips = formatWeaponTemplateDetails(template).split(' · ');
+    preview.innerHTML = chips.map(chip => `<span class="template-preview-chip">${chip}</span>`).join('');
 }
 
 function applyWeaponTemplate(templateId) {
@@ -339,11 +365,8 @@ export function init(deps) {
     document.getElementById('weapon-template-mode').addEventListener('change', () => {
         renderWeaponTemplatePreview(document.getElementById('weapon-template').value);
     });
-    document.getElementById('ammo-target').addEventListener('change', (e) => {
-        const selectedName = e.target.selectedOptions[0]?.dataset.weaponName || '';
-        if (selectedName && !document.getElementById('tile-name').value.trim()) {
-            document.getElementById('tile-name').value = `${selectedName} Ammo`;
-        }
+    document.getElementById('ammo-target').addEventListener('change', () => {
+        syncAmmoNameFromTarget();
     });
     document.getElementById('ammo-max-supply').addEventListener('input', () => {
         const maxSupply = Math.max(0, parseInt(document.getElementById('ammo-max-supply').value, 10) || 0);

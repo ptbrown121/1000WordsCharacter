@@ -15,8 +15,14 @@
 .modal-content {
     width: 100%;
     max-width: 500px;
-    max-height: 90vh;
+    max-height: min(90vh, 820px);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+#tile-modal .modal-content {
+    padding-bottom: 0;
 }
 .form-group {
     margin-bottom: 1.2rem;
@@ -75,9 +81,47 @@
     border: 1px solid rgba(255,255,255,0.4);
 }
 
-.form-actions {
+#tile-modal .form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 2rem;
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    margin-bottom: -1.5rem;
+    padding: 1rem 1.5rem 1.5rem;
+    background: linear-gradient(180deg, rgba(18, 18, 22, 0.82), rgba(18, 18, 22, 0.98) 40%);
+    border-top: 1px solid var(--glass-border);
+    backdrop-filter: blur(14px);
+}
+
+#tile-modal .modal-content h2 {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    margin: -1.5rem -1.5rem 1rem;
+    padding: 1.5rem 1.5rem 0.75rem;
+    background: linear-gradient(180deg, rgba(18, 18, 22, 0.98), rgba(18, 18, 22, 0.82));
+    backdrop-filter: blur(14px);
+}
+
+#weapon-template-preview {
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.template-preview-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    margin: 0 0.25rem 0.25rem 0;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
 }

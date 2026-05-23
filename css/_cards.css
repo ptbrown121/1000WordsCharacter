@@ -51,6 +51,21 @@
     pointer-events: none;
 }
 
+.tile-card.tile-ammo-card {
+    background:
+        linear-gradient(135deg, rgba(51, 153, 255, 0.16), rgba(51, 204, 153, 0.12)) !important;
+    border-color: rgba(153, 204, 255, 0.65) !important;
+}
+
+.tile-card.tile-ammo-card .tile-dice {
+    color: #c7f5ff;
+}
+
+.tile-ammo,
+.tile-ammo-links {
+    overflow-wrap: anywhere;
+}
+
 .tile-card.tile-burnt::after,
 .tile-card.tile-buried::after {
     position: absolute;

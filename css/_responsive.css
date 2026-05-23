@@ -18,13 +18,32 @@
 }
 
 @media (max-width: 480px) {
-    .form-actions {
+    .modal {
+        align-items: stretch;
+        padding: 0.5rem;
+    }
+    .modal-content {
+        max-height: calc(100dvh - 1rem);
+        border-radius: 10px;
+    }
+    #tile-modal .modal-content h2 {
+        margin: -1rem -1rem 1rem;
+        padding: 1rem 1rem 0.75rem;
+    }
+    #tile-modal .form-actions {
         flex-direction: column-reverse;
         gap: 0.5rem;
+        margin-left: -1rem;
+        margin-right: -1rem;
+        margin-bottom: -1rem;
+        padding: 0.75rem 1rem 1rem;
     }
-    .form-actions .btn {
+    #tile-modal .form-actions .btn {
         width: 100%;
         margin: 0;
+    }
+    #weapon-template-preview {
+        flex-basis: 100% !important;
     }
 }
 
