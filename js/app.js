@@ -1122,7 +1122,7 @@ function calculateResolutionSummary(result) {
     const { totals, usedCount } = calculateAssignedTotals(result, uiState.currentResolutionAssignments);
     const bonusInfo = getResolutionBonusTotals(result, uiState.currentResolutionMode);
     const bonuses = bonusInfo.totals;
-    const adds = result.adds || 2;
+    const adds = result.adds ?? 2;
     const warnings = [];
     const plusUsage = RESOLUTION_PLUS_BUCKETS[uiState.currentResolutionMode]
         ? calculateResolutionPlusUsage(result, uiState.currentResolutionMode, uiState.currentResolutionAssignments)
@@ -1293,7 +1293,7 @@ function renderResolution() {
 
     const result = uiState.lastRollResult;
     const { usedCount } = calculateAssignedTotals(result, uiState.currentResolutionAssignments);
-    const adds = result.adds || 2;
+    const adds = result.adds ?? 2;
     const summary = calculateResolutionSummary(result);
     const warningHtml = summary.warnings.map(warning => `<p class="resolution-warning">${escapeHtml(warning)}</p>`).join('');
 
