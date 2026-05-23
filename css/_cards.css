@@ -1,0 +1,170 @@
+/* Cards (Mosaic) */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.tile-card {
+    position: relative;
+    border-radius: 12px;
+    padding: 1.2rem;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+    overflow: hidden;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tile-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%);
+    z-index: 1;
+}
+
+.tile-card-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tile-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+
+.tile-card.selected-call {
+    outline: 3px solid white;
+    box-shadow: 0 0 15px white;
+}
+
+.tile-card.tile-burnt {
+    filter: grayscale(100%) opacity(60%);
+    position: relative;
+    pointer-events: none;
+}
+
+.tile-card.tile-burnt::after {
+    content: "BURNT";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 2rem;
+    font-weight: 800;
+    color: rgba(255, 51, 51, 0.8);
+    pointer-events: none;
+    letter-spacing: 5px;
+    border: 3px solid rgba(255, 51, 51, 0.8);
+    padding: 0.5rem;
+    border-radius: 8px;
+    z-index: 2;
+}
+
+.btn-unburn {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    background: rgba(255, 51, 51, 0.2);
+    border: 1px solid rgba(255, 51, 51, 0.8);
+    color: white;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    pointer-events: auto; /* allow clicking even though card is disabled */
+    z-index: 3;
+    display: none;
+}
+
+.tile-card.tile-burnt .btn-unburn {
+    display: block;
+}
+
+.btn-unburn:hover {
+    background: rgba(255, 51, 51, 0.5);
+}
+
+.btn-burn-instant {
+    background: rgba(255, 165, 0, 0.2);
+    border: 1px solid rgba(255, 165, 0, 0.8);
+    color: white;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    z-index: 3;
+}
+
+.btn-burn-instant:hover {
+    background: rgba(255, 165, 0, 0.5);
+}
+
+.btn-favorite {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+    padding: 0;
+    line-height: 1;
+    z-index: 3;
+}
+
+.btn-favorite:hover {
+    transform: scale(1.1);
+}
+
+.btn-favorite.active {
+    color: #ffd700;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.tile-badges {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+    z-index: 2;
+}
+
+.tile-card.selected-burn {
+    outline: 3px solid #ffcc00;
+    box-shadow: 0 0 15px #ffcc00;
+}
+
+.tile-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-transform: capitalize;
+}
+
+.tile-dice {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: auto;
+}
+
+.tile-tags {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+.badge {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.5);
+    text-transform: uppercase;
+    font-weight: bold;
+}

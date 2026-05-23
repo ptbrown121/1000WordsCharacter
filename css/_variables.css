@@ -1,0 +1,27 @@
+:root {
+    /* Color Palette */
+    --bg-dark: #0f1115;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    
+    --text-primary: #f0f0f0;
+    --text-secondary: #a0aab5;
+
+    /* Stat Colors */
+    --color-red: #ff3333;
+    --color-orange: #ff9933;
+    --color-yellow: #ffcc00;
+    --color-green: #33cc33;
+    --color-blue: #3399ff;
+    --color-purple: #9933ff;
+    --color-black: #444444; /* Dark grey for visibility */
+    --color-white: #ffffff;
+    
+    /* Pools */
+    --color-hp: #ff3333;
+    --color-en: #ffcc00;
+    --color-rx: #9933ff;
+
+    --font-main: 'Outfit', sans-serif;
+}
