@@ -392,6 +392,15 @@
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
                             <input type="text" id="tag-custom-input" placeholder="Value..." style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            <select id="tag-motorized-stat" style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;" title="Motorized adds a bonus equal to the tile's die step on the chosen stat">
+                                <option value="">-- Select Stat for Motorized --</option>
+                                <option value="BODY">BODY</option>
+                                <option value="POWER">POWER</option>
+                                <option value="SOUL">SOUL</option>
+                                <option value="FOCUS">FOCUS</option>
+                                <option value="MIND">MIND</option>
+                                <option value="SPEED">SPEED</option>
+                            </select>
                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white;" title="Tag does not count towards the limit">
                                 <input type="checkbox" id="tag-exempt"> GM Exempt
                             </label>

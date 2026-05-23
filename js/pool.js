@@ -165,11 +165,12 @@ export class PoolEngine {
             const t = tag.toLowerCase().replace(' (exempt)', '');
             if (t.startsWith('chain ')) {
                 xp += 4;
-            } else if (['old', 'primitive', 'rare', 'risky', 'worn'].includes(t)) {
-                xp -= 2;
             } else if (t.startsWith('hitch')) {
                 // Hitch can give up to 6 XP, default guess -3
                 xp -= 3;
+            } else if (FLAW_TAGS.has(t)) {
+                // Flaw tags refund 2 XP (old, primitive, rare, risky, worn, bulky, heavy)
+                xp -= 2;
             } else if (['slow', 'pain'].includes(t)) {
                 xp += 3;
             } else if (['bleed', 'wound'].includes(t)) {
@@ -182,7 +183,8 @@ export class PoolEngine {
             }
 
             // Hard armor makes Detail tags cost 1 XP less.
-            if (isHardArmor && ARMOR_DETAIL_TAGS.has(t)) {
+            // Motorized may carry a ": STAT" suffix, so match its base word too.
+            if (isHardArmor && (ARMOR_DETAIL_TAGS.has(t) || t.startsWith('motorized'))) {
                 xp -= 1;
             }
         });
@@ -312,7 +314,19 @@ export class PoolEngine {
             // Contextual tag bonuses are surfaced for user selection.
             tags.forEach((tag, index) => {
                 const normalizedTag = normalizeMechanicalTag(tag);
-                const bonusRule = CONTEXTUAL_TAG_BONUSES[normalizedTag];
+                let bonusRule = CONTEXTUAL_TAG_BONUSES[normalizedTag];
+
+                // Motorized: "+steps on [stat]". The chosen stat is stored as "Motorized: STAT".
+                if (!bonusRule && normalizedTag.startsWith('motorized')) {
+                    const statMatch = String(tag).match(/motorized\s*:?\s*([^()]*)/i);
+                    const stat = statMatch && statMatch[1] ? statMatch[1].trim().toUpperCase() : '';
+                    bonusRule = {
+                        name: stat ? `Motorized (${stat})` : 'Motorized',
+                        context: stat ? `${stat} check` : 'stat check',
+                        description: `+▟ on ${stat || 'a chosen stat'} checks using this tile`
+                    };
+                }
+
                 if (!bonusRule) return;
 
                 const steps = this.calculateSteps(tile.dice);

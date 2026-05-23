@@ -90,6 +90,14 @@ describe('estimateTileXp', () => {
         assert.equal(engine.estimateTileXp(['d4'], ['Old', 'Worn']), 0); // 1 - 2 - 2 -> max(0)
     });
 
+    it('subtracts XP for every flaw, including Bulky and Heavy', () => {
+        const base = engine.calculateOptimalXpCost(['d8']); // 6
+        for (const flaw of ['Old', 'Primitive', 'Rare', 'Risky', 'Worn', 'Bulky', 'Heavy']) {
+            assert.equal(engine.estimateTileXp(['d8'], [flaw]), base - 2, `${flaw} should refund 2 XP`);
+        }
+        assert.equal(engine.estimateTileXp(['d8'], ['Hitch']), base - 3); // Hitch refunds 3
+    });
+
     it('adds armor base cost (material + coverage) — page 29', () => {
         assert.equal(engine.estimateTileXp(['d4'], [], { material: 'Soft', coverage: 'Open' }), 1);   // +0 +0
         assert.equal(engine.estimateTileXp(['d4'], [], { material: 'Soft', coverage: 'Full' }), 3);   // +0 +2
@@ -101,6 +109,12 @@ describe('estimateTileXp', () => {
         const tags = ['Ironclad', 'Tough'];
         assert.equal(engine.estimateTileXp(['d6'], tags, { material: 'Soft', coverage: 'Full' }), 9);  // 3 +2 +2 +2
         assert.equal(engine.estimateTileXp(['d6'], tags, { material: 'Hard', coverage: 'Full' }), 11); // 3 +2 +2 -2 +6
+    });
+
+    it('treats a Motorized: STAT tag as a Detail tag for the Hard-armor discount', () => {
+        // d6=3, Motorized +2 (generic Detail). Soft Full: +2 coverage -> 7. Hard Full: +6 armor, -1 discount -> 10.
+        assert.equal(engine.estimateTileXp(['d6'], ['Motorized: BODY'], { material: 'Soft', coverage: 'Full' }), 7);
+        assert.equal(engine.estimateTileXp(['d6'], ['Motorized: BODY'], { material: 'Hard', coverage: 'Full' }), 10);
     });
 });
 
@@ -182,6 +196,15 @@ describe('compilePool', () => {
         const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
         assert.equal(res.tagBonuses.length, 1);
         assert.equal(res.tagBonuses[0].steps, 2); // d6 = 2 steps
+    });
+
+    it('surfaces a Motorized bonus tied to the chosen stat, equal to die steps', () => {
+        const callTile = { id: '1', name: 'Chassis', colors: ['Red'], dice: ['d6'], tags: 'Motorized: BODY' };
+        const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
+        assert.equal(res.tagBonuses.length, 1);
+        assert.equal(res.tagBonuses[0].steps, 2);                 // d6 = 2 steps
+        assert.equal(res.tagBonuses[0].tag, 'Motorized (BODY)');
+        assert.match(res.tagBonuses[0].context, /BODY/);
     });
 });
 

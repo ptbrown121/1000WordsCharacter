@@ -516,12 +516,18 @@ function bindEvents() {
     // Tags UI
     els.tagSelect.addEventListener('change', (e) => {
         const val = e.target.value;
+        const motorizedStat = document.getElementById('tag-motorized-stat');
         if (val === 'Custom' || val === 'Chain') {
             els.tagCustomInput.style.display = 'inline-block';
             els.tagCustomInput.placeholder = val === 'Chain' ? 'Tile Name to Chain' : 'Custom Tag Name';
             els.tagCustomInput.focus();
+            motorizedStat.style.display = 'none';
+        } else if (val === 'Motorized') {
+            els.tagCustomInput.style.display = 'none';
+            motorizedStat.style.display = 'block';
         } else {
             els.tagCustomInput.style.display = 'none';
+            motorizedStat.style.display = 'none';
         }
     });
 
@@ -536,6 +542,13 @@ function bindEvents() {
         } else if (selVal === 'Chain') {
             const target = els.tagCustomInput.value.trim();
             if (target) finalTag = `Chain ${target}`;
+        } else if (selVal === 'Motorized') {
+            const stat = document.getElementById('tag-motorized-stat').value;
+            if (!stat) {
+                alert('Select a stat for the Motorized tag.');
+                return;
+            }
+            finalTag = `Motorized: ${stat}`;
         } else {
             finalTag = selVal;
         }
@@ -553,6 +566,9 @@ function bindEvents() {
             els.tagSelect.value = '';
             els.tagCustomInput.value = '';
             els.tagCustomInput.style.display = 'none';
+            const motorizedStat = document.getElementById('tag-motorized-stat');
+            motorizedStat.style.display = 'none';
+            motorizedStat.value = '';
             document.getElementById('tag-exempt').checked = false;
         }
     });
