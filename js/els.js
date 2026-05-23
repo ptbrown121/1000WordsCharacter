@@ -1,0 +1,109 @@
+// Centralized DOM element cache.
+//
+// This file replaces the scattered `document.getElementById(...)` calls
+// that used to appear inside individual render functions in app.js.
+// All UI modules should import `els` from here. New element references
+// belong in this object - not in deep render functions - so we can audit
+// the DOM surface in one place.
+//
+// Looked up at module load. Importing this file in a non-DOM environment
+// (e.g. node --test) will throw because document is undefined; that is by
+// design - tests should import pure-logic modules (resolution-rules.js,
+// pool.js, data.js) that do not touch the DOM.
+
+export const els = {
+    charName: document.getElementById('char-name'),
+    valXpEarned: document.getElementById('val-xp-earned'),
+    valXpSpent: document.getElementById('val-xp-spent'),
+    valHp: document.getElementById('val-hp'),
+    valHpMax: document.getElementById('val-hp-max'),
+    hpTempBadge: document.getElementById('hp-temp-badge'),
+    valEn: document.getElementById('val-en'),
+    valEnMax: document.getElementById('val-en-max'),
+    enTempBadge: document.getElementById('en-temp-badge'),
+    valRx: document.getElementById('val-rx'),
+    valRxMax: document.getElementById('val-rx-max'),
+    rxTempBadge: document.getElementById('rx-temp-badge'),
+    valSh: document.getElementById('val-sh'),
+    valShMax: document.getElementById('val-sh-max'),
+    shTempBadge: document.getElementById('sh-temp-badge'),
+    shadowPool: document.getElementById('shadow-pool'),
+    btnRest: document.getElementById('btn-rest'),
+    btnNewChar: document.getElementById('btn-new-char'),
+    btnCalcXp: document.getElementById('btn-calc-xp'),
+    btnCalcVitals: document.getElementById('btn-calc-vitals'),
+    toggleOptionalStats: document.getElementById('toggle-optional-stats'),
+    statSelects: document.querySelectorAll('.stat-select'),
+    optionalStatBoxes: document.querySelectorAll('.optional-stat'),
+    cardContainer: document.getElementById('card-container'),
+    btnAddTile: document.getElementById('btn-add-tile'),
+    charRosterSelect: document.getElementById('char-roster-select'),
+    btnDelChar: document.getElementById('btn-del-char'),
+    searchTiles: document.getElementById('search-tiles'),
+    sortTilesBy: document.getElementById('sort-tiles-by'),
+    btnSortDir: document.getElementById('btn-sort-dir'),
+    ignoreFavoritesSort: document.getElementById('ignore-favorites-sort'),
+    modal: document.getElementById('tile-modal'),
+    form: document.getElementById('tile-form'),
+    btnCancel: document.getElementById('btn-modal-cancel'),
+    btnDelete: document.getElementById('btn-modal-delete'),
+
+    tagSelect: document.getElementById('tag-select'),
+    tagCustomInput: document.getElementById('tag-custom-input'),
+    btnAddTag: document.getElementById('btn-add-tag'),
+    tagsContainer: document.getElementById('selected-tags-container'),
+    tileDice: document.getElementById('tile-dice'),
+    tileTagLimitStatus: document.getElementById('tile-tag-limit-status'),
+
+    tileXp: document.getElementById('tile-xp'),
+    btnEstimateXp: document.getElementById('btn-estimate-xp'),
+
+    callColor1: document.getElementById('call-color-1'),
+    callColor2: document.getElementById('call-color-2'),
+    optionalCallOptions: document.querySelectorAll('.optional-call-option'),
+    autoFilterCall: document.getElementById('auto-filter-call'),
+    poolDiceDisplay: document.getElementById('pool-dice-display'),
+    poolAddsDisplay: document.getElementById('pool-adds-display'),
+    chainPanel: document.getElementById('chain-panel'),
+    chainOptions: document.getElementById('chain-options'),
+    tagBonusPanel: document.getElementById('tag-bonus-panel'),
+    tagBonusOptions: document.getElementById('tag-bonus-options'),
+
+    callTileZone: document.getElementById('call-tile-container'),
+    burnTilesZone: document.getElementById('burn-tiles-container'),
+
+    radioModes: document.querySelectorAll('input[name="roll-mode"]'),
+    virtualSection: document.getElementById('virtual-roll-section'),
+    manualSection: document.getElementById('manual-roll-section'),
+    btnRoll: document.getElementById('btn-roll'),
+    btnCalculate: document.getElementById('btn-calculate'),
+    manualInputsContainer: document.getElementById('manual-inputs-container'),
+    extraDiceInput: document.getElementById('extra-dice-input'),
+
+    rollResults: document.getElementById('roll-results'),
+    resultNotices: document.getElementById('result-notices'),
+    resultTotal: document.getElementById('result-total'),
+    resolutionControls: document.getElementById('resolution-controls'),
+    resultDetails: document.getElementById('result-details'),
+
+    btnExport: document.getElementById('btn-export'),
+    fileImport: document.getElementById('file-import'),
+
+    // Vital Modal
+    vitalModal: document.getElementById('vital-modal'),
+    vitalModalTitle: document.getElementById('vital-modal-title'),
+    vitalModalKey: document.getElementById('vital-modal-key'),
+    vitalPermInput: document.getElementById('vital-perm-input'),
+    vitalTempInput: document.getElementById('vital-temp-input'),
+    btnVitalCancel: document.getElementById('btn-vital-cancel'),
+    btnVitalSave: document.getElementById('btn-vital-save'),
+
+    // Journal
+    btnAddJournal: document.getElementById('btn-add-journal'),
+    journalContainer: document.getElementById('journal-entries-container'),
+
+    // Info
+    btnInfo: document.getElementById('btn-info'),
+    infoModal: document.getElementById('info-modal'),
+    btnInfoClose: document.getElementById('btn-info-close')
+};

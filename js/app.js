@@ -9,119 +9,28 @@ import {
     tagLimitErrorMessage
 } from './pool.js';
 import { SpellBuilder } from './spellBuilder.js';
+import { uiState } from './state.js';
+import { els } from './els.js';
+import {
+    RESOLUTION_MODES,
+    HEALING_TARGETS,
+    RESOLUTION_PLUS_BUCKETS,
+    getRollId,
+    getDefaultResolutionAssignments,
+    getAssignmentOptions,
+    getResolutionBonusTotals,
+    calculateAssignedTotals,
+    calculateResolutionPlusUsage,
+    getHealingAssignments
+} from './resolution-rules.js';
 
 const dataManager = new DataManager();
 const poolEngine = new PoolEngine();
 let spellBuilder;
 
-// UI State
-let callTile = null; // single tile object
-let burnTiles = [];  // array of tile objects
-let currentFormTags = []; // tags array for modal
-let selectedTagBonusIds = new Set();
-let disabledChainIds = new Set();
-let lastRollResult = null;
-let currentResolutionMode = 'action';
-let currentResolutionAssignments = {};
-let healingInCombat = false;
-
-// DOM Elements
-const els = {
-    charName: document.getElementById('char-name'),
-    valXpEarned: document.getElementById('val-xp-earned'),
-    valXpSpent: document.getElementById('val-xp-spent'),
-    valHp: document.getElementById('val-hp'),
-    valHpMax: document.getElementById('val-hp-max'),
-    hpTempBadge: document.getElementById('hp-temp-badge'),
-    valEn: document.getElementById('val-en'),
-    valEnMax: document.getElementById('val-en-max'),
-    enTempBadge: document.getElementById('en-temp-badge'),
-    valRx: document.getElementById('val-rx'),
-    valRxMax: document.getElementById('val-rx-max'),
-    rxTempBadge: document.getElementById('rx-temp-badge'),
-    valSh: document.getElementById('val-sh'),
-    valShMax: document.getElementById('val-sh-max'),
-    shTempBadge: document.getElementById('sh-temp-badge'),
-    shadowPool: document.getElementById('shadow-pool'),
-    btnRest: document.getElementById('btn-rest'),
-    btnNewChar: document.getElementById('btn-new-char'),
-    btnCalcXp: document.getElementById('btn-calc-xp'),
-    btnCalcVitals: document.getElementById('btn-calc-vitals'),
-    toggleOptionalStats: document.getElementById('toggle-optional-stats'),
-    statSelects: document.querySelectorAll('.stat-select'),
-    optionalStatBoxes: document.querySelectorAll('.optional-stat'),
-    cardContainer: document.getElementById('card-container'),
-    btnAddTile: document.getElementById('btn-add-tile'),
-    charRosterSelect: document.getElementById('char-roster-select'),
-    btnDelChar: document.getElementById('btn-del-char'),
-    searchTiles: document.getElementById('search-tiles'),
-    sortTilesBy: document.getElementById('sort-tiles-by'),
-    btnSortDir: document.getElementById('btn-sort-dir'),
-    ignoreFavoritesSort: document.getElementById('ignore-favorites-sort'),
-    modal: document.getElementById('tile-modal'),
-    form: document.getElementById('tile-form'),
-    btnCancel: document.getElementById('btn-modal-cancel'),
-    btnDelete: document.getElementById('btn-modal-delete'),
-    
-    tagSelect: document.getElementById('tag-select'),
-    tagCustomInput: document.getElementById('tag-custom-input'),
-    btnAddTag: document.getElementById('btn-add-tag'),
-    tagsContainer: document.getElementById('selected-tags-container'),
-    tileDice: document.getElementById('tile-dice'),
-    tileTagLimitStatus: document.getElementById('tile-tag-limit-status'),
-    
-    tileXp: document.getElementById('tile-xp'),
-    btnEstimateXp: document.getElementById('btn-estimate-xp'),
-    
-    callColor1: document.getElementById('call-color-1'),
-    callColor2: document.getElementById('call-color-2'),
-    optionalCallOptions: document.querySelectorAll('.optional-call-option'),
-    autoFilterCall: document.getElementById('auto-filter-call'),
-    poolDiceDisplay: document.getElementById('pool-dice-display'),
-    poolAddsDisplay: document.getElementById('pool-adds-display'),
-    chainPanel: document.getElementById('chain-panel'),
-    chainOptions: document.getElementById('chain-options'),
-    tagBonusPanel: document.getElementById('tag-bonus-panel'),
-    tagBonusOptions: document.getElementById('tag-bonus-options'),
-    
-    callTileZone: document.getElementById('call-tile-container'),
-    burnTilesZone: document.getElementById('burn-tiles-container'),
-
-    radioModes: document.querySelectorAll('input[name="roll-mode"]'),
-    virtualSection: document.getElementById('virtual-roll-section'),
-    manualSection: document.getElementById('manual-roll-section'),
-    btnRoll: document.getElementById('btn-roll'),
-    btnCalculate: document.getElementById('btn-calculate'),
-    manualInputsContainer: document.getElementById('manual-inputs-container'),
-    extraDiceInput: document.getElementById('extra-dice-input'),
-    
-    rollResults: document.getElementById('roll-results'),
-    resultNotices: document.getElementById('result-notices'),
-    resultTotal: document.getElementById('result-total'),
-    resolutionControls: document.getElementById('resolution-controls'),
-    resultDetails: document.getElementById('result-details'),
-
-    btnExport: document.getElementById('btn-export'),
-    fileImport: document.getElementById('file-import'),
-
-    // Vital Modal
-    vitalModal: document.getElementById('vital-modal'),
-    vitalModalTitle: document.getElementById('vital-modal-title'),
-    vitalModalKey: document.getElementById('vital-modal-key'),
-    vitalPermInput: document.getElementById('vital-perm-input'),
-    vitalTempInput: document.getElementById('vital-temp-input'),
-    btnVitalCancel: document.getElementById('btn-vital-cancel'),
-    btnVitalSave: document.getElementById('btn-vital-save'),
-
-    // Journal
-    btnAddJournal: document.getElementById('btn-add-journal'),
-    journalContainer: document.getElementById('journal-entries-container'),
-
-    // Info
-    btnInfo: document.getElementById('btn-info'),
-    infoModal: document.getElementById('info-modal'),
-    btnInfoClose: document.getElementById('btn-info-close')
-};
+// Modal-local: tags being edited in the tile modal. Stays here because no
+// other module reads or writes it.
+let currentFormTags = [];
 
 // Math Utilities
 const BASE_XP = { 'd3': 0, 'd4': 1, 'd6': 3, 'd8': 6, 'd10': 10, 'd12': 15, 'd14': 21, 'd16': 28 };
@@ -147,64 +56,6 @@ function getFormArmorType() {
     }
     return null;
 }
-
-const RESOLUTION_MODES = {
-    action: {
-        label: 'Action',
-        options: [
-            { value: 'action', label: 'Roll' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    },
-    attack: {
-        label: 'Attack',
-        options: [
-            { value: 'attack', label: 'Attack' },
-            { value: 'impact', label: 'Impact' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    },
-    defense: {
-        label: 'Defense',
-        options: [
-            { value: 'evasion', label: 'Evasion' },
-            { value: 'grit', label: 'Grit' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    },
-    healing: {
-        label: 'Healing',
-        options: [
-            { value: 'diagnosis', label: 'Diagnosis Roll' },
-            { value: 'heal_energy', label: 'Heal Energy (6)' },
-            { value: 'heal_health', label: 'Heal Health (8)' },
-            { value: 'heal_reflex', label: 'Heal Reflex (10)' },
-            { value: 'fading_crit', label: 'All Fading Crits (6)' },
-            { value: 'afire', label: 'Afire -> Down (4)' },
-            { value: 'sticky_crit', label: 'Sticky Crit (8)' },
-            { value: 'burned_tile', label: 'Burned Tile (10)' },
-            { value: 'wound', label: 'Wound (12)' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    }
-};
-
-const HEALING_TARGETS = {
-    afire: { label: 'Afire -> Down', difficulty: 4, kind: 'count' },
-    heal_energy: { label: 'Energy', difficulty: 6, kind: 'resource' },
-    fading_crit: { label: 'All Fading Crits', difficulty: 6, kind: 'count' },
-    heal_health: { label: 'Health', difficulty: 8, kind: 'resource' },
-    sticky_crit: { label: 'Sticky Crit', difficulty: 8, kind: 'count' },
-    heal_reflex: { label: 'Reflex', difficulty: 10, kind: 'resource' },
-    burned_tile: { label: 'Burned Tile', difficulty: 10, kind: 'count' },
-    wound: { label: 'Wound', difficulty: 12, kind: 'count' }
-};
-
-const RESOLUTION_PLUS_BUCKETS = {
-    attack: new Set(['attack', 'impact']),
-    defense: new Set(['evasion', 'grit']),
-    healing: new Set(['diagnosis', 'heal_energy', 'heal_health', 'heal_reflex'])
-};
 
 function renderTagLimitStatus(el, diceStr, tagsArray) {
     if (!el) return null;
@@ -285,8 +136,8 @@ function bindEvents() {
     if (els.charRosterSelect) {
         els.charRosterSelect.addEventListener('change', (e) => {
             dataManager.switchCharacter(e.target.value);
-            callTile = null;
-            burnTiles = [];
+            uiState.callTile = null;
+            uiState.burnTiles = [];
             renderAll();
         });
     }
@@ -295,8 +146,8 @@ function bindEvents() {
         els.btnDelChar.addEventListener('click', () => {
             if (confirm("WARNING: Are you sure you want to delete this character permanently?")) {
                 dataManager.deleteCurrentCharacter();
-                callTile = null;
-                burnTiles = [];
+                uiState.callTile = null;
+                uiState.burnTiles = [];
                 renderAll();
             }
         });
@@ -371,8 +222,8 @@ function bindEvents() {
         const name = prompt("Enter a name for your new character:");
         if (name) {
             dataManager.createNewCharacter(name);
-            callTile = null;
-            burnTiles = [];
+            uiState.callTile = null;
+            uiState.burnTiles = [];
             renderAll();
         }
     });
@@ -409,8 +260,8 @@ function bindEvents() {
         reader.onload = (ev) => {
             const overwrite = confirm("Do you want to overwrite your current character? (Click 'Cancel' to import as a new character slot)");
             if (dataManager.importState(ev.target.result, overwrite)) {
-                callTile = null;
-                burnTiles = [];
+                uiState.callTile = null;
+                uiState.burnTiles = [];
                 renderAll();
             } else {
                 alert("Failed to import invalid file.");
@@ -459,8 +310,8 @@ function bindEvents() {
         const id = document.getElementById('tile-id').value;
         if (id) {
             dataManager.deleteTile(id);
-            if (callTile && callTile.id === id) callTile = null;
-            burnTiles = burnTiles.filter(t => t.id !== id);
+            if (uiState.callTile && uiState.callTile.id === id) uiState.callTile = null;
+            uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== id);
             closeModal();
             renderCards();
             updatePoolPreview();
@@ -556,9 +407,9 @@ function bindEvents() {
 
         const chainId = e.target.dataset.chainId;
         if (e.target.checked) {
-            disabledChainIds.delete(chainId);
+            uiState.disabledChainIds.delete(chainId);
         } else {
-            disabledChainIds.add(chainId);
+            uiState.disabledChainIds.add(chainId);
         }
         updatePoolPreview();
     });
@@ -567,31 +418,31 @@ function bindEvents() {
 
         const bonusId = e.target.dataset.bonusId;
         if (e.target.checked) {
-            selectedTagBonusIds.add(bonusId);
+            uiState.selectedTagBonusIds.add(bonusId);
         } else {
-            selectedTagBonusIds.delete(bonusId);
+            uiState.selectedTagBonusIds.delete(bonusId);
         }
         updatePoolPreview();
     });
 
     els.resolutionControls.addEventListener('change', (e) => {
-        if (!lastRollResult) return;
+        if (!uiState.lastRollResult) return;
 
         if (e.target.id === 'resolution-mode') {
-            currentResolutionMode = e.target.value;
-            currentResolutionAssignments = getDefaultResolutionAssignments(lastRollResult, currentResolutionMode);
+            uiState.currentResolutionMode = e.target.value;
+            uiState.currentResolutionAssignments = getDefaultResolutionAssignments(uiState.lastRollResult, uiState.currentResolutionMode);
             renderResolution();
             return;
         }
 
         if (e.target.classList.contains('resolution-die-select')) {
-            currentResolutionAssignments[e.target.dataset.rollId] = e.target.value;
+            uiState.currentResolutionAssignments[e.target.dataset.rollId] = e.target.value;
             renderResolution();
             return;
         }
 
         if (e.target.id === 'healing-in-combat') {
-            healingInCombat = e.target.checked;
+            uiState.healingInCombat = e.target.checked;
             renderResolutionDetails();
             return;
         }
@@ -602,7 +453,7 @@ function bindEvents() {
     });
 
     els.resolutionControls.addEventListener('input', (e) => {
-        if (!lastRollResult || !e.target.classList.contains('resolution-extra')) return;
+        if (!uiState.lastRollResult || !e.target.classList.contains('resolution-extra')) return;
         renderResolutionDetails();
     });
 
@@ -870,8 +721,8 @@ function renderCards() {
         div.style.background = `linear-gradient(135deg, ${c1}44, ${c2}44)`;
         div.style.border = `1px solid ${c1}88`;
 
-        if (callTile && callTile.id === tile.id) div.classList.add('selected-call');
-        if (burnTiles.some(t => t.id === tile.id)) div.classList.add('selected-burn');
+        if (uiState.callTile && uiState.callTile.id === tile.id) div.classList.add('selected-call');
+        if (uiState.burnTiles.some(t => t.id === tile.id)) div.classList.add('selected-burn');
         if (tile.isBurnt) div.classList.add('tile-burnt');
 
         div.innerHTML = `
@@ -923,8 +774,8 @@ function renderCards() {
             btnBurn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 tile.isBurnt = true;
-                if (callTile && callTile.id === tile.id) callTile = null;
-                burnTiles = burnTiles.filter(t => t.id !== tile.id);
+                if (uiState.callTile && uiState.callTile.id === tile.id) uiState.callTile = null;
+                uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
                 dataManager.updateTile(tile);
                 renderCards();
                 updatePoolPreview();
@@ -979,18 +830,18 @@ function handleCardClick(tile) {
         return;
     }
     
-    if (callTile && callTile.id === tile.id) {
+    if (uiState.callTile && uiState.callTile.id === tile.id) {
         // Deselect call
-        callTile = null;
-    } else if (burnTiles.some(t => t.id === tile.id)) {
+        uiState.callTile = null;
+    } else if (uiState.burnTiles.some(t => t.id === tile.id)) {
         // Deselect burn
-        burnTiles = burnTiles.filter(t => t.id !== tile.id);
+        uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
     } else {
         // Add to pool. If no call tile, make it call. Else make it burn.
-        if (!callTile) {
-            callTile = tile;
+        if (!uiState.callTile) {
+            uiState.callTile = tile;
         } else {
-            burnTiles.push(tile);
+            uiState.burnTiles.push(tile);
         }
     }
     renderCards();
@@ -1008,14 +859,14 @@ function getExtraDice() {
 
 function getPoolOptions() {
     return {
-        disabledChainIds: new Set(disabledChainIds)
+        disabledChainIds: new Set(uiState.disabledChainIds)
     };
 }
 
 function renderChainOptions(chainOptions = []) {
     const validIds = new Set(chainOptions.map(chain => chain.id));
-    disabledChainIds = new Set(
-        Array.from(disabledChainIds).filter(id => validIds.has(id))
+    uiState.disabledChainIds = new Set(
+        Array.from(uiState.disabledChainIds).filter(id => validIds.has(id))
     );
 
     els.chainOptions.innerHTML = '';
@@ -1036,7 +887,7 @@ function renderChainOptions(chainOptions = []) {
         checkbox.type = 'checkbox';
         checkbox.className = 'chain-cb';
         checkbox.dataset.chainId = chain.id;
-        checkbox.checked = !disabledChainIds.has(chain.id);
+        checkbox.checked = !uiState.disabledChainIds.has(chain.id);
 
         const main = document.createElement('span');
         main.className = 'chain-main';
@@ -1067,7 +918,7 @@ function renderChainOptions(chainOptions = []) {
 }
 
 function getSelectedTagBonuses(tagBonuses = []) {
-    return tagBonuses.filter(bonus => selectedTagBonusIds.has(bonus.id));
+    return tagBonuses.filter(bonus => uiState.selectedTagBonusIds.has(bonus.id));
 }
 
 function calculateSelectedTagBonus(tagBonuses = []) {
@@ -1077,8 +928,8 @@ function calculateSelectedTagBonus(tagBonuses = []) {
 
 function renderTagBonusOptions(tagBonuses = []) {
     const validIds = new Set(tagBonuses.map(bonus => bonus.id));
-    selectedTagBonusIds = new Set(
-        Array.from(selectedTagBonusIds).filter(id => validIds.has(id))
+    uiState.selectedTagBonusIds = new Set(
+        Array.from(uiState.selectedTagBonusIds).filter(id => validIds.has(id))
     );
 
     els.tagBonusOptions.innerHTML = '';
@@ -1098,7 +949,7 @@ function renderTagBonusOptions(tagBonuses = []) {
         checkbox.type = 'checkbox';
         checkbox.className = 'tag-bonus-cb';
         checkbox.dataset.bonusId = bonus.id;
-        checkbox.checked = selectedTagBonusIds.has(bonus.id);
+        checkbox.checked = uiState.selectedTagBonusIds.has(bonus.id);
 
         const main = document.createElement('span');
         main.className = 'tag-bonus-main';
@@ -1124,46 +975,6 @@ function renderTagBonusOptions(tagBonuses = []) {
     });
 }
 
-function getRollId(roll, index) {
-    return String(roll.id ?? index);
-}
-
-function getSortedRolls(result) {
-    return (result.originalRolls || [])
-        .map((roll, index) => ({ ...roll, rollId: getRollId(roll, index) }))
-        .sort((a, b) => b.val - a.val);
-}
-
-function getDefaultResolutionAssignments(result, mode) {
-    const assignments = {};
-    const sortedRolls = getSortedRolls(result);
-    const adds = result.adds || 2;
-
-    sortedRolls.forEach((roll, index) => {
-        let assignment = 'unused';
-
-        if (index < adds) {
-            if (mode === 'attack') {
-                assignment = index === adds - 1 && adds > 1 ? 'impact' : 'attack';
-            } else if (mode === 'defense') {
-                assignment = index === adds - 1 && adds > 1 ? 'grit' : 'evasion';
-            } else if (mode === 'healing') {
-                assignment = 'diagnosis';
-            } else {
-                assignment = 'action';
-            }
-        }
-
-        assignments[roll.rollId] = assignment;
-    });
-
-    return assignments;
-}
-
-function getAssignmentOptions(mode) {
-    return RESOLUTION_MODES[mode]?.options || RESOLUTION_MODES.action.options;
-}
-
 function getResolutionExtraValue(id) {
     return document.getElementById(id)?.value ?? '';
 }
@@ -1177,97 +988,8 @@ function getResolutionText(id) {
     return getResolutionExtraValue(id).trim();
 }
 
-function getPrimaryBonusBucket(mode) {
-    if (mode === 'attack') return 'attack';
-    if (mode === 'defense') return 'evasion';
-    if (mode === 'healing') return 'diagnosis';
-    return 'action';
-}
-
-function getResolutionBonusTotals(result, mode) {
-    const totals = { action: 0, attack: 0, impact: 0, evasion: 0, grit: 0, soak: 0, diagnosis: 0 };
-    const details = [];
-
-    (result.appliedTagBonuses || []).forEach(bonus => {
-        const context = (bonus.context || '').toLowerCase();
-        let bucket = null;
-
-        if (mode === 'action') {
-            bucket = 'action';
-        } else if (context.includes('attack')) {
-            bucket = mode === 'attack' ? 'attack' : null;
-        } else if (context.includes('damage') || context.includes('impact')) {
-            bucket = mode === 'attack' ? 'impact' : null;
-        } else if (context.includes('evasion') || context.includes('detection')) {
-            bucket = mode === 'defense' ? 'evasion' : null;
-        } else if (context.includes('grit')) {
-            bucket = mode === 'defense' ? 'grit' : null;
-        } else if (context.includes('soak')) {
-            bucket = mode === 'defense' ? 'soak' : null;
-        } else if (context.includes('action')) {
-            bucket = getPrimaryBonusBucket(mode);
-        }
-
-        if (!bucket) {
-            details.push(`${bonus.tag} from ${bonus.sourceTileName}: not used in ${RESOLUTION_MODES[mode].label.toLowerCase()} resolution`);
-            return;
-        }
-
-        totals[bucket] += bonus.steps;
-        details.push(`${bonus.tag} from ${bonus.sourceTileName}: +${bonus.steps} ${bucket}`);
-    });
-
-    totals[getPrimaryBonusBucket(mode)] += result.flatBonus || 0;
-    return { totals, details };
-}
-
-function calculateAssignedTotals(result) {
-    const totals = {};
-    let usedCount = 0;
-
-    (result.originalRolls || []).forEach((roll, index) => {
-        const rollId = getRollId(roll, index);
-        const assignment = currentResolutionAssignments[rollId] || 'unused';
-
-        if (assignment !== 'unused') usedCount += 1;
-        totals[assignment] = (totals[assignment] || 0) + roll.val;
-    });
-
-    return { totals, usedCount };
-}
-
-function calculateResolutionPlusUsage(result, mode = currentResolutionMode) {
-    const plusBuckets = RESOLUTION_PLUS_BUCKETS[mode];
-    const bucketCounts = {};
-
-    if (!plusBuckets) {
-        return {
-            used: 0,
-            budget: Math.max(0, (result.adds || 2) - 1),
-            bucketCounts
-        };
-    }
-
-    (result.originalRolls || []).forEach((roll, index) => {
-        const rollId = getRollId(roll, index);
-        const assignment = currentResolutionAssignments[rollId] || 'unused';
-        if (!plusBuckets.has(assignment)) return;
-
-        bucketCounts[assignment] = (bucketCounts[assignment] || 0) + 1;
-    });
-
-    const used = Object.values(bucketCounts)
-        .reduce((sum, count) => sum + Math.max(0, count - 1), 0);
-
-    return {
-        used,
-        budget: Math.max(0, (result.adds || 2) - 1),
-        bucketCounts
-    };
-}
-
 function renderResolutionUsageFields(result, usedCount, adds) {
-    if (!RESOLUTION_PLUS_BUCKETS[currentResolutionMode]) {
+    if (!RESOLUTION_PLUS_BUCKETS[uiState.currentResolutionMode]) {
         return `
             <div class="resolution-field">
                 <label>Dice Used</label>
@@ -1276,7 +998,7 @@ function renderResolutionUsageFields(result, usedCount, adds) {
         `;
     }
 
-    const plusUsage = calculateResolutionPlusUsage(result);
+    const plusUsage = calculateResolutionPlusUsage(result, uiState.currentResolutionMode, uiState.currentResolutionAssignments);
     const diceTotal = (result.originalRolls || []).length;
 
     return `
@@ -1293,13 +1015,13 @@ function renderResolutionUsageFields(result, usedCount, adds) {
 
 function renderResolutionModeOptions() {
     return Object.entries(RESOLUTION_MODES).map(([value, mode]) => {
-        const selected = value === currentResolutionMode ? ' selected' : '';
+        const selected = value === uiState.currentResolutionMode ? ' selected' : '';
         return `<option value="${value}"${selected}>${mode.label}</option>`;
     }).join('');
 }
 
 function renderResolutionExtraFields() {
-    if (currentResolutionMode === 'attack') {
+    if (uiState.currentResolutionMode === 'attack') {
         return `
             <div class="resolution-extra-grid">
                 <div class="resolution-field">
@@ -1322,7 +1044,7 @@ function renderResolutionExtraFields() {
         `;
     }
 
-    if (currentResolutionMode === 'defense') {
+    if (uiState.currentResolutionMode === 'defense') {
         return `
             <div class="resolution-extra-grid">
                 <div class="resolution-field">
@@ -1345,12 +1067,12 @@ function renderResolutionExtraFields() {
         `;
     }
 
-    if (currentResolutionMode === 'healing') {
+    if (uiState.currentResolutionMode === 'healing') {
         return `
             <div class="resolution-extra-grid">
                 <label class="resolution-field" style="justify-content: end;">
                     <span>During Combat</span>
-                    <input id="healing-in-combat" type="checkbox"${healingInCombat ? ' checked' : ''}>
+                    <input id="healing-in-combat" type="checkbox"${uiState.healingInCombat ? ' checked' : ''}>
                 </label>
             </div>
         `;
@@ -1360,13 +1082,13 @@ function renderResolutionExtraFields() {
 }
 
 function renderResolutionAssignments(result) {
-    const options = getAssignmentOptions(currentResolutionMode);
+    const options = getAssignmentOptions(uiState.currentResolutionMode);
     const validValues = new Set(options.map(option => option.value));
 
     return (result.originalRolls || []).map((roll, index) => {
         const rollId = getRollId(roll, index);
-        const assignment = validValues.has(currentResolutionAssignments[rollId])
-            ? currentResolutionAssignments[rollId]
+        const assignment = validValues.has(uiState.currentResolutionAssignments[rollId])
+            ? uiState.currentResolutionAssignments[rollId]
             : 'unused';
         const optionHtml = options.map(option => {
             const selected = option.value === assignment ? ' selected' : '';
@@ -1391,53 +1113,33 @@ function renderResolutionAssignments(result) {
     }).join('');
 }
 
-function getHealingAssignments(result) {
-    const healing = {};
-
-    (result.originalRolls || []).forEach((roll, index) => {
-        const rollId = getRollId(roll, index);
-        const assignment = currentResolutionAssignments[rollId];
-        const target = HEALING_TARGETS[assignment];
-        if (!target) return;
-
-        if (!healing[assignment]) {
-            healing[assignment] = { ...target, amount: 0, count: 0 };
-        }
-
-        healing[assignment].count += 1;
-        healing[assignment].amount += roll.val;
-    });
-
-    return healing;
-}
-
 function renderBonusDetails(details) {
     if (!details.length) return '';
     return `<p><strong>Tag Bonuses:</strong><br>${details.map(detail => escapeHtml(detail)).join('<br>')}</p>`;
 }
 
 function calculateResolutionSummary(result) {
-    const { totals, usedCount } = calculateAssignedTotals(result);
-    const bonusInfo = getResolutionBonusTotals(result, currentResolutionMode);
+    const { totals, usedCount } = calculateAssignedTotals(result, uiState.currentResolutionAssignments);
+    const bonusInfo = getResolutionBonusTotals(result, uiState.currentResolutionMode);
     const bonuses = bonusInfo.totals;
     const adds = result.adds || 2;
     const warnings = [];
-    const plusUsage = RESOLUTION_PLUS_BUCKETS[currentResolutionMode]
-        ? calculateResolutionPlusUsage(result)
+    const plusUsage = RESOLUTION_PLUS_BUCKETS[uiState.currentResolutionMode]
+        ? calculateResolutionPlusUsage(result, uiState.currentResolutionMode, uiState.currentResolutionAssignments)
         : null;
     const plusesAreLegal = !plusUsage || plusUsage.used <= plusUsage.budget;
 
     if (plusUsage && !plusesAreLegal) {
-        if (currentResolutionMode === 'healing') {
+        if (uiState.currentResolutionMode === 'healing') {
             warnings.push(`Too many pluses used: ${plusUsage.used}/${plusUsage.budget}. Move dice out of combined diagnosis/resource totals or assign them to one-at-a-time healing options.`);
         } else {
-            warnings.push(`Too many pluses used: ${plusUsage.used}/${plusUsage.budget}. Split dice across ${currentResolutionMode === 'attack' ? 'Attack/Impact' : 'Evasion/Grit'} differently or move dice to Unused.`);
+            warnings.push(`Too many pluses used: ${plusUsage.used}/${plusUsage.budget}. Split dice across ${uiState.currentResolutionMode === 'attack' ? 'Attack/Impact' : 'Evasion/Grit'} differently or move dice to Unused.`);
         }
     } else if (!plusUsage && usedCount > adds) {
         warnings.push(`Too many dice assigned: ${usedCount}/${adds}. Move ${usedCount - adds} die${usedCount - adds === 1 ? '' : 's'} to Unused.`);
     }
 
-    if (currentResolutionMode === 'attack') {
+    if (uiState.currentResolutionMode === 'attack') {
         const attackTotal = (totals.attack || 0) + bonuses.attack;
         const impactTotal = (totals.impact || 0) + bonuses.impact;
         const targetEvasion = getResolutionNumber('target-evasion');
@@ -1472,7 +1174,7 @@ function calculateResolutionSummary(result) {
         };
     }
 
-    if (currentResolutionMode === 'defense') {
+    if (uiState.currentResolutionMode === 'defense') {
         const evasionTotal = (totals.evasion || 0) + bonuses.evasion;
         const gritTotal = (totals.grit || 0) + bonuses.grit;
         const otherSoak = getResolutionNumber('defense-soak') || 0;
@@ -1509,13 +1211,13 @@ function calculateResolutionSummary(result) {
         };
     }
 
-    if (currentResolutionMode === 'healing') {
+    if (uiState.currentResolutionMode === 'healing') {
         const diagnosisTotal = (totals.diagnosis || 0) + bonuses.diagnosis;
-        const healingAssignments = getHealingAssignments(result);
+        const healingAssignments = getHealingAssignments(result, uiState.currentResolutionAssignments);
         const healingEntries = Object.values(healingAssignments);
         const spareCount = healingEntries.reduce((sum, entry) => sum + entry.count, 0);
         const baseDifficulty = healingEntries.reduce((max, entry) => Math.max(max, entry.difficulty), 0);
-        const difficulty = baseDifficulty + (spareCount * 2) + (healingInCombat ? 4 : 0);
+        const difficulty = baseDifficulty + (spareCount * 2) + (uiState.healingInCombat ? 4 : 0);
         const succeeds = plusesAreLegal && spareCount > 0 && diagnosisTotal >= difficulty;
         const lines = [
             `<p><strong>Diagnosis:</strong> ${diagnosisTotal} (${totals.diagnosis || 0} dice + ${bonuses.diagnosis} bonus)</p>`,
@@ -1527,7 +1229,7 @@ function calculateResolutionSummary(result) {
         } else if (!plusesAreLegal) {
             lines.push('<p class="resolution-warning">Reduce plus use before resolving treatment.</p>');
         } else {
-            lines.push(`<p><strong>Difficulty:</strong> ${difficulty} (${baseDifficulty} base + ${spareCount * 2} from ${spareCount} treatment dice${healingInCombat ? ' + 4 combat' : ''}).</p>`);
+            lines.push(`<p><strong>Difficulty:</strong> ${difficulty} (${baseDifficulty} base + ${spareCount * 2} from ${spareCount} treatment dice${uiState.healingInCombat ? ' + 4 combat' : ''}).</p>`);
             lines.push(`<p class="${succeeds ? 'resolution-success' : 'resolution-warning'}">${succeeds ? 'Treatment succeeds' : 'Treatment fails'}.</p>`);
             healingEntries.forEach(entry => {
                 if (entry.kind === 'resource') {
@@ -1566,9 +1268,9 @@ function renderRollGroups(result) {
 }
 
 function renderResolutionDetails() {
-    if (!lastRollResult) return;
+    if (!uiState.lastRollResult) return;
 
-    const result = lastRollResult;
+    const result = uiState.lastRollResult;
     const summary = calculateResolutionSummary(result);
     els.resultNotices.innerHTML = result.isHaywire
         ? '<div class="result-notice result-notice-haywire">HAYWIRE! More than half the dice rolled 1.</div>'
@@ -1587,10 +1289,10 @@ function renderResolutionDetails() {
 }
 
 function renderResolution() {
-    if (!lastRollResult) return;
+    if (!uiState.lastRollResult) return;
 
-    const result = lastRollResult;
-    const { usedCount } = calculateAssignedTotals(result);
+    const result = uiState.lastRollResult;
+    const { usedCount } = calculateAssignedTotals(result, uiState.currentResolutionAssignments);
     const adds = result.adds || 2;
     const summary = calculateResolutionSummary(result);
     const warningHtml = summary.warnings.map(warning => `<p class="resolution-warning">${escapeHtml(warning)}</p>`).join('');
@@ -1620,8 +1322,8 @@ function updatePoolPreview() {
     const colors = [c1, c2].filter(c => c);
 
     // Update Dropzones visually
-    els.callTileZone.innerHTML = callTile ? `<div class="badge">${escapeHtml(callTile.name)} (${escapeHtml(callTile.dice.join(', '))})</div>` : '';
-    els.burnTilesZone.innerHTML = burnTiles.map(t => `<div class="badge" style="margin:2px">${escapeHtml(t.name)}</div>`).join('');
+    els.callTileZone.innerHTML = uiState.callTile ? `<div class="badge">${escapeHtml(uiState.callTile.name)} (${escapeHtml(uiState.callTile.dice.join(', '))})</div>` : '';
+    els.burnTilesZone.innerHTML = uiState.burnTiles.map(t => `<div class="badge" style="margin:2px">${escapeHtml(t.name)}</div>`).join('');
 
     const extraDice = getExtraDice();
     if (extraDice.error) {
@@ -1635,7 +1337,7 @@ function updatePoolPreview() {
         return;
     }
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, uiState.callTile, uiState.burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     
     if (res.error) {
         els.poolDiceDisplay.innerHTML = `<span style="color:#ff3333">${escapeHtml(res.error)}</span>`;
@@ -1675,7 +1377,7 @@ function renderManualInputs() {
     const extraDice = getExtraDice();
     if (extraDice.error) return;
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, uiState.callTile, uiState.burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     if (res.error || res.dice.length === 0) return;
 
     res.dice.forEach((dObj, idx) => {
@@ -1699,7 +1401,7 @@ function executeVirtualRoll() {
         return;
     }
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, uiState.callTile, uiState.burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     
     if (res.error || res.dice.length === 0) {
         alert(res.error || "No dice to roll.");
@@ -1747,7 +1449,7 @@ function executeManualCalculate() {
         return;
     }
 
-    const res = poolEngine.compilePool(colors, dataManager.state.stats, callTile, burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
+    const res = poolEngine.compilePool(colors, dataManager.state.stats, uiState.callTile, uiState.burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     if (res.error || res.dice.length === 0) {
         alert(res.error || "No dice to calculate.");
         return;
@@ -1763,13 +1465,13 @@ function executeManualCalculate() {
 }
 
 function processBurns() {
-    if (burnTiles.length > 0) {
-        burnTiles.forEach(t => {
+    if (uiState.burnTiles.length > 0) {
+        uiState.burnTiles.forEach(t => {
             t.isBurnt = true;
             dataManager.updateTile(t);
         });
-        callTile = null;
-        burnTiles = [];
+        uiState.callTile = null;
+        uiState.burnTiles = [];
         renderCards();
         updatePoolPreview();
         updateShadowMax();
@@ -1777,10 +1479,10 @@ function processBurns() {
 }
 
 function showResults(result) {
-    lastRollResult = result;
-    currentResolutionMode = 'action';
-    currentResolutionAssignments = getDefaultResolutionAssignments(result, currentResolutionMode);
-    healingInCombat = false;
+    uiState.lastRollResult = result;
+    uiState.currentResolutionMode = 'action';
+    uiState.currentResolutionAssignments = getDefaultResolutionAssignments(result, uiState.currentResolutionMode);
+    uiState.healingInCombat = false;
     els.rollResults.style.display = 'block';
     renderResolution();
     
@@ -1933,8 +1635,8 @@ function saveTileFromForm() {
     if (id) {
         dataManager.updateTile(tile);
         // Update pool selections if modified
-        if (callTile && callTile.id === id) callTile = tile;
-        burnTiles = burnTiles.map(t => t.id === id ? tile : t);
+        if (uiState.callTile && uiState.callTile.id === id) uiState.callTile = tile;
+        uiState.burnTiles = uiState.burnTiles.map(t => t.id === id ? tile : t);
     } else {
         dataManager.addTile(tile);
     }
