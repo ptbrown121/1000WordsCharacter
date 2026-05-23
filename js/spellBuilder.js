@@ -560,7 +560,7 @@ export class SpellBuilder {
         const description = document.getElementById('spell-description').value.trim();
 
         const newSpell = {
-            id: this.editingTileId || Date.now().toString(),
+            id: this.editingTileId || crypto.randomUUID(),
             type: 'Gear',
             name,
             description,
