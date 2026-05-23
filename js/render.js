@@ -1,4 +1,4 @@
-import { STAT_COLORS, COLOR_HEX } from './data.js';
+import { STAT_COLORS, COLOR_HEX, getEffectiveMax } from './data.js';
 import { els } from './els.js';
 import { renderCards } from './ui/cards.js';
 import { updatePoolPreview } from './ui/pool.js';
@@ -17,17 +17,13 @@ export function renderAll() {
     els.charName.value = dataManager.state.name;
     els.valXpEarned.value = dataManager.state.xpEarned || 75;
     els.valHp.value = dataManager.state.hp ?? 0;
-    
-    // Calculate effective max = base max + perm + temp
-    const hpEffMax = (dataManager.state.hpMax ?? 0) + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
-    const enEffMax = (dataManager.state.enMax ?? 0) + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
-    const rxEffMax = (dataManager.state.rxMax ?? 0) + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
-    
-    els.valHpMax.innerText = hpEffMax;
+
+    // Effective max = base max + perm + temp (see getEffectiveMax in data.js).
+    els.valHpMax.innerText = getEffectiveMax(dataManager.state, 'hp');
     els.valEn.value = dataManager.state.en ?? 0;
-    els.valEnMax.innerText = enEffMax;
+    els.valEnMax.innerText = getEffectiveMax(dataManager.state, 'en');
     els.valRx.value = dataManager.state.rx ?? 0;
-    els.valRxMax.innerText = rxEffMax;
+    els.valRxMax.innerText = getEffectiveMax(dataManager.state, 'rx');
     els.valSh.value = dataManager.state.sh || 0;
 
     // Temp badges

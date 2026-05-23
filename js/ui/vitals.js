@@ -1,18 +1,24 @@
 import { els } from '../els.js';
+import { getEffectiveMax } from '../data.js';
 
 let dataManager;
 let poolEngine;
 let renderAll;
+
+const toInt = (value) => {
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) ? n : 0;
+};
 
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
     renderAll = deps.renderAll;
 
-    els.valHp.addEventListener('change', (e) => dataManager.updateResource('hp', e.target.value));
-    els.valEn.addEventListener('change', (e) => dataManager.updateResource('en', e.target.value));
-    els.valRx.addEventListener('change', (e) => dataManager.updateResource('rx', e.target.value));
-    els.valSh.addEventListener('change', (e) => { dataManager.state.sh = e.target.value; dataManager.saveState(); });
+    els.valHp.addEventListener('change', (e) => dataManager.updateResource('hp', toInt(e.target.value)));
+    els.valEn.addEventListener('change', (e) => dataManager.updateResource('en', toInt(e.target.value)));
+    els.valRx.addEventListener('change', (e) => dataManager.updateResource('rx', toInt(e.target.value)));
+    els.valSh.addEventListener('change', (e) => { dataManager.state.sh = toInt(e.target.value); dataManager.saveState(); });
 
     // Vital Edit Buttons
     document.querySelectorAll('.btn-edit-vital').forEach(btn => {
@@ -43,32 +49,32 @@ export function init(deps) {
     // Rest Button
     els.btnRest.addEventListener('click', () => {
         if (!confirm("Rest and recover all resources? This will un-burn all tiles.")) return;
-        dataManager.state.hp = (dataManager.state.hpMax || 0) + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
-        dataManager.state.en = (dataManager.state.enMax || 0) + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
-        dataManager.state.rx = (dataManager.state.rxMax || 0) + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
-        dataManager.state.sh = poolEngine.calculateShadowMax(dataManager.state.tiles) + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
-        dataManager.state.tiles.forEach(t => t.isBurnt = false);
+        const state = dataManager.state;
+        state.hp = getEffectiveMax(state, 'hp');
+        state.en = getEffectiveMax(state, 'en');
+        state.rx = getEffectiveMax(state, 'rx');
+        state.sh = getEffectiveMax(state, 'sh', poolEngine.calculateShadowMax(state.tiles));
+        state.tiles.forEach(t => t.isBurnt = false);
         dataManager.saveState();
         renderAll();
     });
 
     // Auto-Calculate Vitals
     els.btnCalcVitals.addEventListener('click', () => {
-        const resourceMaxes = poolEngine.calculateResourceMaxes(dataManager.state.tiles);
+        const state = dataManager.state;
+        const resourceMaxes = poolEngine.calculateResourceMaxes(state.tiles);
 
-        dataManager.state.hpMax = resourceMaxes.hp;
-        dataManager.state.hp = dataManager.state.hpMax + (dataManager.state.hpPerm || 0) + (dataManager.state.hpTemp || 0);
+        state.hpMax = resourceMaxes.hp;
+        state.hp = getEffectiveMax(state, 'hp');
 
-        dataManager.state.enMax = resourceMaxes.en;
-        dataManager.state.en = dataManager.state.enMax + (dataManager.state.enPerm || 0) + (dataManager.state.enTemp || 0);
+        state.enMax = resourceMaxes.en;
+        state.en = getEffectiveMax(state, 'en');
 
-        dataManager.state.rxMax = resourceMaxes.rx;
-        dataManager.state.rx = dataManager.state.rxMax + (dataManager.state.rxPerm || 0) + (dataManager.state.rxTemp || 0);
+        state.rxMax = resourceMaxes.rx;
+        state.rx = getEffectiveMax(state, 'rx');
 
-        const shBase = resourceMaxes.sh;
-        const shEffMax = shBase + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
-        dataManager.state.sh = shEffMax;
-        
+        state.sh = getEffectiveMax(state, 'sh', resourceMaxes.sh);
+
         dataManager.saveState();
         renderAll();
     });
@@ -86,7 +92,7 @@ export function renderTempBadge(badgeEl, tempVal) {
 
 export function updateShadowMax() {
     const shBase = poolEngine.calculateShadowMax(dataManager.state.tiles);
-    const shEffMax = shBase + (dataManager.state.shPerm || 0) + (dataManager.state.shTemp || 0);
+    const shEffMax = getEffectiveMax(dataManager.state, 'sh', shBase);
     els.valShMax.innerText = shEffMax;
     renderTempBadge(els.shTempBadge, dataManager.state.shTemp);
 }
