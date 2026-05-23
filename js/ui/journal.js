@@ -11,7 +11,7 @@ export function init(deps) {
         const title = prompt('Enter a title for this journal entry:', 'Session Notes');
         if (!title) return;
         dataManager.state.journal.push({
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             title: title,
             content: ''
         });

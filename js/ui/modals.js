@@ -60,6 +60,20 @@ export function renderTileTagLimitStatus() {
     return renderTagLimitStatus(els.tileTagLimitStatus, els.tileDice.value, currentFormTags);
 }
 
+export function renderXpEstimateNote(unknownTags = []) {
+    const el = els.tileXpEstimateNote;
+    if (!el) return;
+    if (!unknownTags.length) {
+        el.textContent = '';
+        el.style.display = 'none';
+        return;
+    }
+    const list = unknownTags.join(', ');
+    const noun = unknownTags.length === 1 ? 'tag was' : 'tags were';
+    el.textContent = `\u26a0\ufe0f ${unknownTags.length} unknown ${noun} charged the default +2 XP each: ${list}. Check for typos.`;
+    el.style.display = 'block';
+}
+
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
@@ -161,8 +175,9 @@ export function init(deps) {
             alert(getDiceValidationMessage('Tile dice'));
             return;
         }
-        const xp = poolEngine.estimateTileXp(diceArray, currentFormTags, getFormArmorType());
+        const { xp, unknownTags } = poolEngine.estimateTileXpDetails(diceArray, currentFormTags, getFormArmorType());
         els.tileXp.value = xp;
+        renderXpEstimateNote(unknownTags);
     });
 }
 
@@ -172,6 +187,7 @@ export function openModal(tile = null) {
     document.querySelectorAll('.color-cb').forEach(cb => cb.checked = false);
     currentFormTags = [];
     els.tagCustomInput.style.display = 'none';
+    renderXpEstimateNote([]);
 
     const armorMaterial = document.getElementById('armor-material');
     const armorCoverage = document.getElementById('armor-coverage');

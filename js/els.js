@@ -57,6 +57,7 @@ export const els = {
 
     tileXp: document.getElementById('tile-xp'),
     btnEstimateXp: document.getElementById('btn-estimate-xp'),
+    tileXpEstimateNote: document.getElementById('tile-xp-estimate-note'),
 
     callColor1: document.getElementById('call-color-1'),
     callColor2: document.getElementById('call-color-2'),

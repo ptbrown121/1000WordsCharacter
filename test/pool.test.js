@@ -153,6 +153,69 @@ describe('estimateTileXp', () => {
     });
 });
 
+describe('estimateTileXpDetails', () => {
+    it('returns the same xp number as estimateTileXp', () => {
+        const cases = [
+            { dice: ['d6'], tags: ['Keen'] },
+            { dice: ['d4'], tags: ['Chain Foo'] },
+            { dice: ['d8'], tags: ['Old', 'Worn'] },
+            { dice: ['d6'], tags: ['Ironclad', 'Tough'], armor: { material: 'Hard', coverage: 'Full' } }
+        ];
+        for (const c of cases) {
+            const details = engine.estimateTileXpDetails(c.dice, c.tags, c.armor);
+            const number = engine.estimateTileXp(c.dice, c.tags, c.armor);
+            assert.equal(details.xp, number, `xp mismatch for ${JSON.stringify(c)}`);
+        }
+    });
+
+    it('returns an empty unknownTags list when every tag is recognized', () => {
+        const r = engine.estimateTileXpDetails(['d6'], ['Keen', 'Sharp', 'Old', 'Chain Foo', 'Hitch 3']);
+        assert.deepEqual(r.unknownTags, []);
+    });
+
+    it('reports unknown tags so the UI can warn the player about typos', () => {
+        // 'Frobnicate' isn't a known mechanical tag; it falls through to the
+        // default +2 XP. The detail call should surface it.
+        const r = engine.estimateTileXpDetails(['d6'], ['Keen', 'Frobnicate']);
+        assert.deepEqual(r.unknownTags, ['Frobnicate']);
+        assert.equal(r.xp, 3 + 2 + 2); // d6 base + Keen +2 + Frobnicate default +2
+    });
+
+    it('reports multiple unknowns in their original case for the warning', () => {
+        const r = engine.estimateTileXpDetails(['d4'], ['MadeUp', 'Whatever']);
+        assert.deepEqual(r.unknownTags, ['MadeUp', 'Whatever']);
+    });
+
+    it('does NOT flag valid structural tags (Build/Detail/Crit/Shield/Range/Duration/exotics) as unknown', () => {
+        // These are valid rulebook tag categories. Their specific XP rules
+        // aren't wired into classifyTagForXp yet (they all default to +2),
+        // but they ARE recognized as valid so the UI does not warn about
+        // them. A follow-up can replace the +2 default with rule-accurate
+        // numbers without affecting this guarantee.
+        const validStructuralTags = [
+            'Build: Cyber', 'Detail: Fast', 'Crit: JOLT', 'Shield: Deflect',
+            'Range: Short', 'Duration: Instant', 'Motorized: BODY',
+            'Bestial', 'Celestial', 'Cyber'
+        ];
+        const r = engine.estimateTileXpDetails(['d6'], validStructuralTags);
+        assert.deepEqual(r.unknownTags, [],
+            'Structural tags should be recognized (no typo warning) even when ' +
+            'their XP defaults to +2.');
+    });
+
+    it('does not flag exempt-suffixed known tags as unknown', () => {
+        // 'Keen (Exempt)' is a known tag with the exempt suffix stripped.
+        const r = engine.estimateTileXpDetails(['d6'], ['Keen (Exempt)']);
+        assert.deepEqual(r.unknownTags, []);
+    });
+
+    it('does not flag empty or whitespace-only tags as unknown', () => {
+        // tileTagList already filters these out, but defend in depth.
+        const r = engine.estimateTileXpDetails(['d6'], ['', '   ']);
+        assert.deepEqual(r.unknownTags, []);
+    });
+});
+
 describe('calculateResourceMaxes', () => {
     it('adds 1 per matching color slot, plus die-steps for Tough/Vital/Quick', () => {
         const tiles = [
