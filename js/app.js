@@ -11,6 +11,18 @@ import {
 import { SpellBuilder } from './spellBuilder.js';
 import { uiState } from './state.js';
 import { els } from './els.js';
+import {
+    RESOLUTION_MODES,
+    HEALING_TARGETS,
+    RESOLUTION_PLUS_BUCKETS,
+    getRollId,
+    getDefaultResolutionAssignments,
+    getAssignmentOptions,
+    getResolutionBonusTotals,
+    calculateAssignedTotals,
+    calculateResolutionPlusUsage,
+    getHealingAssignments
+} from './resolution-rules.js';
 
 const dataManager = new DataManager();
 const poolEngine = new PoolEngine();
@@ -44,64 +56,6 @@ function getFormArmorType() {
     }
     return null;
 }
-
-const RESOLUTION_MODES = {
-    action: {
-        label: 'Action',
-        options: [
-            { value: 'action', label: 'Roll' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    },
-    attack: {
-        label: 'Attack',
-        options: [
-            { value: 'attack', label: 'Attack' },
-            { value: 'impact', label: 'Impact' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    },
-    defense: {
-        label: 'Defense',
-        options: [
-            { value: 'evasion', label: 'Evasion' },
-            { value: 'grit', label: 'Grit' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    },
-    healing: {
-        label: 'Healing',
-        options: [
-            { value: 'diagnosis', label: 'Diagnosis Roll' },
-            { value: 'heal_energy', label: 'Heal Energy (6)' },
-            { value: 'heal_health', label: 'Heal Health (8)' },
-            { value: 'heal_reflex', label: 'Heal Reflex (10)' },
-            { value: 'fading_crit', label: 'All Fading Crits (6)' },
-            { value: 'afire', label: 'Afire -> Down (4)' },
-            { value: 'sticky_crit', label: 'Sticky Crit (8)' },
-            { value: 'burned_tile', label: 'Burned Tile (10)' },
-            { value: 'wound', label: 'Wound (12)' },
-            { value: 'unused', label: 'Unused' }
-        ]
-    }
-};
-
-const HEALING_TARGETS = {
-    afire: { label: 'Afire -> Down', difficulty: 4, kind: 'count' },
-    heal_energy: { label: 'Energy', difficulty: 6, kind: 'resource' },
-    fading_crit: { label: 'All Fading Crits', difficulty: 6, kind: 'count' },
-    heal_health: { label: 'Health', difficulty: 8, kind: 'resource' },
-    sticky_crit: { label: 'Sticky Crit', difficulty: 8, kind: 'count' },
-    heal_reflex: { label: 'Reflex', difficulty: 10, kind: 'resource' },
-    burned_tile: { label: 'Burned Tile', difficulty: 10, kind: 'count' },
-    wound: { label: 'Wound', difficulty: 12, kind: 'count' }
-};
-
-const RESOLUTION_PLUS_BUCKETS = {
-    attack: new Set(['attack', 'impact']),
-    defense: new Set(['evasion', 'grit']),
-    healing: new Set(['diagnosis', 'heal_energy', 'heal_health', 'heal_reflex'])
-};
 
 function renderTagLimitStatus(el, diceStr, tagsArray) {
     if (!el) return null;
@@ -1021,46 +975,6 @@ function renderTagBonusOptions(tagBonuses = []) {
     });
 }
 
-function getRollId(roll, index) {
-    return String(roll.id ?? index);
-}
-
-function getSortedRolls(result) {
-    return (result.originalRolls || [])
-        .map((roll, index) => ({ ...roll, rollId: getRollId(roll, index) }))
-        .sort((a, b) => b.val - a.val);
-}
-
-function getDefaultResolutionAssignments(result, mode) {
-    const assignments = {};
-    const sortedRolls = getSortedRolls(result);
-    const adds = result.adds || 2;
-
-    sortedRolls.forEach((roll, index) => {
-        let assignment = 'unused';
-
-        if (index < adds) {
-            if (mode === 'attack') {
-                assignment = index === adds - 1 && adds > 1 ? 'impact' : 'attack';
-            } else if (mode === 'defense') {
-                assignment = index === adds - 1 && adds > 1 ? 'grit' : 'evasion';
-            } else if (mode === 'healing') {
-                assignment = 'diagnosis';
-            } else {
-                assignment = 'action';
-            }
-        }
-
-        assignments[roll.rollId] = assignment;
-    });
-
-    return assignments;
-}
-
-function getAssignmentOptions(mode) {
-    return RESOLUTION_MODES[mode]?.options || RESOLUTION_MODES.action.options;
-}
-
 function getResolutionExtraValue(id) {
     return document.getElementById(id)?.value ?? '';
 }
@@ -1074,95 +988,6 @@ function getResolutionText(id) {
     return getResolutionExtraValue(id).trim();
 }
 
-function getPrimaryBonusBucket(mode) {
-    if (mode === 'attack') return 'attack';
-    if (mode === 'defense') return 'evasion';
-    if (mode === 'healing') return 'diagnosis';
-    return 'action';
-}
-
-function getResolutionBonusTotals(result, mode) {
-    const totals = { action: 0, attack: 0, impact: 0, evasion: 0, grit: 0, soak: 0, diagnosis: 0 };
-    const details = [];
-
-    (result.appliedTagBonuses || []).forEach(bonus => {
-        const context = (bonus.context || '').toLowerCase();
-        let bucket = null;
-
-        if (mode === 'action') {
-            bucket = 'action';
-        } else if (context.includes('attack')) {
-            bucket = mode === 'attack' ? 'attack' : null;
-        } else if (context.includes('damage') || context.includes('impact')) {
-            bucket = mode === 'attack' ? 'impact' : null;
-        } else if (context.includes('evasion') || context.includes('detection')) {
-            bucket = mode === 'defense' ? 'evasion' : null;
-        } else if (context.includes('grit')) {
-            bucket = mode === 'defense' ? 'grit' : null;
-        } else if (context.includes('soak')) {
-            bucket = mode === 'defense' ? 'soak' : null;
-        } else if (context.includes('action')) {
-            bucket = getPrimaryBonusBucket(mode);
-        }
-
-        if (!bucket) {
-            details.push(`${bonus.tag} from ${bonus.sourceTileName}: not used in ${RESOLUTION_MODES[mode].label.toLowerCase()} resolution`);
-            return;
-        }
-
-        totals[bucket] += bonus.steps;
-        details.push(`${bonus.tag} from ${bonus.sourceTileName}: +${bonus.steps} ${bucket}`);
-    });
-
-    totals[getPrimaryBonusBucket(mode)] += result.flatBonus || 0;
-    return { totals, details };
-}
-
-function calculateAssignedTotals(result) {
-    const totals = {};
-    let usedCount = 0;
-
-    (result.originalRolls || []).forEach((roll, index) => {
-        const rollId = getRollId(roll, index);
-        const assignment = uiState.currentResolutionAssignments[rollId] || 'unused';
-
-        if (assignment !== 'unused') usedCount += 1;
-        totals[assignment] = (totals[assignment] || 0) + roll.val;
-    });
-
-    return { totals, usedCount };
-}
-
-function calculateResolutionPlusUsage(result, mode = uiState.currentResolutionMode) {
-    const plusBuckets = RESOLUTION_PLUS_BUCKETS[mode];
-    const bucketCounts = {};
-
-    if (!plusBuckets) {
-        return {
-            used: 0,
-            budget: Math.max(0, (result.adds || 2) - 1),
-            bucketCounts
-        };
-    }
-
-    (result.originalRolls || []).forEach((roll, index) => {
-        const rollId = getRollId(roll, index);
-        const assignment = uiState.currentResolutionAssignments[rollId] || 'unused';
-        if (!plusBuckets.has(assignment)) return;
-
-        bucketCounts[assignment] = (bucketCounts[assignment] || 0) + 1;
-    });
-
-    const used = Object.values(bucketCounts)
-        .reduce((sum, count) => sum + Math.max(0, count - 1), 0);
-
-    return {
-        used,
-        budget: Math.max(0, (result.adds || 2) - 1),
-        bucketCounts
-    };
-}
-
 function renderResolutionUsageFields(result, usedCount, adds) {
     if (!RESOLUTION_PLUS_BUCKETS[uiState.currentResolutionMode]) {
         return `
@@ -1173,7 +998,7 @@ function renderResolutionUsageFields(result, usedCount, adds) {
         `;
     }
 
-    const plusUsage = calculateResolutionPlusUsage(result);
+    const plusUsage = calculateResolutionPlusUsage(result, uiState.currentResolutionMode, uiState.currentResolutionAssignments);
     const diceTotal = (result.originalRolls || []).length;
 
     return `
@@ -1288,39 +1113,19 @@ function renderResolutionAssignments(result) {
     }).join('');
 }
 
-function getHealingAssignments(result) {
-    const healing = {};
-
-    (result.originalRolls || []).forEach((roll, index) => {
-        const rollId = getRollId(roll, index);
-        const assignment = uiState.currentResolutionAssignments[rollId];
-        const target = HEALING_TARGETS[assignment];
-        if (!target) return;
-
-        if (!healing[assignment]) {
-            healing[assignment] = { ...target, amount: 0, count: 0 };
-        }
-
-        healing[assignment].count += 1;
-        healing[assignment].amount += roll.val;
-    });
-
-    return healing;
-}
-
 function renderBonusDetails(details) {
     if (!details.length) return '';
     return `<p><strong>Tag Bonuses:</strong><br>${details.map(detail => escapeHtml(detail)).join('<br>')}</p>`;
 }
 
 function calculateResolutionSummary(result) {
-    const { totals, usedCount } = calculateAssignedTotals(result);
+    const { totals, usedCount } = calculateAssignedTotals(result, uiState.currentResolutionAssignments);
     const bonusInfo = getResolutionBonusTotals(result, uiState.currentResolutionMode);
     const bonuses = bonusInfo.totals;
     const adds = result.adds || 2;
     const warnings = [];
     const plusUsage = RESOLUTION_PLUS_BUCKETS[uiState.currentResolutionMode]
-        ? calculateResolutionPlusUsage(result)
+        ? calculateResolutionPlusUsage(result, uiState.currentResolutionMode, uiState.currentResolutionAssignments)
         : null;
     const plusesAreLegal = !plusUsage || plusUsage.used <= plusUsage.budget;
 
@@ -1408,7 +1213,7 @@ function calculateResolutionSummary(result) {
 
     if (uiState.currentResolutionMode === 'healing') {
         const diagnosisTotal = (totals.diagnosis || 0) + bonuses.diagnosis;
-        const healingAssignments = getHealingAssignments(result);
+        const healingAssignments = getHealingAssignments(result, uiState.currentResolutionAssignments);
         const healingEntries = Object.values(healingAssignments);
         const spareCount = healingEntries.reduce((sum, entry) => sum + entry.count, 0);
         const baseDifficulty = healingEntries.reduce((max, entry) => Math.max(max, entry.difficulty), 0);
@@ -1487,7 +1292,7 @@ function renderResolution() {
     if (!uiState.lastRollResult) return;
 
     const result = uiState.lastRollResult;
-    const { usedCount } = calculateAssignedTotals(result);
+    const { usedCount } = calculateAssignedTotals(result, uiState.currentResolutionAssignments);
     const adds = result.adds || 2;
     const summary = calculateResolutionSummary(result);
     const warningHtml = summary.warnings.map(warning => `<p class="resolution-warning">${escapeHtml(warning)}</p>`).join('');
