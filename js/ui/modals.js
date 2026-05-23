@@ -1,4 +1,11 @@
-import { parseDiceInput, getDiceValidationMessage, formatTagLimitStatus, tagLimitErrorMessage } from '../pool.js';
+import {
+    WEAPON_TEMPLATES,
+    getWeaponTemplateById,
+    parseDiceInput,
+    getDiceValidationMessage,
+    formatTagLimitStatus,
+    tagLimitErrorMessage
+} from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { renderCards } from './cards.js';
@@ -25,12 +32,88 @@ export function formatArmorBase(armorType) {
 
 export function getFormArmorType() {
     if (document.getElementById('tile-type').value !== 'Gear') return null;
+    if (document.getElementById('gear-subtype').value !== 'Armor') return null;
     const material = document.getElementById('armor-material').value;
     const coverage = document.getElementById('armor-coverage').value;
     if (ARMOR_MATERIALS.has(material) && coverage in ARMOR_COVERAGE_SOAK) {
         return { material, coverage };
     }
     return null;
+}
+
+export function formatWeaponBase(weapon) {
+    if (!weapon) return '';
+    const parts = [weapon.category, weapon.range, weapon.skill].filter(Boolean);
+    return parts.length ? `${parts.join(' · ')}` : '';
+}
+
+function getFormWeapon() {
+    if (document.getElementById('tile-type').value !== 'Gear') return null;
+    if (document.getElementById('gear-subtype').value !== 'Weapon') return null;
+
+    const templateId = document.getElementById('weapon-template').value;
+    const category = document.getElementById('weapon-category').value.trim();
+    const range = document.getElementById('weapon-range').value.trim();
+    const skill = document.getElementById('weapon-skill').value.trim();
+
+    if (!templateId && !category && !range && !skill) return null;
+
+    return { templateId, category, range, skill };
+}
+
+function getFormGearSubtype() {
+    if (document.getElementById('tile-type').value !== 'Gear') return '';
+    return document.getElementById('gear-subtype').value || 'Custom';
+}
+
+function populateWeaponTemplates() {
+    const select = document.getElementById('weapon-template');
+    if (!select || select.dataset.populated === 'true') return;
+
+    WEAPON_TEMPLATES.forEach(template => {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = template.name;
+        select.appendChild(option);
+    });
+
+    select.dataset.populated = 'true';
+}
+
+function syncTileTypeSections() {
+    const type = document.getElementById('tile-type').value;
+    const gearSubtype = document.getElementById('gear-subtype').value || 'Custom';
+
+    document.getElementById('spellcast-skill-container').style.display = type === 'Skill' ? 'block' : 'none';
+    document.getElementById('gear-subtype-container').style.display = type === 'Gear' ? 'block' : 'none';
+    document.getElementById('weapon-builder-container').style.display = type === 'Gear' && gearSubtype === 'Weapon' ? 'block' : 'none';
+    document.getElementById('armor-base-container').style.display = type === 'Gear' && gearSubtype === 'Armor' ? 'block' : 'none';
+}
+
+function addMissingTemplateTags(tags) {
+    let changed = false;
+    tags.forEach(tag => {
+        if (!currentFormTags.includes(tag)) {
+            currentFormTags.push(tag);
+            changed = true;
+        }
+    });
+    if (changed) renderFormTags();
+}
+
+function applyWeaponTemplate(templateId) {
+    const template = getWeaponTemplateById(templateId);
+    if (!template) return;
+
+    const nameInput = document.getElementById('tile-name');
+    if (!nameInput.value.trim()) {
+        nameInput.value = template.name;
+    }
+
+    document.getElementById('weapon-category').value = template.category || '';
+    document.getElementById('weapon-range').value = template.range || '';
+    document.getElementById('weapon-skill').value = template.skill || '';
+    addMissingTemplateTags(template.startingTags || []);
 }
 
 export function renderTagLimitStatus(el, diceStr, tagsArray) {
@@ -77,6 +160,7 @@ export function renderXpEstimateNote(unknownTags = []) {
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
+    populateWeaponTemplates();
 
     // Info Modal
     els.btnInfo.addEventListener('click', () => els.infoModal.classList.add('active'));
@@ -147,7 +231,7 @@ export function init(deps) {
             }
         }
 
-        if (finalTag && !currentFormTags.includes(finalTag)) {
+        if (finalTag) {
             currentFormTags.push(finalTag);
             renderFormTags();
             els.tagSelect.value = '';
@@ -166,6 +250,11 @@ export function init(deps) {
     });
 
     els.tileDice.addEventListener('input', renderTileTagLimitStatus);
+    document.getElementById('tile-type').addEventListener('change', syncTileTypeSections);
+    document.getElementById('gear-subtype').addEventListener('change', syncTileTypeSections);
+    document.getElementById('weapon-template').addEventListener('change', (e) => {
+        applyWeaponTemplate(e.target.value);
+    });
 
     // XP Estimation
     els.btnEstimateXp.addEventListener('click', () => {
@@ -175,7 +264,7 @@ export function init(deps) {
             alert(getDiceValidationMessage('Tile dice'));
             return;
         }
-        const { xp, unknownTags } = poolEngine.estimateTileXpDetails(diceArray, currentFormTags, getFormArmorType());
+        const { xp, unknownTags } = poolEngine.estimateTileXpDetails(diceArray, currentFormTags, getFormArmorType(), { weapon: getFormWeapon() });
         els.tileXp.value = xp;
         renderXpEstimateNote(unknownTags);
     });
@@ -191,15 +280,22 @@ export function openModal(tile = null) {
 
     const armorMaterial = document.getElementById('armor-material');
     const armorCoverage = document.getElementById('armor-coverage');
-    const armorContainer = document.getElementById('armor-base-container');
+    const gearSubtype = document.getElementById('gear-subtype');
+    const weaponTemplate = document.getElementById('weapon-template');
+    const weaponCategory = document.getElementById('weapon-category');
+    const weaponRange = document.getElementById('weapon-range');
+    const weaponSkill = document.getElementById('weapon-skill');
 
     if (tile) {
         document.getElementById('modal-title').innerText = 'Edit Tile';
         document.getElementById('tile-id').value = tile.id;
         const tileType = tile.type || 'Skill';
         document.getElementById('tile-type').value = tileType;
-        document.getElementById('spellcast-skill-container').style.display = tileType === 'Skill' ? 'block' : 'none';
-        armorContainer.style.display = tileType === 'Gear' ? 'block' : 'none';
+        gearSubtype.value = tile.gearSubtype || (tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom');
+        weaponTemplate.value = tile.weapon?.templateId || '';
+        weaponCategory.value = tile.weapon?.category || '';
+        weaponRange.value = tile.weapon?.range || '';
+        weaponSkill.value = tile.weapon?.skill || '';
         armorMaterial.value = tile.armorType?.material || '';
         armorCoverage.value = tile.armorType?.coverage || '';
         document.getElementById('tile-is-spellcast').checked = !!tile.isSpellcastSkill;
@@ -223,8 +319,11 @@ export function openModal(tile = null) {
         document.getElementById('modal-title').innerText = 'Add Tile';
         document.getElementById('tile-id').value = '';
         document.getElementById('tile-type').value = 'Skill';
-        document.getElementById('spellcast-skill-container').style.display = 'block';
-        armorContainer.style.display = 'none';
+        gearSubtype.value = 'Custom';
+        weaponTemplate.value = '';
+        weaponCategory.value = '';
+        weaponRange.value = '';
+        weaponSkill.value = '';
         armorMaterial.value = '';
         armorCoverage.value = '';
         document.getElementById('tile-is-spellcast').checked = false;
@@ -233,12 +332,13 @@ export function openModal(tile = null) {
         els.btnDelete.style.display = 'none';
     }
     
+    syncTileTypeSections();
     renderFormTags();
 }
 
 export function renderFormTags() {
     els.tagsContainer.innerHTML = '';
-    currentFormTags.forEach(tag => {
+    currentFormTags.forEach((tag, index) => {
         const div = document.createElement('div');
         div.className = 'badge';
         div.style.background = 'rgba(255,255,255,0.2)';
@@ -259,7 +359,7 @@ export function renderFormTags() {
         removeBtn.style.border = 'none';
         removeBtn.style.padding = '0';
         removeBtn.addEventListener('click', () => {
-            currentFormTags = currentFormTags.filter(t => t !== tag);
+            currentFormTags.splice(index, 1);
             renderFormTags();
         });
 
@@ -306,7 +406,10 @@ export function saveTileFromForm() {
     }
 
     const armorType = getFormArmorType();
+    const gearSubtype = getFormGearSubtype();
+    const weapon = getFormWeapon();
 
+    const existingTile = id ? dataManager.state.tiles.find(t => t.id === id) : null;
     const tile = {
         id: id || null,
         type,
@@ -317,7 +420,11 @@ export function saveTileFromForm() {
         tags,
         xpCost,
         isSpellcastSkill,
-        armorType
+        gearSubtype,
+        weapon,
+        armorType,
+        isBurnt: existingTile?.isBurnt || false,
+        isBuried: existingTile?.isBuried || false
     };
 
     if (id) {

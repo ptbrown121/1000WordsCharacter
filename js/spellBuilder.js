@@ -517,9 +517,9 @@ export class SpellBuilder {
         // Colors
         let colors = [];
         const school = document.getElementById('spell-school').value;
-        if (school === 'Twist') colors = ['Green', 'Purple'];
-        else if (school === 'Forge') colors = ['Red', 'Orange'];
-        else if (school === 'Augur') colors = ['Blue', 'Yellow'];
+        if (school === 'Twist') colors = ['Yellow', 'Purple'];
+        else if (school === 'Forge') colors = ['Green', 'Red'];
+        else if (school === 'Augur') colors = ['Blue', 'Orange'];
         else {
             document.querySelectorAll('.spell-color-cb:checked').forEach(cb => colors.push(cb.value));
             if (colors.length < 2) colors.push('White');
@@ -590,6 +590,9 @@ export class SpellBuilder {
             spellState[`spell-mod-val-${input.dataset.label}`] = input.value;
         });
 
+        const existingTile = this.editingTileId
+            ? this.dataManager.state.tiles.find(t => t.id === this.editingTileId)
+            : null;
         const newSpell = {
             id: this.editingTileId || crypto.randomUUID(),
             type: 'Gear',
@@ -599,7 +602,8 @@ export class SpellBuilder {
             dice: diceArray,
             tags: tagsArr,
             xpCost: this.calculateXP(),
-            isBurnt: false,
+            isBurnt: existingTile?.isBurnt || false,
+            isBuried: existingTile?.isBuried || false,
             isSpell: true,
             spellState
         };

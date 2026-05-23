@@ -95,6 +95,49 @@ export function tagLimitErrorMessage(subject, tagLimit) {
     return `${subject} has ${tagLimit.count} countable tags, but its dice allow ${tagLimit.limit}. Remove ${tagLimit.overage} countable tag${tagLimit.overage === 1 ? '' : 's'} or increase its dice.${tagsText}`;
 }
 
+export const WEAPON_TEMPLATES = [
+    { id: 'fist', name: 'Fist / Cestus / Duster', category: 'Melee', range: 'Touch', skill: 'Knuckles', startingTags: ['Fast'] },
+    { id: 'knife', name: 'Knife', category: 'Melee', range: 'Touch', skill: 'Knuckles', startingTags: ['Little'] },
+    { id: 'small-improvised', name: 'Small Improvised', category: 'Melee', range: 'Touch', skill: 'Craft', startingTags: ['Ambush'] },
+    { id: 'sap-short-mace', name: 'Sap / Short Mace', category: 'Melee', range: 'Touch', skill: 'Wiles', startingTags: ['Ambush'] },
+    { id: 'short-blade', name: 'Short Blade', category: 'Melee', range: 'Close', skill: 'Duel', startingTags: ['Fast'] },
+    { id: 'long-blade', name: 'Long Blade', category: 'Melee', range: 'Close', skill: 'Duel', startingTags: ['Sharp'] },
+    { id: 'axe-foil', name: 'Axe / Foil', category: 'Melee', range: 'Close', skill: 'Duel', startingTags: ['Piercing'] },
+    { id: 'torch', name: 'Torch', category: 'Melee', range: 'Close', skill: 'Craft', startingTags: ['Blinding'] },
+    { id: 'flail', name: 'Flail', category: 'Melee', range: 'Close', skill: 'Athletics', startingTags: ['Keen'] },
+    { id: 'whip', name: 'Whip', category: 'Melee', range: 'Reach', skill: 'Wiles', startingTags: ['Fluid', 'Trap'] },
+    { id: 'sonic-blade', name: 'Sonic Blade', category: 'Melee', range: 'Reach', skill: 'Wiles', startingTags: ['Risky', 'Sharp'] },
+    { id: 'foil-katana', name: 'Foil / Katana', category: 'Melee', range: 'Reach', skill: 'Duel', startingTags: ['Fluid', 'Fast'] },
+    { id: 'two-hand-blade', name: 'Two-Hand Blade', category: 'Melee', range: 'Reach', skill: 'Duel', startingTags: ['Bulky', 'Throw'] },
+    { id: 'long-mace', name: 'Long Mace', category: 'Melee', range: 'Reach', skill: 'Duel', startingTags: ['Heavy', 'Throw'] },
+    { id: 'energy-blade', name: 'Energy / Phased Blade', category: 'Melee', range: 'Reach', skill: 'Craft', startingTags: ['Risky', 'Piercing'] },
+    { id: 'large-improvised', name: 'Large Improvised', category: 'Melee', range: 'Reach', skill: 'Athletics', startingTags: ['Bulky', 'Sweep'] },
+    { id: 'shuriken-dagger', name: 'Shuriken / Dagger', category: 'Near', range: 'Reach', skill: 'Knuckles', startingTags: ['Single', 'Little'] },
+    { id: 'small-arms', name: 'Small Arms', category: 'Near', range: 'Reach', skill: 'Firearms', startingTags: ['Reload', 'Fast'] },
+    { id: 'shotgun', name: 'Shotgun', category: 'Near', range: 'Reach', skill: 'Duel', startingTags: ['Reload', 'Sweep'] },
+    { id: 'blowgun', name: 'Blowgun', category: 'Near', range: 'Reach', skill: 'Wiles', startingTags: ['Reload', 'Little'] },
+    { id: 'taser-energy-pistol', name: 'Taser / Energy Pistol', category: 'Near', range: 'Reach', skill: 'Craft', startingTags: [] },
+    { id: 'javelin', name: 'Javelin', category: 'Far', range: 'Short', skill: 'Athletics', startingTags: ['Single'], extraXp: 2 },
+    { id: 'long-arms', name: 'Long Arms', category: 'Far', range: 'Short', skill: 'Firearms', startingTags: ['Inside'], extraXp: 2 },
+    { id: 'short-bow', name: 'Short Bow', category: 'Far', range: 'Short', skill: 'Firearms', startingTags: ['Reload'], extraXp: 2 },
+    { id: 'low-bow', name: 'Low Bow', category: 'Far', range: 'Short', skill: 'Firearms', startingTags: ['Inside'], extraXp: 2 },
+    { id: 'crossbow', name: 'Crossbow', category: 'Far', range: 'Short', skill: 'Tinker', startingTags: ['Bulky'], extraXp: 2 },
+    { id: 'sport-bow', name: 'Sport bow', category: 'Far', range: 'Short', skill: 'Tinker', startingTags: ['Fluid'], extraXp: 2 },
+    { id: 'machine-gun', name: 'Machine Gun', category: 'Far', range: 'Short', skill: 'Firearms', startingTags: ['Reload', 'Recoil', 'Sweep'], extraXp: 2 },
+    { id: 'beam-rifle', name: 'Beam Rifle', category: 'Far', range: 'Short', skill: 'Craft', startingTags: ['Inside', 'Fluid', 'Sweep'], extraXp: 2 },
+    { id: 'chemical', name: 'Chemical', category: 'Burst', range: 'Medium', skill: 'Wiles', startingTags: ['Single', 'Inside', 'Bang'] },
+    { id: 'grenade', name: 'Grenade', category: 'Burst', range: 'Medium', skill: 'Guile', startingTags: ['Single', 'Risky', 'Bang'] },
+    { id: 'flamethrower', name: 'Flamethrower', category: 'Burst', range: 'Medium', skill: 'Tinker', startingTags: ['Bulky', 'Inside', 'Bang'] }
+];
+
+export function getWeaponTemplateById(id) {
+    return WEAPON_TEMPLATES.find(template => template.id === id) || null;
+}
+
+export function getWeaponTemplateTags(templateId) {
+    return getWeaponTemplateById(templateId)?.startingTags || [];
+}
+
 const CONTEXTUAL_TAG_BONUSES = {
     expert: { name: 'Expert', context: 'action check', description: '+▟ to action checks using this tile' },
     keen: { name: 'Keen', context: 'attack', description: '+▟ to attacks using this tile' },
@@ -118,8 +161,141 @@ const RESOURCE_TAGS = {
     quick: 'rx'
 };
 
-const FLAW_TAGS = new Set(['old', 'primitive', 'rare', 'risky', 'worn', 'hitch', 'bulky', 'heavy']);
+const F_FLAW_TAGS = new Set([
+    'bulky', 'fluid', 'heavy', 'inside', 'old', 'primitive', 'rare',
+    'recoil', 'reload', 'risky', 'single', 'worn'
+]);
+const X_FLAW_TAGS = new Set([
+    'adware', 'bound', 'feedback', 'glitch', 'hacked', 'hungry', 'malware',
+    'numb', 'overload', 'rube', 'solo', 'stigma', 'torn', 'undroid', 'while x'
+]);
+const ARCANE_FLAW_TAGS = new Set(['drain', 'sap', 'tire', 'witch']);
+const FLAW_TAGS = new Set([...F_FLAW_TAGS, ...X_FLAW_TAGS, ...ARCANE_FLAW_TAGS, 'hitch']);
 const EXOTIC_TAGS = new Set(['bestial', 'celestial', 'cyber']);
+
+const TAG_XP_CATALOG = new Map(Object.entries({
+    agile: 2,
+    ambush: 2,
+    antivenin: 2,
+    bestial: 2,
+    blinding: 2,
+    boost: 2,
+    breathless: 2,
+    celestial: 2,
+    chain: 4,
+    charged: 2,
+    cyber: 2,
+    enhanced: 2,
+    'escape!': 4,
+    expert: 2,
+    fast: 2,
+    fireproof: 2,
+    gizmo: 4,
+    gloam: 2,
+    hidden: 2,
+    implant: 2,
+    ironclad: 2,
+    keen: 2,
+    knack: 2,
+    light: 2,
+    little: 2,
+    loose: 2,
+    machine: 2,
+    motorized: 2,
+    night: 2,
+    nimble: 2,
+    piercing: 2,
+    plated: 2,
+    quick: 2,
+    reticle: 2,
+    rite: -2,
+    rugged: 2,
+    sealed: 2,
+    sharp: 2,
+    sleepless: 2,
+    spacewalk: 2,
+    sustain: -3,
+    sweep: 2,
+    tether: 4,
+    throw: 2,
+    tough: 2,
+    trap: 2,
+    unborn: 4,
+    vital: 2,
+    wired: 2,
+    zenith: 4,
+    adamant: 2
+}));
+
+const CRIT_SHIELD_XP = new Map(Object.entries({
+    afire: 4,
+    bleed: 4,
+    break: 2,
+    down: 2,
+    fear: 3,
+    goad: 3,
+    hold: 3,
+    jolt: 2,
+    ko: 4,
+    pain: 3,
+    poison: 4,
+    reveal: 3,
+    slow: 3,
+    vow: 3,
+    wound: 4
+}));
+
+const FLAW_XP = new Map([
+    ...Array.from(F_FLAW_TAGS, tag => [tag, -2]),
+    ...Array.from(X_FLAW_TAGS, tag => [tag, -4]),
+    ['drain', -4],
+    ['sap', -2],
+    ['tire', -3],
+    ['witch', -6]
+]);
+
+const RANGE_DURATION_XP = new Map(Object.entries({
+    touch: -2,
+    close: -1,
+    reach: 0,
+    short: 2,
+    medium: 3,
+    visual: 4,
+    long: 5,
+    extreme: 7,
+    pace: -1,
+    walk: 0,
+    throw: 1,
+    run: 2,
+    dash: 3,
+    blam: 0,
+    bang: 1,
+    boom: 2,
+    earshot: 3,
+    blast: 4,
+    cup: 2,
+    chest: 3,
+    cart: 4,
+    room: 5,
+    house: 8,
+    instant: -1,
+    '1 min': 0,
+    '1 minute': 0,
+    '5 min': 1,
+    '5 mins': 1,
+    '5 minutes': 1,
+    '15 min': 2,
+    '15 mins': 2,
+    '15 minutes': 2,
+    '1 hour': 3,
+    '6 hours': 4,
+    '1 day': 5,
+    '3 days': 6,
+    '10 days': 7,
+    '1 month': 8,
+    rite: -2,
+    sustain: -3
+}));
 
 // Armor base XP (page 29): material + coverage. Hard armor discounts Detail tags by 1 XP.
 const ARMOR_MATERIAL_XP = { Soft: 0, Hard: 4 };
@@ -153,11 +329,38 @@ function getTagName(tag) {
     return String(tag || '');
 }
 
+function stripExemptSuffix(tag) {
+    return String(tag || '')
+        .replace(/\s*\(exempt\)\s*$/i, '')
+        .trim();
+}
+
 function normalizeTagForLimit(tag) {
     return String(tag || '')
         .trim()
         .replace(/\s+/g, ' ')
         .toLowerCase();
+}
+
+function normalizeTagForXp(tag) {
+    return normalizeTagForLimit(stripExemptSuffix(tag));
+}
+
+function stripMechanicalPrefix(normalizedTag) {
+    return normalizeTagForLimit(normalizedTag.replace(/^(build|detail|crit|shield|flaw|range|duration)\s*:\s*/i, ''));
+}
+
+function getMechanicalBaseTag(normalizedTag) {
+    const withoutPrefix = stripMechanicalPrefix(normalizedTag);
+    if (withoutPrefix.startsWith('chain ')) return 'chain';
+    if (withoutPrefix.startsWith('hitch')) return 'hitch';
+    if (withoutPrefix.startsWith('motorized')) return 'motorized';
+    if (withoutPrefix.startsWith('while ')) return 'while x';
+    return withoutPrefix;
+}
+
+function getDuplicateKey(tag) {
+    return normalizeTagForXp(getTagName(tag));
 }
 
 export class PoolEngine {
@@ -172,7 +375,8 @@ export class PoolEngine {
     classifyTagForLimit(tag) {
         const name = getTagName(tag);
         const normalized = normalizeTagForLimit(name);
-        const withoutPrefix = normalizeTagForLimit(normalized.replace(/^(detail|shield|crit)\s*:\s*/i, ''));
+        const withoutPrefix = stripMechanicalPrefix(normalized);
+        const baseTag = getMechanicalBaseTag(normalized);
         const hasBuildPrefix = /^build\s*:/i.test(normalized);
 
         if (!normalized) {
@@ -183,11 +387,11 @@ export class PoolEngine {
             return { name, counts: true, reason: 'Build tags count' };
         }
 
-        if (/^(range|duration)\s*:/i.test(normalized) || /^(range|duration)\s*:/i.test(withoutPrefix)) {
+        if (/^(range|duration)\s*:/i.test(normalized) || RANGE_DURATION_XP.has(baseTag)) {
             return { name, counts: false, reason: 'Range/Duration tags do not count' };
         }
 
-        if (withoutPrefix.includes('flaw') || FLAW_TAGS.has(withoutPrefix) || withoutPrefix.startsWith('hitch')) {
+        if (withoutPrefix.includes('flaw') || FLAW_TAGS.has(baseTag)) {
             return { name, counts: false, reason: 'Flaw tags do not count' };
         }
 
@@ -195,7 +399,7 @@ export class PoolEngine {
             return { name, counts: false, reason: 'GM Exception' };
         }
 
-        if (withoutPrefix.includes('exotic') || EXOTIC_TAGS.has(withoutPrefix)) {
+        if (withoutPrefix.includes('exotic') || EXOTIC_TAGS.has(baseTag)) {
             return { name, counts: false, reason: 'Exotic tags do not count' };
         }
 
@@ -287,29 +491,55 @@ export class PoolEngine {
      * flagged as unknown so the UI doesn't bother the player about them.
      */
     classifyTagForXp(tag) {
-        const t = String(tag || '').toLowerCase().replace(' (exempt)', '');
+        const t = normalizeTagForXp(tag);
+        const baseTag = getMechanicalBaseTag(t);
 
-        if (t.startsWith('chain ')) return { xp: 4, recognized: true };
-        // 'hitch' is also in FLAW_TAGS but we match it first for its -3 refund.
-        if (t.startsWith('hitch')) return { xp: -3, recognized: true };
-        if (FLAW_TAGS.has(t)) return { xp: -2, recognized: true };
-        if (['slow', 'pain'].includes(t)) return { xp: 3, recognized: true };
-        if (['bleed', 'wound'].includes(t)) return { xp: 4, recognized: true };
-        if (['expert', 'keen', 'sharp', 'agile', 'hidden', 'ironclad', 'rugged',
-             'quick', 'tough', 'vital', 'nimble', 'down', 'jolt'].includes(t)) {
-            return { xp: 2, recognized: true };
+        if (!t) return { xp: 0, recognized: true, category: 'blank' };
+        if (baseTag === 'hitch') {
+            const match = t.match(/hitch\s*(\d+)/i);
+            const value = match ? Math.min(6, Math.max(1, parseInt(match[1], 10) || 1)) : 3;
+            return { xp: -value, recognized: true, category: 'flaw', hardArmorFlawEligible: false };
+        }
+        if (FLAW_XP.has(baseTag)) {
+            return {
+                xp: FLAW_XP.get(baseTag),
+                recognized: true,
+                category: 'flaw',
+                hardArmorFlawEligible: F_FLAW_TAGS.has(baseTag)
+            };
+        }
+        if (RANGE_DURATION_XP.has(baseTag)) {
+            return { xp: RANGE_DURATION_XP.get(baseTag), recognized: true, category: 'rangeDuration' };
+        }
+        if (/^(range|duration)\s*:/i.test(t)) {
+            return { xp: 2, recognized: true, category: 'rangeDuration' };
+        }
+        if (/^(crit|shield)\s*:/i.test(t) || CRIT_SHIELD_XP.has(baseTag)) {
+            return {
+                xp: CRIT_SHIELD_XP.get(baseTag) ?? 2,
+                recognized: true,
+                category: /^shield\s*:/i.test(t) ? 'shield' : 'crit',
+                hardArmorDiscountable: /^shield\s*:/i.test(t)
+            };
+        }
+        if (TAG_XP_CATALOG.has(baseTag)) {
+            return {
+                xp: TAG_XP_CATALOG.get(baseTag),
+                recognized: true,
+                category: EXOTIC_TAGS.has(baseTag) ? 'exotic' : 'tag',
+                hardArmorDiscountable: ARMOR_DETAIL_TAGS.has(baseTag) || /^detail\s*:/i.test(t)
+            };
+        }
+        if (/^(build|detail)\s*:/i.test(t)) {
+            return {
+                xp: 2,
+                recognized: true,
+                category: /^build\s*:/i.test(t) ? 'build' : 'detail',
+                hardArmorDiscountable: /^detail\s*:/i.test(t)
+            };
         }
 
-        // Structural prefixes - valid tag categories without a specific XP rule
-        // wired up here. Treat as recognized (no typo warning) but keep the
-        // default +2 XP so totals are unchanged.
-        if (/^(build|detail|crit|shield|range|duration)\s*:/i.test(t)) {
-            return { xp: 2, recognized: true };
-        }
-        if (t.startsWith('motorized')) return { xp: 2, recognized: true };
-        if (EXOTIC_TAGS.has(t)) return { xp: 2, recognized: true };
-
-        return { xp: 2, recognized: false };
+        return { xp: 2, recognized: false, category: 'unknown' };
     }
 
     /**
@@ -321,22 +551,31 @@ export class PoolEngine {
      *
      * @returns {{ xp: number, unknownTags: string[] }}
      */
-    estimateTileXpDetails(diceArray, tagsArray, armorType = null) {
+    estimateTileXpDetails(diceArray, tagsArray, armorType = null, options = {}) {
         let xp = this.calculateOptimalXpCost(diceArray);
         const isHardArmor = Boolean(armorType) && armorType.material === 'Hard';
         const unknownTags = [];
+        const seenTags = new Map();
 
         tagsArray.forEach(tag => {
-            const t = String(tag || '').toLowerCase().replace(' (exempt)', '');
-            const { xp: tagXp, recognized } = this.classifyTagForXp(tag);
-            xp += tagXp;
-            if (!recognized && t.trim()) unknownTags.push(String(tag));
+            const t = normalizeTagForXp(tag);
+            const tagRule = this.classifyTagForXp(tag);
+            let tagXp = tagRule.xp;
 
-            // Hard armor makes Detail tags cost 1 XP less.
-            // Motorized may carry a ": STAT" suffix, so match its base word too.
-            if (isHardArmor && (ARMOR_DETAIL_TAGS.has(t) || t.startsWith('motorized'))) {
-                xp -= 1;
+            const duplicateKey = getDuplicateKey(tag);
+            const previousCopies = seenTags.get(duplicateKey) || 0;
+            seenTags.set(duplicateKey, previousCopies + 1);
+            if (duplicateKey) tagXp += previousCopies * 2;
+
+            if (isHardArmor && tagRule.hardArmorFlawEligible) {
+                tagXp -= 1;
             }
+            if (isHardArmor && tagRule.hardArmorDiscountable && tagXp > 0) {
+                tagXp -= 1;
+            }
+
+            xp += tagXp;
+            if (!tagRule.recognized && t.trim()) unknownTags.push(String(tag));
         });
 
         // Armor base cost: material + coverage.
@@ -344,17 +583,28 @@ export class PoolEngine {
             xp += (ARMOR_MATERIAL_XP[armorType.material] || 0) + (ARMOR_COVERAGE_XP[armorType.coverage] || 0);
         }
 
+        const weapon = options.weapon || null;
+        const weaponTemplate = weapon?.templateId
+            ? getWeaponTemplateById(options.weapon.templateId)
+            : null;
+        if (weaponTemplate?.extraXp) {
+            xp += weaponTemplate.extraXp;
+        } else if (normalizeTagForXp(weapon?.category) === 'far') {
+            xp += 2;
+        }
+
         return { xp: Math.max(0, xp), unknownTags };
     }
 
-    estimateTileXp(diceArray, tagsArray, armorType = null) {
-        return this.estimateTileXpDetails(diceArray, tagsArray, armorType).xp;
+    estimateTileXp(diceArray, tagsArray, armorType = null, options = {}) {
+        return this.estimateTileXpDetails(diceArray, tagsArray, armorType, options).xp;
     }
 
     calculateResourceMaxes(tiles = []) {
         const maxes = { hp: 0, en: 0, rx: 0, sh: 0 };
 
         tiles.forEach(tile => {
+            if (tile.isBuried) return;
             const colors = tile.colors || [];
             Object.entries(RESOURCE_COLORS).forEach(([resource, resourceColors]) => {
                 colors.forEach(color => {
@@ -376,6 +626,12 @@ export class PoolEngine {
     calculateShadowMax(statsOrTiles, maybeTiles) {
         const tiles = Array.isArray(statsOrTiles) ? statsOrTiles : (maybeTiles || []);
         return this.calculateResourceMaxes(tiles).sh;
+    }
+
+    getUnavailableReason(tile) {
+        if (tile?.isBuried) return 'buried';
+        if (tile?.isBurnt) return 'burnt';
+        return null;
     }
 
     /**
@@ -440,8 +696,9 @@ export class PoolEngine {
             if (!tile || visitedIds.has(tile.id)) return;
             visitedIds.add(tile.id);
 
-            if (tile.isBurnt) {
-                error = `Tile '${tile.name}' is burnt and cannot be called.`;
+            const unavailableReason = this.getUnavailableReason(tile);
+            if (unavailableReason) {
+                error = `Tile '${tile.name}' is ${unavailableReason} and cannot be called.`;
                 return;
             }
             
@@ -525,9 +782,10 @@ export class PoolEngine {
                         return;
                     }
 
-                    if (targetTile.isBurnt) {
+                    const chainUnavailableReason = this.getUnavailableReason(targetTile);
+                    if (chainUnavailableReason) {
                         chainOption.status = 'blocked';
-                        error = `Chain target '${targetTile.name}' is burnt and cannot be called.`;
+                        error = `Chain target '${targetTile.name}' is ${chainUnavailableReason} and cannot be called.`;
                         return;
                     }
 
@@ -555,9 +813,10 @@ export class PoolEngine {
                 return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: "Select a Call Tile before adding Burn tiles." };
             }
 
-            const burntTile = burnTiles.find(tile => tile.isBurnt);
-            if (burntTile) {
-                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: `Burn tile '${burntTile.name}' is already burnt and cannot be used.` };
+            const unavailableBurnTile = burnTiles.find(tile => this.getUnavailableReason(tile));
+            if (unavailableBurnTile) {
+                const reason = this.getUnavailableReason(unavailableBurnTile);
+                return { dice: pool, adds, flatBonus, tagBonuses, chainOptions, error: `Burn tile '${unavailableBurnTile.name}' is ${reason} and cannot be used.` };
             }
 
             const sharedBurnColors = getSharedCallColors(callTile, ...burnTiles);

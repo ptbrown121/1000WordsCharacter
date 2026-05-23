@@ -44,14 +44,15 @@
     box-shadow: 0 0 15px white;
 }
 
-.tile-card.tile-burnt {
+.tile-card.tile-burnt,
+.tile-card.tile-buried {
     filter: grayscale(100%) opacity(60%);
     position: relative;
     pointer-events: none;
 }
 
-.tile-card.tile-burnt::after {
-    content: "BURNT";
+.tile-card.tile-burnt::after,
+.tile-card.tile-buried::after {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -67,7 +68,18 @@
     z-index: 2;
 }
 
-.btn-unburn {
+.tile-card.tile-burnt::after {
+    content: "BURNT";
+}
+
+.tile-card.tile-buried::after {
+    content: "BURIED";
+    color: rgba(160, 170, 181, 0.85);
+    border-color: rgba(160, 170, 181, 0.85);
+}
+
+.btn-unburn,
+.btn-restore-tile {
     position: absolute;
     bottom: 0.5rem;
     right: 0.5rem;
@@ -83,15 +95,26 @@
     display: none;
 }
 
-.tile-card.tile-burnt .btn-unburn {
+.tile-card.tile-burnt .btn-unburn,
+.tile-card.tile-buried .btn-restore-tile {
     display: block;
 }
 
-.btn-unburn:hover {
+.btn-unburn:hover,
+.btn-restore-tile:hover {
     background: rgba(255, 51, 51, 0.5);
 }
 
-.btn-burn-instant {
+.tile-card-actions {
+    display: flex;
+    gap: 0.4rem;
+    position: relative;
+    z-index: 3;
+    margin-top: 0.5rem;
+}
+
+.btn-burn-instant,
+.btn-bury-tile {
     background: rgba(255, 165, 0, 0.2);
     border: 1px solid rgba(255, 165, 0, 0.8);
     color: white;
@@ -102,7 +125,13 @@
     z-index: 3;
 }
 
-.btn-burn-instant:hover {
+.btn-bury-tile {
+    background: rgba(160, 170, 181, 0.16);
+    border-color: rgba(160, 170, 181, 0.8);
+}
+
+.btn-burn-instant:hover,
+.btn-bury-tile:hover {
     background: rgba(255, 165, 0, 0.5);
 }
 

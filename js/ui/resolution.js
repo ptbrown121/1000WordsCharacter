@@ -13,7 +13,7 @@ import {
     getHealingAssignments
 } from '../resolution-rules.js';
 
-export function init(deps) {
+export function init() {
     els.resolutionControls.addEventListener('change', (e) => {
         if (!uiState.lastRollResult) return;
 

@@ -143,7 +143,7 @@ export class DataManager {
         } else if (legacySave) {
             const charId = crypto.randomUUID();
             let name = 'Hero Name';
-            try { name = JSON.parse(legacySave).name || 'Hero Name'; } catch (_e) {
+            try { name = JSON.parse(legacySave).name || 'Hero Name'; } catch {
                 // Legacy save is unreadable - keep the default name and continue migrating
                 // the raw blob below; the user can rename later.
             }
@@ -198,7 +198,14 @@ export class DataManager {
                 if (!hadShowOptionalStats) {
                     state.showOptionalStats = inferShowOptionalStats(state);
                 }
-                (state.tiles || []).forEach(normalizeTileTags);
+                (state.tiles || []).forEach(tile => {
+                    if (tile.isBurnt === undefined) tile.isBurnt = false;
+                    if (tile.isBuried === undefined) tile.isBuried = false;
+                    if (tile.gearSubtype === undefined && tile.type === 'Gear') {
+                        tile.gearSubtype = tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
+                    }
+                    normalizeTileTags(tile);
+                });
                 return state;
             } catch (e) {
                 console.error("Failed to parse saved state", e);
@@ -241,12 +248,22 @@ export class DataManager {
 
     addTile(tile) {
         if (!tile.id) tile.id = crypto.randomUUID();
+        if (tile.isBurnt === undefined) tile.isBurnt = false;
+        if (tile.isBuried === undefined) tile.isBuried = false;
+        if (tile.gearSubtype === undefined && tile.type === 'Gear') {
+            tile.gearSubtype = tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
+        }
         normalizeTileTags(tile);
         this.state.tiles.push(tile);
         this.saveState();
     }
 
     updateTile(updatedTile) {
+        if (updatedTile.isBurnt === undefined) updatedTile.isBurnt = false;
+        if (updatedTile.isBuried === undefined) updatedTile.isBuried = false;
+        if (updatedTile.gearSubtype === undefined && updatedTile.type === 'Gear') {
+            updatedTile.gearSubtype = updatedTile.weapon ? 'Weapon' : updatedTile.armorType ? 'Armor' : 'Custom';
+        }
         normalizeTileTags(updatedTile);
         const idx = this.state.tiles.findIndex(t => t.id === updatedTile.id);
         if (idx !== -1) {
@@ -322,6 +339,10 @@ export class DataManager {
                 newState.tiles.forEach(t => {
                     if (t.xpCost === undefined) t.xpCost = 0;
                     if (t.isBurnt === undefined) t.isBurnt = false;
+                    if (t.isBuried === undefined) t.isBuried = false;
+                    if (t.gearSubtype === undefined && t.type === 'Gear') {
+                        t.gearSubtype = t.weapon ? 'Weapon' : t.armorType ? 'Armor' : 'Custom';
+                    }
                     normalizeTileTags(t);
                 });
                 

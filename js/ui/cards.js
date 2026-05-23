@@ -6,8 +6,9 @@ import { escapeHtml, tileTagList } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
-import { formatArmorBase } from './modals.js';
+import { formatArmorBase, formatWeaponBase } from './modals.js';
 import { updatePoolPreview } from './pool.js';
+import { updateShadowMax } from './vitals.js';
 
 let dataManager;
 let spellBuilder;
@@ -38,8 +39,8 @@ export function init(deps) {
 }
 
 export function handleCardClick(tile) {
-    if (tile.isBurnt) {
-        // Cannot select burnt tiles
+    if (tile.isBurnt || tile.isBuried) {
+        // Cannot select unavailable tiles.
         return;
     }
     
@@ -79,7 +80,7 @@ export function renderCards() {
         // Text Search
         if (searchTerm) {
             const tagsText = tileTagList(tile).join(' ');
-            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tagsText} ${formatArmorBase(tile.armorType)} ${tile.description || ''}`.toLowerCase();
+            const searchableText = `${tile.name} ${(tile.colors || []).join(' ')} ${tile.type || 'Skill'} ${tile.gearSubtype || ''} ${tagsText} ${formatArmorBase(tile.armorType)} ${formatWeaponBase(tile.weapon)} ${tile.description || ''}`.toLowerCase();
             if (!searchableText.includes(searchTerm)) return false;
         }
         
@@ -133,6 +134,7 @@ export function renderCards() {
         div.className = 'tile-card';
         const tileNameLabel = escapeHtml(tile.name);
         const armorLabel = formatArmorBase(tile.armorType);
+        const weaponLabel = formatWeaponBase(tile.weapon);
         
         // Gradient background based on 2 colors
         let c1 = COLOR_HEX[tile.colors[0]] || '#444';
@@ -143,6 +145,16 @@ export function renderCards() {
         if (uiState.callTile && uiState.callTile.id === tile.id) div.classList.add('selected-call');
         if (uiState.burnTiles.some(t => t.id === tile.id)) div.classList.add('selected-burn');
         if (tile.isBurnt) div.classList.add('tile-burnt');
+        if (tile.isBuried) div.classList.add('tile-buried');
+
+        const actionButtons = tile.isBuried
+            ? `<button class="btn-restore-tile" title="Restore ${tileNameLabel}" aria-label="Restore ${tileNameLabel}">Restore</button>`
+            : tile.isBurnt
+                ? `<button class="btn-unburn" title="Un-burn ${tileNameLabel}" aria-label="Un-burn ${tileNameLabel}">Un-burn</button>`
+                : `<div class="tile-card-actions">
+                    <button class="btn-burn-instant" title="Burn ${tileNameLabel}" aria-label="Burn ${tileNameLabel}">Burn</button>
+                    <button class="btn-bury-tile" title="Bury ${tileNameLabel}" aria-label="Bury ${tileNameLabel}">Bury</button>
+                </div>`;
 
         div.innerHTML = `
             <div class="tile-badges">
@@ -157,6 +169,7 @@ export function renderCards() {
                 </div>
                 <div class="tile-tags">${escapeHtml(tileTagList(tile).join(', '))}</div>
                 ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">\ud83d\udee1\ufe0f ${escapeHtml(armorLabel)}</div>` : ''}
+                ${weaponLabel ? `<div class="tile-weapon" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(weaponLabel)}</div>` : ''}
                 <div class="tile-dice">${escapeHtml(tile.dice.join(', '))}</div>
                 <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
                     <button class="btn-edit-tile" aria-label="Edit ${tileNameLabel}" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">\u270f\ufe0f Edit</button>
@@ -164,10 +177,7 @@ export function renderCards() {
                 </div>
                 ${tile.description ? `<div class="tile-description" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; font-style: italic; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; white-space: pre-wrap;">${escapeHtml(tile.description)}</div>` : ''}
             </div>
-            ${tile.isBurnt 
-                ? `<button class="btn-unburn" title="Un-burn ${tileNameLabel}" aria-label="Un-burn ${tileNameLabel}">\u267b\ufe0f Un-burn</button>`
-                : `<button class="btn-burn-instant" title="Burn ${tileNameLabel}" aria-label="Burn ${tileNameLabel}">\ud83d\udd25 Burn</button>`
-            }
+            ${actionButtons}
         `;
 
         const btnFavorite = div.querySelector('.btn-favorite');
@@ -180,13 +190,24 @@ export function renderCards() {
             });
         }
 
-        if (tile.isBurnt) {
+        if (tile.isBuried) {
+            const btnRestore = div.querySelector('.btn-restore-tile');
+            btnRestore.addEventListener('click', (e) => {
+                e.stopPropagation();
+                tile.isBuried = false;
+                dataManager.updateTile(tile);
+                renderCards();
+                updatePoolPreview();
+                updateShadowMax();
+            });
+        } else if (tile.isBurnt) {
             const btnUnburn = div.querySelector('.btn-unburn');
             btnUnburn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 tile.isBurnt = false;
                 dataManager.updateTile(tile);
                 renderCards();
+                updatePoolPreview();
             });
         } else {
             const btnBurn = div.querySelector('.btn-burn-instant');
@@ -198,6 +219,18 @@ export function renderCards() {
                 dataManager.updateTile(tile);
                 renderCards();
                 updatePoolPreview();
+            });
+            const btnBury = div.querySelector('.btn-bury-tile');
+            btnBury.addEventListener('click', (e) => {
+                e.stopPropagation();
+                tile.isBuried = true;
+                tile.isBurnt = false;
+                if (uiState.callTile && uiState.callTile.id === tile.id) uiState.callTile = null;
+                uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
+                dataManager.updateTile(tile);
+                renderCards();
+                updatePoolPreview();
+                updateShadowMax();
             });
         }
 

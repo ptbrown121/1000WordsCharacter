@@ -300,7 +300,7 @@
                 
                 <div class="form-group">
                     <label>Tile Type</label>
-                    <select id="tile-type" class="spell-input" onchange="document.getElementById('spellcast-skill-container').style.display = this.value === 'Skill' ? 'block' : 'none'; document.getElementById('armor-base-container').style.display = this.value === 'Gear' ? 'block' : 'none';" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
+                    <select id="tile-type" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
                         <option value="Skill">Skill</option>
                         <option value="Gear">Gear</option>
                         <option value="Trait">Trait</option>
@@ -310,6 +310,36 @@
                         <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal; font-size: 0.9rem; cursor: pointer;">
                             <input type="checkbox" id="tile-is-spellcast"> This is a Spellcast Skill
                         </label>
+                    </div>
+                    <div id="gear-subtype-container" style="display: none; margin-top: 0.5rem;">
+                        <label style="font-weight: normal; font-size: 0.9rem;">Gear Subtype</label>
+                        <select id="gear-subtype" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 0.95rem; margin-top: 0.3rem;">
+                            <option value="Custom">Custom Gear</option>
+                            <option value="Weapon">Weapon</option>
+                            <option value="Armor">Armor</option>
+                            <option value="Tool">Tool</option>
+                        </select>
+                    </div>
+                    <div id="weapon-builder-container" style="display: none; margin-top: 0.5rem;">
+                        <label style="font-weight: normal; font-size: 0.9rem;">Weapon Template</label>
+                        <select id="weapon-template" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 0.95rem; margin-top: 0.3rem;">
+                            <option value="">-- Custom Weapon --</option>
+                        </select>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
+                            <label style="font-weight: normal; font-size: 0.85rem;">
+                                Category
+                                <input type="text" id="weapon-category" placeholder="Melee, Near, Far..." style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            </label>
+                            <label style="font-weight: normal; font-size: 0.85rem;">
+                                Range
+                                <input type="text" id="weapon-range" placeholder="Touch, Reach, Short..." style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            </label>
+                            <label style="font-weight: normal; font-size: 0.85rem;">
+                                Skill
+                                <input type="text" id="weapon-skill" placeholder="Duel, Firearms..." style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            </label>
+                        </div>
+                        <small id="weapon-template-note" style="display: block; margin-top: 0.3rem; color: var(--text-secondary); font-size: 0.8rem;">Templates fill the weapon's range, skill, and starting tags. Existing custom tags are preserved.</small>
                     </div>
                     <div id="armor-base-container" style="display: none; margin-top: 0.5rem;">
                         <label style="font-weight: normal; font-size: 0.9rem;">Armor Base (optional)</label>
@@ -469,9 +499,9 @@
                     <div class="form-group">
                         <label>Magic School (Skill Color)</label>
                         <select id="spell-school" class="spell-input" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
-                            <option value="Twist">Twist (Green/Purple)</option>
-                            <option value="Forge">Forge (Red/Orange)</option>
-                            <option value="Augur">Augur (Blue/Yellow)</option>
+                            <option value="Twist">Twist (Yellow/Purple)</option>
+                            <option value="Forge">Forge (Green/Red)</option>
+                            <option value="Augur">Augur (Blue/Orange)</option>
                             <option value="Divergent">Divergent (Custom Colors) [+2 🗱]</option>
                         </select>
                     </div>

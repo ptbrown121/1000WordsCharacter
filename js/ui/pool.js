@@ -1,7 +1,6 @@
 import { escapeHtml, parseDiceInput, getDiceValidationMessage } from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
-import { getDefaultResolutionAssignments } from '../resolution-rules.js';
 import { showResults } from './resolution.js';
 import { renderCards } from './cards.js';
 import { updateShadowMax } from './vitals.js';
@@ -245,7 +244,7 @@ export function renderManualInputs() {
     const res = poolEngine.compilePool(colors, dataManager.state.stats, uiState.callTile, uiState.burnTiles, dataManager.state.tiles, extraDice.dice, getPoolOptions());
     if (res.error || res.dice.length === 0) return;
 
-    res.dice.forEach((dObj, idx) => {
+    res.dice.forEach((dObj) => {
         const div = document.createElement('div');
         div.className = 'manual-die-input';
         div.innerHTML = `

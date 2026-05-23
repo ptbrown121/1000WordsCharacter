@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { PoolEngine } from '../js/pool.js';
+import { PoolEngine, getWeaponTemplateById, getWeaponTemplateTags } from '../js/pool.js';
 
 const engine = new PoolEngine();
 
@@ -125,6 +125,11 @@ describe('estimateTileXp', () => {
         assert.equal(engine.estimateTileXp(['d4'], ['Old', 'Worn']), 0); // 1 - 2 - 2 -> max(0)
     });
 
+    it('charges duplicate tags 2 XP more than the previous copy', () => {
+        assert.equal(engine.estimateTileXp(['d6'], ['Keen', 'Keen']), 9); // d6 3 + Keen 2 + duplicate Keen 4
+        assert.equal(engine.estimateTileXp(['d8'], ['Old', 'Old']), 4);   // d8 6 -2 + duplicate Old 0
+    });
+
     it('subtracts XP for every flaw, including Bulky and Heavy', () => {
         const base = engine.calculateOptimalXpCost(['d8']); // 6
         for (const flaw of ['Old', 'Primitive', 'Rare', 'Risky', 'Worn', 'Bulky', 'Heavy']) {
@@ -150,6 +155,45 @@ describe('estimateTileXp', () => {
         // d6=3, Motorized +2 (generic Detail). Soft Full: +2 coverage -> 7. Hard Full: +6 armor, -1 discount -> 10.
         assert.equal(engine.estimateTileXp(['d6'], ['Motorized: BODY'], { material: 'Soft', coverage: 'Full' }), 7);
         assert.equal(engine.estimateTileXp(['d6'], ['Motorized: BODY'], { material: 'Hard', coverage: 'Full' }), 10);
+    });
+
+    it('uses range/duration and crit/shield table costs instead of a flat structural default', () => {
+        assert.equal(engine.estimateTileXp(['d6'], ['Range: Short', 'Duration: Instant']), 4); // 3 +2 -1
+        assert.equal(engine.estimateTileXp(['d4'], ['Crit: FEAR', 'Shield: WOUND']), 8);       // 1 +3 +4
+    });
+
+    it('uses the hard-armor flaw rebate assumption and discounts Shield tags', () => {
+        assert.equal(engine.estimateTileXp(['d8'], ['Old'], { material: 'Hard', coverage: 'Open' }), 7); // 6 -3 +4
+        assert.equal(engine.estimateTileXp(['d4'], ['Shield: WOUND'], { material: 'Hard', coverage: 'Open' }), 8); // 1 +4 +(4-1)
+    });
+
+    it('adds weapon template extra XP for Far weapons', () => {
+        assert.equal(engine.estimateTileXp(['d4'], ['Single'], null, { weapon: { templateId: 'javelin' } }), 1); // d4 1 + Single -2 + Far +2
+        assert.equal(engine.estimateTileXp(['d4'], ['Fast'], null, { weapon: { templateId: 'small-arms' } }), 3); // no Far surcharge
+        assert.equal(engine.estimateTileXp(['d4'], [], null, { weapon: { category: 'Far' } }), 3); // custom Far weapon surcharge
+    });
+});
+
+describe('weapon templates', () => {
+    it('exposes PDF starting weapon templates with range, skill, and tags', () => {
+        const longBlade = getWeaponTemplateById('long-blade');
+        assert.deepEqual(
+            {
+                name: longBlade.name,
+                category: longBlade.category,
+                range: longBlade.range,
+                skill: longBlade.skill,
+                tags: longBlade.startingTags
+            },
+            {
+                name: 'Long Blade',
+                category: 'Melee',
+                range: 'Close',
+                skill: 'Duel',
+                tags: ['Sharp']
+            }
+        );
+        assert.deepEqual(getWeaponTemplateTags('machine-gun'), ['Reload', 'Recoil', 'Sweep']);
     });
 });
 
@@ -229,6 +273,14 @@ describe('calculateResourceMaxes', () => {
         const tiles = [{ colors: ['Black', 'White'], dice: ['d4'], tags: '' }];
         assert.equal(engine.calculateShadowMax(tiles), 2);
     });
+
+    it('ignores buried tiles for resource pools but not burnt tiles', () => {
+        const tiles = [
+            { colors: ['Red', 'Orange'], dice: ['d6'], tags: 'Tough', isBuried: true },
+            { colors: ['Green', 'Yellow'], dice: ['d4'], tags: 'Vital', isBurnt: true }
+        ];
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 0, en: 3, rx: 0, sh: 0 });
+    });
 });
 
 describe('compilePool', () => {
@@ -259,6 +311,12 @@ describe('compilePool', () => {
         assert.match(res.error, /burnt/i);
     });
 
+    it('rejects a buried call tile', () => {
+        const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: '', isBuried: true };
+        const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
+        assert.match(res.error, /buried/i);
+    });
+
     it('rejects a call tile that shares no call color', () => {
         const callTile = { id: '1', name: 'Sword', colors: ['Green'], dice: ['d8'], tags: '' };
         const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
@@ -287,6 +345,18 @@ describe('compilePool', () => {
         assert.equal(res.dice.length, 3); // BODY d6 + Sword d8 + Helper d10
         assert.equal(res.adds, 3);        // base 2 + chain 1
         assert.equal(res.chainOptions.length, 1);
+    });
+
+    it('rejects buried chain and burn tiles', () => {
+        const buriedHelper = { id: 'h', name: 'Helper', colors: ['Red'], dice: ['d10'], tags: '', isBuried: true };
+        const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: 'Chain Helper' };
+        const chainRes = engine.compilePool(['Red'], stats, callTile, [], [callTile, buriedHelper], []);
+        assert.match(chainRes.error, /buried/i);
+
+        const buriedBurn = { id: '2', name: 'Bomb', colors: ['Red'], dice: ['d6'], tags: '', isBuried: true };
+        const plainCallTile = { id: '3', name: 'Axe', colors: ['Red'], dice: ['d8'], tags: '' };
+        const burnRes = engine.compilePool(['Red'], stats, plainCallTile, [buriedBurn], [plainCallTile, buriedBurn], []);
+        assert.match(burnRes.error, /buried/i);
     });
 
     it('surfaces a contextual tag bonus equal to the tile’s die steps', () => {
