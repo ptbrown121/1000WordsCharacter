@@ -221,3 +221,78 @@ describe('calculateOptimalTotal', () => {
         assert.equal(engine.calculateOptimalTotal([{ val: 1 }, { val: 5 }], 2).isHaywire, false);
     });
 });
+
+
+import {
+    escapeHtml,
+    parseDiceInput,
+    parseDiceString,
+    getDiceValidationMessage,
+    formatTagLimitStatus,
+    tagLimitErrorMessage
+} from '../js/pool.js';
+
+describe('escapeHtml', () => {
+    it('escapes <, >, &, ", and \' so injected markup cannot execute', () => {
+        const malicious = '<img src=x onerror=alert(1)>';
+        assert.equal(
+            escapeHtml(malicious),
+            '&lt;img src=x onerror=alert(1)&gt;'
+        );
+        assert.equal(escapeHtml('A & B'), 'A &amp; B');
+        assert.equal(escapeHtml('"quoted"'), '&quot;quoted&quot;');
+        assert.equal(escapeHtml("it's"), 'it&#39;s');
+    });
+
+    it('handles null and undefined as empty strings', () => {
+        assert.equal(escapeHtml(null), '');
+        assert.equal(escapeHtml(undefined), '');
+    });
+
+    it('coerces numbers to strings', () => {
+        assert.equal(escapeHtml(42), '42');
+    });
+});
+
+describe('parseDiceInput (shared helper)', () => {
+    it('separates valid and invalid dice tokens', () => {
+        const result = parseDiceInput('d4, d99, D6, garbage');
+        assert.deepEqual(result.dice, ['d4', 'd6']);
+        assert.deepEqual(result.invalid, ['d99', 'garbage']);
+    });
+
+    it('returns empty lists for blank input', () => {
+        assert.deepEqual(parseDiceInput(''), { dice: [], invalid: [] });
+        assert.deepEqual(parseDiceInput('   '), { dice: [], invalid: [] });
+    });
+});
+
+describe('parseDiceString', () => {
+    it('returns only valid dice', () => {
+        assert.deepEqual(parseDiceString('d4, d8, junk'), ['d4', 'd8']);
+    });
+});
+
+describe('getDiceValidationMessage', () => {
+    it('mentions the supported die ranks', () => {
+        const msg = getDiceValidationMessage('Tile dice');
+        assert.match(msg, /^Tile dice/);
+        assert.match(msg, /d3, d4, d6, d8, d10, d12, d14, or d16/);
+    });
+});
+
+describe('formatTagLimitStatus / tagLimitErrorMessage', () => {
+    it('formats a valid tag limit', () => {
+        const limit = engine.calculateTagLimit(['d6', 'd8'], ['Keen', 'Sharp']);
+        assert.equal(limit.valid, true);
+        assert.match(formatTagLimitStatus(limit), /^Tag limit: 2\/5 countable tags\./);
+    });
+
+    it('formats an over-limit error and lists countable tags', () => {
+        const limit = engine.calculateTagLimit(['d4'], ['Keen', 'Sharp', 'Expert']);
+        assert.equal(limit.valid, false);
+        const msg = tagLimitErrorMessage('This tile', limit);
+        assert.match(msg, /This tile has 3 countable tags, but its dice allow 1/);
+        assert.match(msg, /Countable tags: Keen, Sharp, Expert\./);
+    });
+});

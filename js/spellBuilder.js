@@ -1,5 +1,10 @@
 import { VALID_DICE } from './data.js';
-import { PoolEngine } from './pool.js';
+import {
+    PoolEngine,
+    escapeHtml,
+    formatTagLimitStatus,
+    tagLimitErrorMessage as buildTagLimitErrorMessage
+} from './pool.js';
 
 export class SpellBuilder {
     constructor(dataManager, renderCallback) {
@@ -254,14 +259,29 @@ export class SpellBuilder {
             span.style.display = 'flex';
             span.style.alignItems = 'center';
             span.style.gap = '0.3rem';
-            span.innerHTML = `${act.text} (${act.xp > 0 ? '+'+act.xp : act.xp}🗱) <button type="button" style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;">×</button>`;
-            
-            span.querySelector('button').addEventListener('click', () => {
+
+            const text = document.createElement('span');
+            const xpLabel = act.xp > 0 ? `+${act.xp}` : String(act.xp);
+            text.textContent = `${act.text} (${xpLabel}🗱) `;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.textContent = '×';
+            removeBtn.style.background = 'transparent';
+            removeBtn.style.border = 'none';
+            removeBtn.style.color = 'white';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.fontWeight = 'bold';
+
+            span.appendChild(text);
+            span.appendChild(removeBtn);
+
+            removeBtn.addEventListener('click', () => {
                 this.currentActions.splice(index, 1);
                 this.renderActions();
                 this.calculateXP();
             });
-            
+
             this.actionsContainer.appendChild(span);
         });
     }
@@ -276,14 +296,29 @@ export class SpellBuilder {
             span.style.display = 'flex';
             span.style.alignItems = 'center';
             span.style.gap = '0.3rem';
-            span.innerHTML = `${tagObj.name} (${tagObj.xp > 0 ? '+'+tagObj.xp : tagObj.xp}🗱) <button type="button" style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;">×</button>`;
-            
-            span.querySelector('button').addEventListener('click', () => {
+
+            const text = document.createElement('span');
+            const xpLabel = tagObj.xp > 0 ? `+${tagObj.xp}` : String(tagObj.xp);
+            text.textContent = `${tagObj.name} (${xpLabel}🗱) `;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.textContent = '×';
+            removeBtn.style.background = 'transparent';
+            removeBtn.style.border = 'none';
+            removeBtn.style.color = 'white';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.fontWeight = 'bold';
+
+            span.appendChild(text);
+            span.appendChild(removeBtn);
+
+            removeBtn.addEventListener('click', () => {
                 this.currentFormTags.splice(index, 1);
                 this.renderTags();
                 this.calculateXP();
             });
-            
+
             this.tagsContainer.appendChild(span);
         });
 
@@ -327,30 +362,6 @@ export class SpellBuilder {
         };
     }
 
-    summarizeTagLimitExemptions(tagLimit) {
-        const exemptNames = tagLimit.exemptTags.map(tag => tag.name).filter(Boolean);
-        if (exemptNames.length === 0) return '';
-
-        const visibleNames = exemptNames.slice(0, 3).join(', ');
-        const remaining = exemptNames.length > 3 ? ` +${exemptNames.length - 3} more` : '';
-        return ` Exempt: ${visibleNames}${remaining}.`;
-    }
-
-    formatTagLimitStatus(tagLimit) {
-        const exemptText = this.summarizeTagLimitExemptions(tagLimit);
-        if (tagLimit.valid) {
-            return `Tag limit: ${tagLimit.count}/${tagLimit.limit} countable tags.${exemptText}`;
-        }
-
-        return `Too many countable tags: ${tagLimit.count}/${tagLimit.limit}. Remove ${tagLimit.overage} or increase dice.${exemptText}`;
-    }
-
-    tagLimitErrorMessage(tagLimit) {
-        const countableNames = tagLimit.countableTags.map(tag => tag.name).filter(Boolean).join(', ');
-        const tagsText = countableNames ? ` Countable tags: ${countableNames}.` : '';
-        return `This spell has ${tagLimit.count} countable tags, but its dice allow ${tagLimit.limit}. Remove ${tagLimit.overage} countable tag${tagLimit.overage === 1 ? '' : 's'} or increase its dice.${tagsText}`;
-    }
-
     renderTagLimitStatus() {
         if (!this.tagLimitStatus) return null;
 
@@ -364,7 +375,7 @@ export class SpellBuilder {
         }
 
         const tagLimit = this.poolEngine.calculateTagLimit(diceArray, this.currentFormTags);
-        this.tagLimitStatus.textContent = this.formatTagLimitStatus(tagLimit);
+        this.tagLimitStatus.textContent = formatTagLimitStatus(tagLimit);
         this.tagLimitStatus.classList.add(tagLimit.valid ? 'valid' : 'invalid');
         return tagLimit;
     }
@@ -482,7 +493,7 @@ export class SpellBuilder {
         const tagLimit = this.poolEngine.calculateTagLimit(diceArray, this.currentFormTags);
         this.renderTagLimitStatus();
         if (!tagLimit.valid) {
-            alert(this.tagLimitErrorMessage(tagLimit));
+            alert(buildTagLimitErrorMessage('This spell', tagLimit));
             return;
         }
         

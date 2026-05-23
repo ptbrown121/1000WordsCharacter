@@ -1,5 +1,76 @@
 import { STAT_COLORS, VALID_DICE } from './data.js';
 
+// ---------------------------------------------------------------------------
+// Shared helpers (used by app.js and spellBuilder.js).
+// Kept here so the rules engine, UI, and spell wizard agree on a single
+// definition. See review item #2.
+// ---------------------------------------------------------------------------
+
+/**
+ * Escape a string for safe insertion into HTML text or attribute contexts.
+ * Handles both: encodes &, <, >, " and '. User-controlled fields (tile.name,
+ * tile.tags, tile.description, journal entries, imported JSON, etc.) MUST be
+ * passed through this before being interpolated into innerHTML.
+ */
+export function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Parse a comma-separated dice string ("d6, d8") into a list of valid dice
+ * tokens and a list of invalid tokens. Empty input returns empty lists.
+ */
+export function parseDiceInput(str) {
+    if (!str || !str.trim()) return { dice: [], invalid: [] };
+
+    const tokens = str
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean);
+
+    return {
+        dice: tokens.filter(die => VALID_DICE.has(die)),
+        invalid: tokens.filter(die => !VALID_DICE.has(die))
+    };
+}
+
+export function parseDiceString(str) {
+    return parseDiceInput(str).dice;
+}
+
+export function getDiceValidationMessage(label = 'Dice') {
+    return `${label} must use only: d3, d4, d6, d8, d10, d12, d14, or d16.`;
+}
+
+export function summarizeTagLimitExemptions(tagLimit) {
+    const exemptNames = tagLimit.exemptTags.map(tag => tag.name).filter(Boolean);
+    if (exemptNames.length === 0) return '';
+
+    const visibleNames = exemptNames.slice(0, 3).join(', ');
+    const remaining = exemptNames.length > 3 ? ` +${exemptNames.length - 3} more` : '';
+    return ` Exempt: ${visibleNames}${remaining}.`;
+}
+
+export function formatTagLimitStatus(tagLimit) {
+    const exemptText = summarizeTagLimitExemptions(tagLimit);
+    if (tagLimit.valid) {
+        return `Tag limit: ${tagLimit.count}/${tagLimit.limit} countable tags.${exemptText}`;
+    }
+
+    return `Too many countable tags: ${tagLimit.count}/${tagLimit.limit}. Remove ${tagLimit.overage} or increase dice.${exemptText}`;
+}
+
+export function tagLimitErrorMessage(subject, tagLimit) {
+    const countableNames = tagLimit.countableTags.map(tag => tag.name).filter(Boolean).join(', ');
+    const tagsText = countableNames ? ` Countable tags: ${countableNames}.` : '';
+    return `${subject} has ${tagLimit.count} countable tags, but its dice allow ${tagLimit.limit}. Remove ${tagLimit.overage} countable tag${tagLimit.overage === 1 ? '' : 's'} or increase its dice.${tagsText}`;
+}
+
 const CONTEXTUAL_TAG_BONUSES = {
     expert: { name: 'Expert', context: 'action check', description: '+▟ to action checks using this tile' },
     keen: { name: 'Keen', context: 'attack', description: '+▟ to attacks using this tile' },
