@@ -40,7 +40,7 @@ describe('classifyTagForLimit (rulebook p.13 / p.2014)', () => {
     it('counts Build / Detail / Crit / Shield tags', () => {
         for (const t of ['Quick', 'Tough', 'Vital', 'Motorized', 'Agile', 'Hidden',
             'Ironclad', 'Loose', 'Rugged', 'Sealed', 'Adamant', 'Keen', 'Sharp',
-            'Expert', 'Detail: Fast', 'Crit: JOLT', 'Shield: Deflect']) {
+            'Expert', 'Escape!', 'Rite', 'Sustain', 'Detail: Fast', 'Crit: JOLT', 'Shield: Deflect']) {
             assert.equal(counts(t), true, `${t} should count`);
         }
     });
@@ -52,7 +52,8 @@ describe('classifyTagForLimit (rulebook p.13 / p.2014)', () => {
 
     it('exempts Flaw / Range / Duration / Exotic tags', () => {
         for (const t of ['Old', 'Primitive', 'Rare', 'Risky', 'Worn', 'Bulky', 'Heavy',
-            'Hitch 3', 'Range: Short', 'Duration: Instant', 'Bestial', 'Celestial', 'Cyber']) {
+            'Hitch 3', 'Sap', 'Tire', 'Drain', 'Witch', 'Range: Short', 'Duration: Instant',
+            'Bestial', 'Celestial', 'Cyber']) {
             assert.equal(counts(t), false, `${t} should be exempt`);
         }
     });

@@ -231,6 +231,7 @@ const X_FLAW_TAGS = new Set([
     'numb', 'overload', 'rube', 'solo', 'stigma', 'torn', 'undroid', 'while x'
 ]);
 const ARCANE_FLAW_TAGS = new Set(['drain', 'sap', 'tire', 'witch']);
+const ARCANE_DETAIL_TAGS = new Set(['escape!', 'rite', 'sustain']);
 const FLAW_TAGS = new Set([...F_FLAW_TAGS, ...X_FLAW_TAGS, ...ARCANE_FLAW_TAGS, 'hitch']);
 const EXOTIC_TAGS = new Set(['bestial', 'celestial', 'cyber']);
 
@@ -678,6 +679,10 @@ export class PoolEngine {
 
         if (hasBuildPrefix) {
             return { name, counts: true, reason: 'Build tags count' };
+        }
+
+        if (ARCANE_DETAIL_TAGS.has(baseTag)) {
+            return { name, counts: true, reason: 'Arcane Detail tags count' };
         }
 
         if (/^(range|duration)\s*:/i.test(normalized) || RANGE_DURATION_XP.has(baseTag)) {
