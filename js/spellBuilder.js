@@ -1,9 +1,16 @@
 import { VALID_DICE } from './data.js';
 import {
     PoolEngine,
+    calculateHitchRebateTotal,
     formatTagLimitStatus,
-    tagLimitErrorMessage as buildTagLimitErrorMessage
+    getTileBoxes,
+    serializeTileBoxes,
+    tagLimitErrorMessage as buildTagLimitErrorMessage,
+    validateShadowTags
 } from './pool.js';
+
+const SPELL_NORMAL_COLORS = new Set(['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple']);
+const SPELL_SHADOW_KINDS = new Set(['Qi', 'Id']);
 
 export class SpellBuilder {
     constructor(dataManager, renderCallback) {
@@ -78,16 +85,34 @@ export class SpellBuilder {
             } else {
                 colorsGroup.style.display = 'none';
             }
+            this.syncShadowResourceControls();
             this.calculateXP();
+        });
+
+        document.querySelectorAll('.spell-color-cb').forEach(cb => {
+            cb.addEventListener('change', () => {
+                this.syncShadowResourceControls();
+                this.calculateXP();
+            });
+        });
+        document.querySelectorAll('.spell-shadow-resource').forEach(select => {
+            select.addEventListener('change', () => this.calculateXP());
         });
         
         this.tagSelect.addEventListener('change', (e) => {
+            const hitchValue = document.getElementById('spell-tag-hitch-value');
             if (e.target.value === 'Custom') {
                 this.tagCustomInput.style.display = 'block';
                 this.tagCustomXp.style.display = 'block';
+                if (hitchValue) hitchValue.style.display = 'none';
+            } else if (e.target.value === 'Hitch') {
+                this.tagCustomInput.style.display = 'none';
+                this.tagCustomXp.style.display = 'none';
+                if (hitchValue) hitchValue.style.display = 'block';
             } else {
                 this.tagCustomInput.style.display = 'none';
                 this.tagCustomXp.style.display = 'none';
+                if (hitchValue) hitchValue.style.display = 'none';
             }
         });
 
@@ -116,6 +141,10 @@ export class SpellBuilder {
                 if (!val) return;
                 this.tagCustomInput.value = '';
                 this.tagCustomXp.value = '2';
+            } else if (val === 'Hitch') {
+                const rebate = Math.min(6, Math.max(1, parseInt(document.getElementById('spell-tag-hitch-value').value, 10) || 3));
+                val = `Hitch ${rebate}`;
+                xp = -rebate;
             } else if (!val) {
                 return;
             }
@@ -128,6 +157,11 @@ export class SpellBuilder {
             this.currentFormTags.push({ name: val, xp: xp });
             
             document.getElementById('spell-tag-exempt').checked = false;
+            const hitchValue = document.getElementById('spell-tag-hitch-value');
+            if (hitchValue) {
+                hitchValue.style.display = 'none';
+                hitchValue.value = '3';
+            }
             
             this.renderTags();
             this.calculateXP();
@@ -148,6 +182,12 @@ export class SpellBuilder {
         this.currentFormTags = [];
         this.currentActions = [];
         this.form.reset();
+        const hitchValue = document.getElementById('spell-tag-hitch-value');
+        if (hitchValue) {
+            hitchValue.style.display = 'none';
+            hitchValue.value = '3';
+        }
+        this.resetSpellColorControls();
         this.tagCustomInput.style.display = 'none';
         this.tagCustomXp.style.display = 'none';
         ['spell-range', 'spell-area', 'spell-volume', 'spell-displacement', 'spell-duration'].forEach(id => {
@@ -244,10 +284,7 @@ export class SpellBuilder {
             const school = document.getElementById('spell-school').value;
             if (school === 'Divergent') {
                 document.getElementById('spell-colors-group').style.display = 'block';
-                const colorCbs = document.querySelectorAll('.spell-color-cb');
-                colorCbs.forEach(cb => {
-                    cb.checked = tile.colors.includes(cb.value);
-                });
+                this.restoreSpellBoxes(tile);
             } else {
                 document.getElementById('spell-colors-group').style.display = 'none';
             }
@@ -263,6 +300,75 @@ export class SpellBuilder {
         this.updateWizardUI();
         this.calculateXP();
         this.modal.classList.add('active');
+    }
+
+    resetSpellColorControls() {
+        document.querySelectorAll('.spell-color-cb').forEach(cb => {
+            cb.checked = false;
+        });
+        document.querySelectorAll('.spell-shadow-resource').forEach(select => {
+            select.value = '';
+        });
+        this.syncShadowResourceControls();
+    }
+
+    syncShadowResourceControls() {
+        document.querySelectorAll('.spell-shadow-resource-row').forEach(row => {
+            const kind = row.dataset.shadowKind;
+            const cb = document.querySelector(`.spell-color-cb[value="${kind}"]`);
+            const isChecked = Boolean(cb?.checked);
+            row.style.display = isChecked ? 'block' : 'none';
+            if (!isChecked) {
+                const select = row.querySelector('.spell-shadow-resource');
+                if (select) select.value = '';
+            }
+        });
+    }
+
+    restoreSpellBoxes(tile) {
+        const boxes = getTileBoxes(tile);
+        document.querySelectorAll('.spell-color-cb').forEach(cb => {
+            cb.checked = boxes.some(box => box.type === 'shadow' ? box.kind === cb.value : box.color === cb.value);
+        });
+        document.querySelectorAll('.spell-shadow-resource').forEach(select => {
+            const box = boxes.find(candidate => candidate.type === 'shadow' && candidate.kind === select.dataset.shadowKind);
+            select.value = box?.resource || '';
+        });
+        this.syncShadowResourceControls();
+    }
+
+    getSpellBoxSelection() {
+        const school = document.getElementById('spell-school').value;
+        if (school === 'Twist') {
+            return { boxes: [{ type: 'color', color: 'Yellow' }, { type: 'color', color: 'Purple' }], error: null };
+        }
+        if (school === 'Forge') {
+            return { boxes: [{ type: 'color', color: 'Green' }, { type: 'color', color: 'Red' }], error: null };
+        }
+        if (school === 'Augur') {
+            return { boxes: [{ type: 'color', color: 'Blue' }, { type: 'color', color: 'Orange' }], error: null };
+        }
+
+        const boxes = [];
+        document.querySelectorAll('.spell-color-cb:checked').forEach(cb => {
+            if (SPELL_NORMAL_COLORS.has(cb.value)) {
+                boxes.push({ type: 'color', color: cb.value });
+            } else if (SPELL_SHADOW_KINDS.has(cb.value)) {
+                const resource = document.querySelector(`.spell-shadow-resource[data-shadow-kind="${cb.value}"]`)?.value || '';
+                boxes.push({ type: 'shadow', kind: cb.value, resource });
+            }
+        });
+
+        if (boxes.length !== 2) {
+            return { boxes, error: 'Divergent spells must select exactly 2 color boxes.' };
+        }
+
+        const missingResource = boxes.find(box => box.type === 'shadow' && !box.resource);
+        if (missingResource) {
+            return { boxes, error: `${missingResource.kind} spell boxes must choose Health, Energy, or Reflex.` };
+        }
+
+        return { boxes: serializeTileBoxes(boxes), error: null };
     }
 
     renderActions() {
@@ -514,19 +620,14 @@ export class SpellBuilder {
             return;
         }
         
-        // Colors
-        let colors = [];
         const school = document.getElementById('spell-school').value;
-        if (school === 'Twist') colors = ['Yellow', 'Purple'];
-        else if (school === 'Forge') colors = ['Green', 'Red'];
-        else if (school === 'Augur') colors = ['Blue', 'Orange'];
-        else {
-            document.querySelectorAll('.spell-color-cb:checked').forEach(cb => colors.push(cb.value));
-            if (colors.length !== 2) {
-                alert('Divergent spells must select exactly 2 normal colors.');
-                return;
-            }
+        const spellBoxes = this.getSpellBoxSelection();
+        if (spellBoxes.error) {
+            alert(spellBoxes.error);
+            return;
         }
+        const boxes = spellBoxes.boxes;
+        const colors = boxes.map(box => box.type === 'shadow' ? box.kind : box.color);
 
         // Tags string
         let tagsArr = ["Spell"];
@@ -546,6 +647,9 @@ export class SpellBuilder {
                 if(t.trim()) tagsArr.push(t.trim());
             });
         }
+        this.currentFormTags.forEach(tag => {
+            if (tag.name && !tagsArr.includes(tag.name)) tagsArr.push(tag.name);
+        });
 
         // Build the spell's textual description. The wizard auto-generates a
         // preview sentence ("Effect: ... Range: ... Duration: ...") and the
@@ -580,6 +684,7 @@ export class SpellBuilder {
             'spell-custom-tags': document.getElementById('spell-custom-tags').value,
             'spell-unchained': document.getElementById('spell-unchained').checked,
             'spell-chain-target': document.getElementById('spell-chain-target') ? document.getElementById('spell-chain-target').value : '',
+            spellBoxes: boxes,
             tagsList: [...this.currentFormTags],
             // The user-typed details, separate from the auto-generated
             // preview sentence. Saved here so re-editing repopulates only
@@ -601,6 +706,7 @@ export class SpellBuilder {
             name,
             description,
             colors: colors.slice(0, 2),
+            boxes,
             dice: diceArray,
             tags: tagsArr,
             xpCost: this.calculateXP(),
@@ -609,6 +715,22 @@ export class SpellBuilder {
             isSpell: true,
             spellState
         };
+
+        const shadowTagIssues = validateShadowTags(newSpell);
+        if (shadowTagIssues.length > 0) {
+            alert(shadowTagIssues.map(issue => issue.message).join('\n'));
+            return;
+        }
+
+        const currentHitchTotal = calculateHitchRebateTotal(this.dataManager.state.tiles || []);
+        const nextTiles = this.editingTileId
+            ? (this.dataManager.state.tiles || []).map(t => t.id === this.editingTileId ? newSpell : t)
+            : [...(this.dataManager.state.tiles || []), newSpell];
+        const nextHitchTotal = calculateHitchRebateTotal(nextTiles);
+        if (nextHitchTotal > 6 && nextHitchTotal > currentHitchTotal) {
+            alert(`Hitch rebates are capped at 6 XP per sheet. This would make ${nextHitchTotal} XP of Hitch rebates.`);
+            return;
+        }
 
         if (this.editingTileId) {
             this.dataManager.updateTile(newSpell);

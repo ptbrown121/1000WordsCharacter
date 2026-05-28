@@ -52,4 +52,22 @@ describe('buildRulesReviewItems', () => {
         assert.ok(items.some(item => item.category === 'Arcana' && item.message.includes('2/1 chained spells')));
         assert.ok(items.some(item => item.category === 'Arcana' && item.message.includes('Loose Spell')));
     });
+
+    it('flags sheets with more than 6 XP of Hitch rebates', () => {
+        const state = {
+            xpEarned: 100,
+            stats: {},
+            tiles: [
+                { id: 'h1', name: 'Oath One', dice: ['d4'], tags: ['Hitch 4'], xpCost: 0 },
+                { id: 'h2', name: 'Oath Two', dice: ['d4'], tags: ['Hitch 3'], xpCost: 0 }
+            ]
+        };
+
+        const items = buildRulesReviewItems(state, engine);
+        assert.ok(items.some(item =>
+            item.severity === 'high'
+            && item.category === 'Hitch'
+            && item.message.includes('7/6')
+        ));
+    });
 });

@@ -7,6 +7,7 @@ import {
     getDiceValidationMessage,
     formatTagLimitStatus,
     tagLimitErrorMessage,
+    calculateHitchRebateTotal,
     getTileBoxes,
     getTileColorsFromBoxes,
     serializeTileBoxes,
@@ -346,17 +347,25 @@ export function init(deps) {
     els.tagSelect.addEventListener('change', (e) => {
         const val = e.target.value;
         const motorizedStat = document.getElementById('tag-motorized-stat');
+        const hitchValue = document.getElementById('tag-hitch-value');
         if (val === 'Custom' || val === 'Chain') {
             els.tagCustomInput.style.display = 'inline-block';
             els.tagCustomInput.placeholder = val === 'Chain' ? 'Tile Name to Chain' : 'Custom Tag Name';
             els.tagCustomInput.focus();
             motorizedStat.style.display = 'none';
+            hitchValue.style.display = 'none';
         } else if (val === 'Motorized') {
             els.tagCustomInput.style.display = 'none';
             motorizedStat.style.display = 'block';
+            hitchValue.style.display = 'none';
+        } else if (val === 'Hitch') {
+            els.tagCustomInput.style.display = 'none';
+            motorizedStat.style.display = 'none';
+            hitchValue.style.display = 'block';
         } else {
             els.tagCustomInput.style.display = 'none';
             motorizedStat.style.display = 'none';
+            hitchValue.style.display = 'none';
         }
     });
 
@@ -378,6 +387,9 @@ export function init(deps) {
                 return;
             }
             finalTag = `Motorized: ${stat}`;
+        } else if (selVal === 'Hitch') {
+            const rebate = Math.min(6, Math.max(1, parseInt(document.getElementById('tag-hitch-value').value, 10) || 3));
+            finalTag = `Hitch ${rebate}`;
         } else {
             finalTag = selVal;
         }
@@ -398,6 +410,9 @@ export function init(deps) {
             const motorizedStat = document.getElementById('tag-motorized-stat');
             motorizedStat.style.display = 'none';
             motorizedStat.value = '';
+            const hitchValue = document.getElementById('tag-hitch-value');
+            hitchValue.style.display = 'none';
+            hitchValue.value = '3';
             document.getElementById('tag-exempt').checked = false;
         }
     });
@@ -465,6 +480,11 @@ export function openModal(tile = null) {
     setFormBoxes([]);
     currentFormTags = [];
     els.tagCustomInput.style.display = 'none';
+    const hitchValue = document.getElementById('tag-hitch-value');
+    if (hitchValue) {
+        hitchValue.style.display = 'none';
+        hitchValue.value = '3';
+    }
     renderXpEstimateNote([]);
 
     const armorMaterial = document.getElementById('armor-material');
@@ -658,6 +678,16 @@ export function saveTileFromForm() {
     const shadowTagIssues = validateShadowTags(tile);
     if (shadowTagIssues.length > 0) {
         alert(shadowTagIssues.map(issue => issue.message).join('\n'));
+        return;
+    }
+
+    const currentHitchTotal = calculateHitchRebateTotal(dataManager.state.tiles || []);
+    const nextTiles = id
+        ? (dataManager.state.tiles || []).map(t => t.id === id ? tile : t)
+        : [...(dataManager.state.tiles || []), tile];
+    const nextHitchTotal = calculateHitchRebateTotal(nextTiles);
+    if (nextHitchTotal > 6 && nextHitchTotal > currentHitchTotal) {
+        alert(`Hitch rebates are capped at 6 XP per sheet. This would make ${nextHitchTotal} XP of Hitch rebates.`);
         return;
     }
 

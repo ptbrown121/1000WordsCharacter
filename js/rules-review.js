@@ -1,4 +1,4 @@
-import { getExoticSkillBaseXp, isHitchedTile, tileTagList, validateShadowTags } from './pool.js';
+import { calculateHitchRebateTotal, getExoticSkillBaseXp, isHitchedTile, tileTagList, validateShadowTags } from './pool.js';
 
 function statXpTotal(state, poolEngine) {
     return poolEngine.calculateStatXp(state.stats || {});
@@ -36,6 +36,15 @@ export function buildRulesReviewItems(state, poolEngine) {
             severity: 'low',
             category: 'GM review',
             message: `Creation split is over the PDF start budget (${statXp}/25 stat XP, ${tileXp}/50 tile XP).`
+        });
+    }
+
+    const hitchRebateTotal = calculateHitchRebateTotal(tiles);
+    if (hitchRebateTotal > 6) {
+        items.push({
+            severity: 'high',
+            category: 'Hitch',
+            message: `Hitch rebates total ${hitchRebateTotal}/6 XP. Reduce Hitch values until the sheet is at 6 XP or less.`
         });
     }
 

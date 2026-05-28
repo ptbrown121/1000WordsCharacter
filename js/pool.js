@@ -652,6 +652,10 @@ export function isHitchedTile(tile) {
     return getHitchValue(tile) > 0;
 }
 
+export function calculateHitchRebateTotal(tiles = []) {
+    return tiles.reduce((sum, tile) => sum + getHitchValue(tile), 0);
+}
+
 export class PoolEngine {
     constructor() {
         this.baseKeeps = 2;

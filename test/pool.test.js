@@ -9,6 +9,7 @@ import {
     getWeaponTemplatesByCategory,
     getHitchValue,
     isHitchedTile,
+    calculateHitchRebateTotal,
     adjustAberrationForShadowUse,
     classifyAberration,
     getAvailableShadowAbilities,
@@ -190,6 +191,24 @@ describe('estimateTileXp', () => {
         assert.equal(getExoticSkillBaseXp('arcana-twist'), 2);
         assert.equal(engine.estimateTileXp(['d4'], [], null, { exoticSkill: { id: 'cyber' } }), 3);
         assert.equal(engine.estimateTileXp(['d6'], ['Expert'], null, { exoticSkill: 'bestial' }), 7);
+    });
+});
+
+describe('Hitch rebates', () => {
+    it('supports Hitch rebate values from 1 to 6 and totals them sheet-wide', () => {
+        const tiles = [
+            { tags: ['Hitch 1'] },
+            { tags: ['Hitch 5'] },
+            { tags: ['Keen'] }
+        ];
+        assert.equal(getHitchValue(tiles[0]), 1);
+        assert.equal(getHitchValue(tiles[1]), 5);
+        assert.equal(calculateHitchRebateTotal(tiles), 6);
+    });
+
+    it('clamps out-of-range Hitch values to the valid 1-6 rebate range', () => {
+        assert.equal(getHitchValue({ tags: ['Hitch 0'] }), 1);
+        assert.equal(getHitchValue({ tags: ['Hitch 9'] }), 6);
     });
 });
 

@@ -530,6 +530,14 @@
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
                             <input type="text" id="tag-custom-input" placeholder="Value..." style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                            <select id="tag-hitch-value" style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;" title="Hitch rebate value">
+                                <option value="1">Hitch 1 XP rebate</option>
+                                <option value="2">Hitch 2 XP rebate</option>
+                                <option value="3" selected>Hitch 3 XP rebate</option>
+                                <option value="4">Hitch 4 XP rebate</option>
+                                <option value="5">Hitch 5 XP rebate</option>
+                                <option value="6">Hitch 6 XP rebate</option>
+                            </select>
                             <select id="tag-motorized-stat" style="display: none; width: 100%; padding: 0.5rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;" title="Motorized adds a bonus equal to the tile's die step on the chosen stat">
                                 <option value="">-- Select Stat for Motorized --</option>
                                 <option value="BODY">BODY</option>
@@ -598,7 +606,7 @@
                         </select>
                     </div>
                     <div class="form-group" id="spell-colors-group" style="display: none;">
-                        <label>Select 2 Colors</label>
+                        <label>Select 2 Color Boxes</label>
                         <div class="color-checkboxes">
                             <label><input type="checkbox" value="Red" class="spell-color-cb"> Red</label>
                             <label><input type="checkbox" value="Orange" class="spell-color-cb"> Orange</label>
@@ -606,6 +614,28 @@
                             <label><input type="checkbox" value="Green" class="spell-color-cb"> Green</label>
                             <label><input type="checkbox" value="Blue" class="spell-color-cb"> Blue</label>
                             <label><input type="checkbox" value="Purple" class="spell-color-cb"> Purple</label>
+                            <label><input type="checkbox" value="Qi" class="spell-color-cb spell-shadow-cb"> Qi</label>
+                            <label><input type="checkbox" value="Id" class="spell-color-cb spell-shadow-cb"> Id</label>
+                        </div>
+                        <div id="spell-shadow-resource-options" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
+                            <label class="spell-shadow-resource-row" data-shadow-kind="Qi" style="display: none; font-weight: normal; font-size: 0.85rem;">
+                                Qi resource
+                                <select class="spell-shadow-resource" data-shadow-kind="Qi" style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                                    <option value="">-- Normal resource --</option>
+                                    <option value="hp">Health</option>
+                                    <option value="en">Energy</option>
+                                    <option value="rx">Reflex</option>
+                                </select>
+                            </label>
+                            <label class="spell-shadow-resource-row" data-shadow-kind="Id" style="display: none; font-weight: normal; font-size: 0.85rem;">
+                                Id resource
+                                <select class="spell-shadow-resource" data-shadow-kind="Id" style="width: 100%; margin-top: 0.2rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                                    <option value="">-- Normal resource --</option>
+                                    <option value="hp">Health</option>
+                                    <option value="en">Energy</option>
+                                    <option value="rx">Reflex</option>
+                                </select>
+                            </label>
                         </div>
                     </div>
 
@@ -667,6 +697,13 @@
                                     <option value="-2 XP Flaw" data-xp="-2">-2 XP Flaw (-2🗱)</option>
                                     <option value="-4 XP Flaw" data-xp="-4">-4 XP Flaw (-4🗱)</option>
                                 </optgroup>
+                                <optgroup label="Shadow Tags (+2 XP)">
+                                    <option value="Day" data-xp="2">Day (requires Qi)</option>
+                                    <option value="Night" data-xp="2">Night (requires Id)</option>
+                                    <option value="Dusk" data-xp="2">Dusk (requires Qi or Id)</option>
+                                    <option value="Dawn" data-xp="2">Dawn (requires Qi or Id)</option>
+                                    <option value="Terminator" data-xp="2">Terminator (requires Qi or Id)</option>
+                                </optgroup>
                                 <optgroup label="Fast Crits (Apply once, then fade)">
                                     <option value="DOWN" data-xp="2">DOWN (target loses next action) [+2]</option>
                                     <option value="JOLT" data-xp="2">JOLT (target loses 3 Grit on next defense) [+2]</option>
@@ -707,6 +744,14 @@
                             </select>
                             <input type="text" id="spell-tag-custom-input" placeholder="Custom Tag..." style="display: none; flex: 1; padding: 0.8rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
                             <input type="number" id="spell-tag-custom-xp" value="2" style="display: none; width: 60px; padding: 0.8rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;" title="XP Cost">
+                            <select id="spell-tag-hitch-value" style="display: none; flex: 1; min-width: 150px; padding: 0.8rem; font-size: 1rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;" title="Hitch rebate value">
+                                <option value="1">Hitch 1 XP rebate</option>
+                                <option value="2">Hitch 2 XP rebate</option>
+                                <option value="3" selected>Hitch 3 XP rebate</option>
+                                <option value="4">Hitch 4 XP rebate</option>
+                                <option value="5">Hitch 5 XP rebate</option>
+                                <option value="6">Hitch 6 XP rebate</option>
+                            </select>
                             <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0 0.5rem; cursor: pointer; color: white;" title="Tag does not count towards the limit">
                                 <input type="checkbox" id="spell-tag-exempt"> GM Exempt
                             </label>
