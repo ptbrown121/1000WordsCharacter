@@ -10,7 +10,7 @@ The app is now a strong rules-assisted character manager for the core sheet loop
 
 The app intentionally remains permissive. Starting XP split checks and the 3▟ starting tile cap are treated as GM review notes, not hard blockers. A sheet-wide **GM reviewed** override now quiets the review strip for tables that have already approved a character.
 
-The largest remaining gaps are still the deep subsystem workflows: complete Arcana casting difficulty, Shadow/Qi/Id stat sliding, Stranger form state, Cyber Core spends, full crafting/potion procedures, and automatic combat/status application. These are best added incrementally as opt-in assistants rather than strict validation until the rules stabilize.
+The largest remaining gaps are still the deep subsystem workflows: complete Arcana casting difficulty, Stranger form state, Cyber Core spends, full crafting/potion procedures, and automatic combat/status application. These are best added incrementally as opt-in assistants rather than strict validation until the rules stabilize. Shadow now follows the replacement Qi / Id tile-box rules described in `docs/shadow-rules-change-note.md`.
 
 ## Project Architecture Summary
 
@@ -34,13 +34,13 @@ The largest remaining gaps are still the deep subsystem workflows: complete Arca
 | d3 is free; die advancement uses `{steps} + {other dice}` | Implemented correctly | Shared cascade in `PoolEngine.calculateOptimalXpCost`. |
 | Starting 25 XP stat budget | GM review only | Review strip can flag over-starting split; not enforced by design. |
 | Story Point required for stat advancement | Missing | No Story Point tracker yet. |
-| Optional Qi/Id stats | Partially implemented | Fields and Shadow color support exist; slide/aberration rules are not automated. |
+| Qi / Id stats | Removed | The replacement Shadow rules make Qi / Id tile boxes instead of advanceable stats. Legacy stat data is ignored with a warning. |
 
 ### Tiles
 
 | Rule | Status | Notes |
 | --- | --- | --- |
-| Tiles have two stat colors | Implemented correctly | Ammo may have no colors. |
+| Tiles have two boxes | Implemented correctly | Normal boxes use stat colors; Qi / Id boxes can replace normal boxes and choose HP/EN/RX contribution. Ammo may have no boxes. |
 | Starting tiles capped at 3▟ | GM review only | Review strip flags high dice as a quiet GM note. |
 | Buried tiles unavailable and lose pool contributions | Implemented correctly | Buried tiles cannot be called/burned and are excluded from HP/EN/RX/SH maxes. |
 | Call/Burn/Chain pool building | Partially implemented | Core flow works; special subsystem calls remain manual. |
@@ -68,7 +68,7 @@ The largest remaining gaps are still the deep subsystem workflows: complete Arca
 | Rule | Status | Notes |
 | --- | --- | --- |
 | HP = Red + Orange boxes; EN = Green + Yellow; RX = Blue + Purple | Implemented correctly | Resource tags add die steps. |
-| SH from Black/White boxes | Implemented | Optional Shadow pool is supported. |
+| SH from Qi / Id boxes | Implemented | Each active Qi / Id box adds one chosen normal resource and one Shadow. |
 | Core resource | Missing | Cyber metadata exists, but Core pool/spends are not modeled yet. |
 
 ### Gear and Equipment
@@ -98,7 +98,7 @@ The largest remaining gaps are still the deep subsystem workflows: complete Arca
 | Arcana skill metadata and +2 base cost | Implemented | Arcana Twist/Forge/Augur metadata available on Skill tiles. |
 | Arcana spell capacity | Partially implemented | Review strip flags chained spell count over Arcana skill ▟. |
 | Arcana cast Test and chained skill reduction | Missing | Spell XP is stored, but cast difficulty workflow is not automated. |
-| Shadow/Qi/Id casting and slide rules | Missing | Optional stats/pool only. |
+| Shadow Qi / Id alignment rules | Partially implemented | Qi / Id check exclusivity, signed Aberration, overlapping alignment states, abilities, and Shadow tags are implemented. Hourly drift and dawn/dusk recovery remain table-managed. |
 | Stranger Bestial/Celestial metadata | Partially implemented | +2 base metadata exists; forms, While X, rank effects are manual. |
 | Cyber metadata | Partially implemented | +2 base metadata exists; Core and Core tags are manual. |
 

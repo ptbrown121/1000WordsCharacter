@@ -99,9 +99,6 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h2 style="margin: 0;">Stats & Attributes</h2>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
-                    <label class="inline-toggle" title="Show or hide the optional Id/Qi attributes">
-                        <input type="checkbox" id="toggle-optional-stats"> Show Id / Qi
-                    </label>
                     <label class="inline-toggle" title="Quiet sheet-wide rules review notes after GM approval">
                         <input type="checkbox" id="toggle-gm-override"> GM reviewed
                     </label>
@@ -136,14 +133,23 @@
                     <span class="stat-name" id="stat-label-speed">SPEED (Purple)</span>
                     <input type="text" class="stat-select stat-input" data-stat="SPEED" aria-labelledby="stat-label-speed" placeholder="e.g. d6, d8">
                 </div>
-                <!-- Optional Stats -->
-                <div class="stat-box optional-stat" data-color="Black">
-                    <span class="stat-name" id="stat-label-id">Id (Black, Opt)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="Id" aria-labelledby="stat-label-id" placeholder="e.g. d6, d8">
+            </div>
+            <div id="shadow-panel" class="shadow-panel">
+                <div class="shadow-panel-header">
+                    <div>
+                        <h3>Shadow</h3>
+                        <div id="shadow-alignment-display">Neutral 0</div>
+                    </div>
+                    <div class="shadow-panel-actions">
+                        <button type="button" id="btn-shadow-info" class="btn btn-outline" title="Shadow abilities and recovery">Info</button>
+                        <button type="button" id="btn-shadow-toggle" class="btn btn-outline" aria-expanded="false">Show</button>
+                    </div>
                 </div>
-                <div class="stat-box optional-stat" data-color="White">
-                    <span class="stat-name" id="stat-label-qi">Qi (White, Opt)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="Qi" aria-labelledby="stat-label-qi" placeholder="e.g. d6, d8">
+                <div id="shadow-panel-body" class="shadow-panel-body" hidden>
+                    <label>
+                        Aberration
+                        <input type="number" id="val-aberration" value="0">
+                    </label>
                 </div>
             </div>
         </section>
@@ -164,8 +170,6 @@
                             <option value="Green">Green (FOCUS)</option>
                             <option value="Blue">Blue (MIND)</option>
                             <option value="Purple">Purple (SPEED)</option>
-                            <option value="Black" class="optional-call-option">Black (Id)</option>
-                            <option value="White" class="optional-call-option">White (Qi)</option>
                         </select>
                         <select id="call-color-2" aria-label="Second GM call color">
                             <option value="">-- None --</option>
@@ -175,8 +179,6 @@
                             <option value="Green">Green (FOCUS)</option>
                             <option value="Blue">Blue (MIND)</option>
                             <option value="Purple">Purple (SPEED)</option>
-                            <option value="Black" class="optional-call-option">Black (Id)</option>
-                            <option value="White" class="optional-call-option">White (Qi)</option>
                         </select>
                     </div>
                     <div style="margin-top: 0.5rem;">
@@ -415,17 +417,50 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Colors (Pick 2)</label>
-                    <div class="color-checkboxes">
-                        <label><input type="checkbox" value="Red" class="color-cb"> Red</label>
-                        <label><input type="checkbox" value="Orange" class="color-cb"> Orange</label>
-                        <label><input type="checkbox" value="Yellow" class="color-cb"> Yellow</label>
-                        <label><input type="checkbox" value="Green" class="color-cb"> Green</label>
-                        <label><input type="checkbox" value="Blue" class="color-cb"> Blue</label>
-                        <label><input type="checkbox" value="Purple" class="color-cb"> Purple</label>
-                        <label><input type="checkbox" value="Black" class="color-cb"> Black</label>
-                        <label><input type="checkbox" value="White" class="color-cb"> White</label>
+                    <label>Tile Boxes (Pick 2)</label>
+                    <div id="tile-box-editor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem;">
+                        <div class="tile-box-row" data-box-index="0" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem;">
+                            <label style="font-weight: normal; font-size: 0.85rem;">Box 1</label>
+                            <select class="tile-box-type" data-box-index="0" style="width: 100%; margin-top: 0.25rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                                <option value="">-- Select box --</option>
+                                <option value="Red">Red</option>
+                                <option value="Orange">Orange</option>
+                                <option value="Yellow">Yellow</option>
+                                <option value="Green">Green</option>
+                                <option value="Blue">Blue</option>
+                                <option value="Purple">Purple</option>
+                                <option value="Qi">Qi (+2 XP)</option>
+                                <option value="Id">Id (+2 XP)</option>
+                            </select>
+                            <select class="tile-box-resource" data-box-index="0" style="display: none; width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                                <option value="">-- Normal resource --</option>
+                                <option value="hp">Health</option>
+                                <option value="en">Energy</option>
+                                <option value="rx">Reflex</option>
+                            </select>
+                        </div>
+                        <div class="tile-box-row" data-box-index="1" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem;">
+                            <label style="font-weight: normal; font-size: 0.85rem;">Box 2</label>
+                            <select class="tile-box-type" data-box-index="1" style="width: 100%; margin-top: 0.25rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                                <option value="">-- Select box --</option>
+                                <option value="Red">Red</option>
+                                <option value="Orange">Orange</option>
+                                <option value="Yellow">Yellow</option>
+                                <option value="Green">Green</option>
+                                <option value="Blue">Blue</option>
+                                <option value="Purple">Purple</option>
+                                <option value="Qi">Qi (+2 XP)</option>
+                                <option value="Id">Id (+2 XP)</option>
+                            </select>
+                            <select class="tile-box-resource" data-box-index="1" style="display: none; width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
+                                <option value="">-- Normal resource --</option>
+                                <option value="hp">Health</option>
+                                <option value="en">Energy</option>
+                                <option value="rx">Reflex</option>
+                            </select>
+                        </div>
                     </div>
+                    <small style="display: block; margin-top: 0.4rem; color: var(--text-secondary); font-size: 0.8rem;">Qi and Id boxes each add one chosen normal resource plus one Shadow. Checks may use Qi tiles or Id tiles, but not both.</small>
                 </div>
 
                 <div class="form-group">
@@ -442,6 +477,13 @@
                             <option value="">-- Select Tag --</option>
                             <optgroup label="Mechanics">
                                 <option value="Chain">Chain (Select to specify tile)</option>
+                            </optgroup>
+                            <optgroup label="Shadow">
+                                <option value="Day">Day (Qi; hourly Rising)</option>
+                                <option value="Night">Night (Id; hourly Falling)</option>
+                                <option value="Dusk">Dusk (extends Rising range)</option>
+                                <option value="Dawn">Dawn (extends Falling range)</option>
+                                <option value="Terminator">Terminator (drifts to Neutral)</option>
                             </optgroup>
                             <optgroup label="Bonus (+▟)">
                                 <option value="Expert">Expert (+▟ to check)</option>
@@ -564,8 +606,6 @@
                             <label><input type="checkbox" value="Green" class="spell-color-cb"> Green</label>
                             <label><input type="checkbox" value="Blue" class="spell-color-cb"> Blue</label>
                             <label><input type="checkbox" value="Purple" class="spell-color-cb"> Purple</label>
-                            <label><input type="checkbox" value="Black" class="spell-color-cb"> Black</label>
-                            <label><input type="checkbox" value="White" class="spell-color-cb"> White</label>
                         </div>
                     </div>
 
@@ -890,6 +930,19 @@
             </div>
         </div>
     </div>
+
+    <!-- Shadow Info Modal -->
+    <div id="shadow-info-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 560px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin: 0;">Shadow</h2>
+                <button id="btn-shadow-info-close" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
+            </div>
+            <p class="hint-text">Shadow recovers half of maximum Shadow at dawn and the other half at dusk. Sleeping and waking may stand in when the table simulates those moments.</p>
+            <div id="shadow-abilities-display" class="shadow-abilities-display"></div>
+        </div>
+    </div>
+
     <!-- Info / Help Modal -->
     <div id="info-modal" class="modal">
         <div class="modal-content glass-panel" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">

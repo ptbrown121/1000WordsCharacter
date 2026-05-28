@@ -1,8 +1,7 @@
-import { getExoticSkillBaseXp, isHitchedTile, tileTagList } from './pool.js';
+import { getExoticSkillBaseXp, isHitchedTile, tileTagList, validateShadowTags } from './pool.js';
 
 function statXpTotal(state, poolEngine) {
-    return Object.values(state.stats || {})
-        .reduce((sum, diceString) => sum + poolEngine.calculateOptimalXpCost(poolEngine.parseDiceString(diceString)), 0);
+    return poolEngine.calculateStatXp(state.stats || {});
 }
 
 function tileXpTotal(state) {
@@ -24,6 +23,14 @@ export function buildRulesReviewItems(state, poolEngine) {
 
     const statXp = statXpTotal(state, poolEngine);
     const tileXp = tileXpTotal(state);
+    if (state.legacyShadowWarning) {
+        items.push({
+            severity: 'medium',
+            category: 'Legacy Shadow',
+            message: 'This character used the old Qi / Id stat rules. The new rules remove those stats. Rebuild Shadow features using Qi / Id tile boxes.'
+        });
+    }
+
     if ((parseInt(state.xpEarned, 10) || 0) <= 75 && (statXp > 25 || tileXp > 50)) {
         items.push({
             severity: 'low',
@@ -73,6 +80,14 @@ export function buildRulesReviewItems(state, poolEngine) {
                 message: `${tile.name}: Hitch costs 1 EN when called and cannot be burned.`
             });
         }
+
+        validateShadowTags(tile).forEach(issue => {
+            items.push({
+                severity: 'medium',
+                category: 'Shadow',
+                message: `${tile.name}: ${issue.message}`
+            });
+        });
 
         if (getExoticSkillBaseXp(tile.exoticSkill) > 0) {
             items.push({

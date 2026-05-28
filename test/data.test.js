@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getEffectiveMax, normalizeTileTags } from '../js/data.js';
+import { getEffectiveMax, normalizeStateForShadowRules, normalizeTileTags } from '../js/data.js';
 
 describe('getEffectiveMax', () => {
     it('sums base max + perm + temp for HP/EN/RX', () => {
@@ -123,5 +123,34 @@ describe('normalizeTileTags', () => {
         };
         normalizeTileTags(spell);
         assert.deepEqual(spell.tags, ['Spell', 'Chain Pyromancy']);
+    });
+});
+
+describe('normalizeStateForShadowRules', () => {
+    it('loads ordinary non-Shadow characters safely with Shadow defaults', () => {
+        const state = normalizeStateForShadowRules({
+            stats: { BODY: 'd4', POWER: '', SOUL: '', FOCUS: '', MIND: '', SPEED: '' },
+            tiles: [{ colors: ['Red', 'Green'], dice: ['d4'], tags: [] }]
+        });
+
+        assert.equal(state.aberration, 0);
+        assert.equal(state.sh, 0);
+        assert.equal(state.legacyShadowWarning, false);
+        assert.deepEqual(state.tiles[0].boxes, [
+            { type: 'color', color: 'Red' },
+            { type: 'color', color: 'Green' }
+        ]);
+    });
+
+    it('ignores old Qi / Id stat data and sets the legacy warning', () => {
+        const state = normalizeStateForShadowRules({
+            stats: { BODY: 'd4', Qi: 'd10', Id: 'd8' },
+            tiles: []
+        });
+
+        assert.deepEqual(Object.keys(state.stats), ['BODY', 'POWER', 'SOUL', 'FOCUS', 'MIND', 'SPEED']);
+        assert.equal(state.stats.Qi, undefined);
+        assert.equal(state.stats.Id, undefined);
+        assert.equal(state.legacyShadowWarning, true);
     });
 });

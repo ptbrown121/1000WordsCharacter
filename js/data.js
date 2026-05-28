@@ -4,9 +4,7 @@ export const STAT_COLORS = {
     'SOUL': 'Yellow',
     'FOCUS': 'Green',
     'MIND': 'Blue',
-    'SPEED': 'Purple',
-    'Id': 'Black',
-    'Qi': 'White'
+    'SPEED': 'Purple'
 };
 
 export const COLOR_HEX = {
@@ -16,8 +14,8 @@ export const COLOR_HEX = {
     'Green': '#33cc33',
     'Blue': '#3399ff',
     'Purple': '#9933ff',
-    'Black': '#444444',
-    'White': '#ffffff'
+    'Qi': '#f7f3d0',
+    'Id': '#5a4a69'
 };
 
 export const VALID_DICE = new Set(['d3', 'd4', 'd6', 'd8', 'd10', 'd12', 'd14', 'd16']);
@@ -76,11 +74,62 @@ function normalizeNumber(value, fallback = 0) {
     return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+const NORMAL_COLORS = new Set(['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple']);
+const RESOURCE_KEYS = new Set(['hp', 'en', 'rx']);
+
+function normalizeShadowKind(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'qi' || normalized === 'white') return 'Qi';
+    if (normalized === 'id' || normalized === 'black') return 'Id';
+    return '';
+}
+
+function normalizeResourceKey(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (['hp', 'health', 'red', 'orange'].includes(normalized)) return 'hp';
+    if (['en', 'energy', 'green', 'yellow'].includes(normalized)) return 'en';
+    if (['rx', 'reflex', 'blue', 'purple'].includes(normalized)) return 'rx';
+    return RESOURCE_KEYS.has(normalized) ? normalized : '';
+}
+
+function normalizeTileBox(box) {
+    if (!box || typeof box !== 'object') return null;
+
+    const shadowKind = normalizeShadowKind(box.kind || box.shadowKind || box.type);
+    if (shadowKind) {
+        return {
+            type: 'shadow',
+            kind: shadowKind,
+            resource: normalizeResourceKey(box.resource || box.normalResource || box.contributesTo)
+        };
+    }
+
+    const color = String(box.color || box.type || '').trim();
+    return NORMAL_COLORS.has(color) ? { type: 'color', color } : null;
+}
+
+function boxesFromLegacyColors(colors = []) {
+    return colors.map(color => {
+        const shadowKind = normalizeShadowKind(color);
+        if (shadowKind) return { type: 'shadow', kind: shadowKind, resource: '' };
+        return NORMAL_COLORS.has(color) ? { type: 'color', color } : null;
+    }).filter(Boolean).slice(0, 2);
+}
+
+function colorsFromBoxes(boxes = []) {
+    return boxes.map(box => box.type === 'shadow' ? box.kind : box.color);
+}
+
 function normalizeTileMetadata(tile) {
     if (!tile || typeof tile !== 'object') return;
 
     if (tile.isBurnt === undefined) tile.isBurnt = false;
     if (tile.isBuried === undefined) tile.isBuried = false;
+    const rawBoxes = Array.isArray(tile.boxes) && tile.boxes.length > 0
+        ? tile.boxes.map(normalizeTileBox).filter(Boolean)
+        : boxesFromLegacyColors(tile.colors || []);
+    tile.boxes = rawBoxes.slice(0, 2);
+    tile.colors = colorsFromBoxes(tile.boxes);
     tile.exoticSkill = tile.type === 'Skill' ? normalizeStoredExoticSkill(tile.exoticSkill) : null;
     if (tile.gearSubtype === undefined && tile.type === 'Gear') {
         tile.gearSubtype = tile.ammo ? 'Ammo' : tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
@@ -99,6 +148,7 @@ function normalizeTileMetadata(tile) {
         };
         tile.dice = [];
         if (!Array.isArray(tile.colors)) tile.colors = [];
+        if (!Array.isArray(tile.boxes)) tile.boxes = [];
     }
 
     normalizeTileTags(tile);
@@ -129,12 +179,9 @@ export function getEffectiveMax(state, key, baseOverride) {
 }
 
 function inferShowOptionalStats(state) {
-    const hasOptionalStats = Boolean(state?.stats?.Id || state?.stats?.Qi);
-    const hasOptionalTiles = (state?.tiles || []).some(tile =>
-        (tile.colors || []).some(color => color === 'Black' || color === 'White')
-    );
-
-    return hasOptionalStats || hasOptionalTiles;
+    return Boolean((state?.tiles || []).some(tile =>
+        (tile.colors || []).some(color => ['Qi', 'Id', 'Black', 'White'].includes(color))
+    ));
 }
 
 const DEFAULT_STATE = {
@@ -155,6 +202,8 @@ const DEFAULT_STATE = {
     sh: 0,
     shTemp: 0,
     shPerm: 0,
+    aberration: 0,
+    legacyShadowWarning: false,
     gmOverride: false,
     showOptionalStats: false,
     stats: {
@@ -163,13 +212,34 @@ const DEFAULT_STATE = {
         'SOUL': '',
         'FOCUS': '',
         'MIND': '',
-        'SPEED': '',
-        'Id': '',
-        'Qi': ''
+        'SPEED': ''
     },
     tiles: [], // { id, name, colors: [], dice: [], tags: '', xpCost: 0 }
     journal: [] // { id, title, content }
 };
+
+export function normalizeStateForShadowRules(state) {
+    if (!state || typeof state !== 'object') return state;
+
+    const stats = state.stats || {};
+    const hasLegacyStatData = Boolean(stats.Id || stats.Qi);
+    state.legacyShadowWarning = Boolean(state.legacyShadowWarning || hasLegacyStatData);
+    state.stats = {
+        BODY: stats.BODY || '',
+        POWER: stats.POWER || '',
+        SOUL: stats.SOUL || '',
+        FOCUS: stats.FOCUS || '',
+        MIND: stats.MIND || '',
+        SPEED: stats.SPEED || ''
+    };
+    state.aberration = normalizeNumber(state.aberration, 0);
+    if (state.sh === undefined) state.sh = 0;
+    if (state.shTemp === undefined) state.shTemp = 0;
+    if (state.shPerm === undefined) state.shPerm = 0;
+    if (!Array.isArray(state.tiles)) state.tiles = [];
+    state.tiles.forEach(normalizeTileMetadata);
+    return state;
+}
 
 export class DataManager {
     constructor() {
@@ -245,11 +315,8 @@ export class DataManager {
                         state[key] = JSON.parse(JSON.stringify(DEFAULT_STATE[key]));
                     }
                 }
-                if (!hadShowOptionalStats) {
-                    state.showOptionalStats = inferShowOptionalStats(state);
-                }
-                (state.tiles || []).forEach(normalizeTileMetadata);
-                return state;
+                if (!hadShowOptionalStats) state.showOptionalStats = inferShowOptionalStats(state);
+                return normalizeStateForShadowRules(state);
             } catch (e) {
                 console.error("Failed to parse saved state", e);
             }
@@ -275,6 +342,7 @@ export class DataManager {
     }
 
     updateStat(statName, value) {
+        if (!Object.prototype.hasOwnProperty.call(DEFAULT_STATE.stats, statName)) return;
         this.state.stats[statName] = value;
         this.saveState();
     }
@@ -360,9 +428,7 @@ export class DataManager {
                 if (newState.enMax === undefined) newState.enMax = newState.en || 10;
                 if (newState.rxMax === undefined) newState.rxMax = newState.rx || 10;
                 if (newState.sh === undefined) newState.sh = 0;
-                if (newState.showOptionalStats === undefined) {
-                    newState.showOptionalStats = inferShowOptionalStats(newState);
-                }
+                if (newState.showOptionalStats === undefined) newState.showOptionalStats = inferShowOptionalStats(newState);
                 // Vital bonuses backward compat
                 ['hpTemp','hpPerm','enTemp','enPerm','rxTemp','rxPerm','shTemp','shPerm'].forEach(k => {
                     if (newState[k] === undefined) newState[k] = 0;
@@ -373,6 +439,7 @@ export class DataManager {
                     if (t.xpCost === undefined) t.xpCost = 0;
                     normalizeTileMetadata(t);
                 });
+                normalizeStateForShadowRules(newState);
                 
                 if (overwrite) {
                     this.state = newState;

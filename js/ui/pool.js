@@ -1,9 +1,10 @@
-import { escapeHtml, isHitchedTile, parseDiceInput, getDiceValidationMessage } from '../pool.js';
+import { adjustAberrationForShadowUse, escapeHtml, isHitchedTile, parseDiceInput, getDiceValidationMessage } from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { showResults } from './resolution.js';
 import { renderCards } from './cards.js';
 import { updateShadowMax } from './vitals.js';
+import { renderRulesReview } from './rulesReview.js';
 
 let dataManager;
 let poolEngine;
@@ -108,6 +109,14 @@ function applyResourceCosts(resourceCosts = []) {
     dataManager.saveState();
     els.valEn.value = dataManager.state.en;
     return true;
+}
+
+function applyAberrationForShadowUse(shadowUse) {
+    if (!shadowUse) return;
+    dataManager.state.aberration = adjustAberrationForShadowUse(dataManager.state.aberration, shadowUse);
+    dataManager.saveState();
+    updateShadowMax();
+    renderRulesReview();
 }
 
 export function renderChainOptions(chainOptions = []) {
@@ -324,6 +333,7 @@ export function executeVirtualRoll() {
     result.appliedTagBonuses = appliedTagBonuses;
     result.ammoOptions = getAmmoResolutionOptions(res.calledTileIds || []);
     showResults(result);
+    applyAberrationForShadowUse(res.shadowUse);
     processBurns();
 }
 
@@ -372,6 +382,7 @@ export function executeManualCalculate() {
     result.appliedTagBonuses = appliedTagBonuses;
     result.ammoOptions = getAmmoResolutionOptions(res.calledTileIds || []);
     showResults(result);
+    applyAberrationForShadowUse(res.shadowUse);
     processBurns();
 }
 

@@ -6,7 +6,11 @@ import {
     parseDiceInput,
     getDiceValidationMessage,
     formatTagLimitStatus,
-    tagLimitErrorMessage
+    tagLimitErrorMessage,
+    getTileBoxes,
+    getTileColorsFromBoxes,
+    serializeTileBoxes,
+    validateShadowTags
 } from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
@@ -94,6 +98,44 @@ function getFormGearSubtype() {
 function getFormExoticSkill() {
     if (document.getElementById('tile-type').value !== 'Skill') return null;
     return normalizeExoticSkill(document.getElementById('tile-exotic-skill').value);
+}
+
+function isShadowBoxValue(value) {
+    return value === 'Qi' || value === 'Id';
+}
+
+function syncTileBoxResourceVisibility() {
+    document.querySelectorAll('.tile-box-type').forEach(typeSelect => {
+        const index = typeSelect.dataset.boxIndex;
+        const resourceSelect = document.querySelector(`.tile-box-resource[data-box-index="${index}"]`);
+        if (!resourceSelect) return;
+        const isShadow = isShadowBoxValue(typeSelect.value);
+        resourceSelect.style.display = isShadow ? 'block' : 'none';
+        if (!isShadow) resourceSelect.value = '';
+    });
+}
+
+function getFormBoxes() {
+    return Array.from(document.querySelectorAll('.tile-box-type')).map(typeSelect => {
+        const value = typeSelect.value;
+        const index = typeSelect.dataset.boxIndex;
+        const resource = document.querySelector(`.tile-box-resource[data-box-index="${index}"]`)?.value || '';
+        if (isShadowBoxValue(value)) return { type: 'shadow', kind: value, resource };
+        if (value) return { type: 'color', color: value };
+        return null;
+    }).filter(Boolean);
+}
+
+function setFormBoxes(boxes = []) {
+    const normalized = serializeTileBoxes(boxes);
+    document.querySelectorAll('.tile-box-type').forEach(typeSelect => {
+        const index = parseInt(typeSelect.dataset.boxIndex, 10);
+        const box = normalized[index] || null;
+        typeSelect.value = box ? (box.type === 'shadow' ? box.kind : box.color) : '';
+        const resourceSelect = document.querySelector(`.tile-box-resource[data-box-index="${index}"]`);
+        if (resourceSelect) resourceSelect.value = box?.type === 'shadow' ? box.resource || '' : '';
+    });
+    syncTileBoxResourceVisibility();
 }
 
 function populateWeaponTemplates() {
@@ -399,17 +441,28 @@ export function init(deps) {
         }
         const { xp, unknownTags } = poolEngine.estimateTileXpDetails(diceArray, currentFormTags, getFormArmorType(), {
             weapon: getFormWeapon(),
-            exoticSkill: getFormExoticSkill()
+            exoticSkill: getFormExoticSkill(),
+            boxes: getFormBoxes()
         });
         els.tileXp.value = xp;
         renderXpEstimateNote(unknownTags);
+    });
+
+    document.querySelectorAll('.tile-box-type').forEach(select => {
+        select.addEventListener('change', () => {
+            syncTileBoxResourceVisibility();
+            renderRulesReview();
+        });
+    });
+    document.querySelectorAll('.tile-box-resource').forEach(select => {
+        select.addEventListener('change', renderRulesReview);
     });
 }
 
 export function openModal(tile = null) {
     els.modal.classList.add('active');
     els.form.reset();
-    document.querySelectorAll('.color-cb').forEach(cb => cb.checked = false);
+    setFormBoxes([]);
     currentFormTags = [];
     els.tagCustomInput.style.display = 'none';
     renderXpEstimateNote([]);
@@ -458,10 +511,7 @@ export function openModal(tile = null) {
             currentFormTags = String(tile.tags).split(',').map(t => t.trim()).filter(Boolean);
         }
         
-        (tile.colors || []).forEach(c => {
-            const cb = document.querySelector(`.color-cb[value="${c}"]`);
-            if (cb) cb.checked = true;
-        });
+        setFormBoxes(getTileBoxes(tile));
         els.tileXp.value = tile.xpCost || 0;
         els.btnDelete.style.display = 'inline-block';
     } else {
@@ -484,6 +534,7 @@ export function openModal(tile = null) {
         document.getElementById('tile-is-spellcast').checked = false;
         exoticSkill.value = '';
         document.getElementById('tile-description').value = '';
+        setFormBoxes([]);
         els.tileXp.value = 0;
         els.btnDelete.style.display = 'none';
     }
@@ -544,14 +595,20 @@ export function saveTileFromForm() {
     const gearSubtype = getFormGearSubtype();
     const isAmmo = type === 'Gear' && gearSubtype === 'Ammo';
     
-    const checkedColors = Array.from(document.querySelectorAll('.color-cb:checked')).map(cb => cb.value);
+    const boxes = getFormBoxes();
+    const checkedColors = getTileColorsFromBoxes(boxes);
 
-    if (!isAmmo && checkedColors.length !== 2) {
-        alert('Please select exactly 2 colors.');
+    if (!isAmmo && boxes.length !== 2) {
+        alert('Please select exactly 2 tile boxes.');
         return;
     }
-    if (isAmmo && ![0, 2].includes(checkedColors.length)) {
-        alert('Ammo can have no colors or exactly 2 colors.');
+    if (isAmmo && ![0, 2].includes(boxes.length)) {
+        alert('Ammo can have no boxes or exactly 2 boxes.');
+        return;
+    }
+    const missingShadowResource = boxes.find(box => box.type === 'shadow' && !box.resource);
+    if (missingShadowResource) {
+        alert(`${missingShadowResource.kind} boxes must choose Health, Energy, or Reflex.`);
         return;
     }
 
@@ -596,6 +653,13 @@ export function saveTileFromForm() {
         isBurnt: existingTile?.isBurnt || false,
         isBuried: existingTile?.isBuried || false
     };
+    tile.boxes = boxes;
+
+    const shadowTagIssues = validateShadowTags(tile);
+    if (shadowTagIssues.length > 0) {
+        alert(shadowTagIssues.map(issue => issue.message).join('\n'));
+        return;
+    }
 
     if (id) {
         dataManager.updateTile(tile);

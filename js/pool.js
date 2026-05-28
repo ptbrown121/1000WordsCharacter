@@ -1,5 +1,16 @@
 import { STAT_COLORS, VALID_DICE } from './data.js';
 
+export const ADVANCEABLE_STATS = ['BODY', 'POWER', 'SOUL', 'FOCUS', 'MIND', 'SPEED'];
+export const NORMAL_COLORS = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
+export const SHADOW_KINDS = ['Qi', 'Id'];
+export const NORMAL_RESOURCE_KEYS = ['hp', 'en', 'rx'];
+export const RESOURCE_LABELS = {
+    hp: 'Health',
+    en: 'Energy',
+    rx: 'Reflex',
+    sh: 'Shadow'
+};
+
 // ---------------------------------------------------------------------------
 // Shared helpers (used by app.js and spellBuilder.js).
 // Kept here so the rules engine, UI, and spell wizard agree on a single
@@ -197,9 +208,13 @@ const CONTEXTUAL_TAG_BONUSES = {
 const RESOURCE_COLORS = {
     hp: ['Red', 'Orange'],
     en: ['Green', 'Yellow'],
-    rx: ['Blue', 'Purple'],
-    sh: ['Black', 'White']
+    rx: ['Blue', 'Purple']
 };
+
+const COLOR_RESOURCE = Object.fromEntries(
+    Object.entries(RESOURCE_COLORS)
+        .flatMap(([resource, colors]) => colors.map(color => [color, resource]))
+);
 
 const RESOURCE_TAGS = {
     tough: 'hp',
@@ -237,13 +252,11 @@ const TAG_XP_CATALOG = new Map(Object.entries({
     fast: 2,
     fireproof: 2,
     gizmo: 4,
-    gloam: 2,
     hidden: 2,
     implant: 2,
     ironclad: 2,
     keen: 2,
     knack: 2,
-    light: 2,
     little: 2,
     loose: 2,
     machine: 2,
@@ -270,7 +283,11 @@ const TAG_XP_CATALOG = new Map(Object.entries({
     vital: 2,
     wired: 2,
     zenith: 4,
-    adamant: 2
+    adamant: 2,
+    day: 2,
+    dawn: 2,
+    dusk: 2,
+    terminator: 2
 }));
 
 const CRIT_SHIELD_XP = new Map(Object.entries({
@@ -368,6 +385,221 @@ function normalizeMechanicalTag(tag) {
         .replace(/^(build|detail|shield)\s*:\s*/i, '')
         .trim()
         .toLowerCase();
+}
+
+export function normalizeShadowKind(kind) {
+    const value = String(kind || '').trim().toLowerCase();
+    if (value === 'qi' || value === 'white') return 'Qi';
+    if (value === 'id' || value === 'black') return 'Id';
+    return '';
+}
+
+export function normalizeResourceKey(resource) {
+    const value = String(resource || '').trim().toLowerCase();
+    if (['hp', 'health', 'red', 'orange'].includes(value)) return 'hp';
+    if (['en', 'energy', 'green', 'yellow'].includes(value)) return 'en';
+    if (['rx', 'reflex', 'blue', 'purple'].includes(value)) return 'rx';
+    return '';
+}
+
+function normalizeTileBox(box) {
+    if (!box || typeof box !== 'object') return null;
+
+    const shadowKind = normalizeShadowKind(box.kind || box.shadowKind || box.type);
+    if (shadowKind) {
+        return {
+            type: 'shadow',
+            kind: shadowKind,
+            resource: normalizeResourceKey(box.resource || box.normalResource || box.contributesTo)
+        };
+    }
+
+    const color = String(box.color || box.type || '').trim();
+    if (NORMAL_COLORS.includes(color)) return { type: 'color', color };
+    return null;
+}
+
+export function getTileBoxes(tile) {
+    if (!tile) return [];
+
+    if (Array.isArray(tile.boxes) && tile.boxes.length > 0) {
+        return tile.boxes.map(normalizeTileBox).filter(Boolean).slice(0, 2);
+    }
+
+    return (tile.colors || []).map(color => {
+        const shadowKind = normalizeShadowKind(color);
+        if (shadowKind) return { type: 'shadow', kind: shadowKind, resource: '' };
+        return NORMAL_COLORS.includes(color) ? { type: 'color', color } : null;
+    }).filter(Boolean).slice(0, 2);
+}
+
+export function serializeTileBoxes(boxes = []) {
+    return boxes.map(normalizeTileBox).filter(Boolean).slice(0, 2);
+}
+
+export function getTileColorsFromBoxes(boxes = []) {
+    return serializeTileBoxes(boxes).map(box => box.type === 'shadow' ? box.kind : box.color);
+}
+
+export function getTileShadowBoxes(tile) {
+    return getTileBoxes(tile).filter(box => box.type === 'shadow');
+}
+
+export function getTileShadowKinds(tile) {
+    return [...new Set(getTileShadowBoxes(tile).map(box => box.kind))];
+}
+
+export function tileHasShadowKind(tile, kind) {
+    return getTileShadowBoxes(tile).some(box => box.kind === kind);
+}
+
+export function tileUsesShadow(tile) {
+    return getTileShadowBoxes(tile).length > 0;
+}
+
+export function tileMatchesCallColor(tile, color) {
+    if (!NORMAL_COLORS.includes(color)) return false;
+    return getTileBoxes(tile).some(box => {
+        if (box.type === 'color') return box.color === color;
+        return box.type === 'shadow' && SHADOW_KINDS.includes(box.kind);
+    });
+}
+
+function getTilesShadowUse(tiles = []) {
+    const kinds = new Set();
+    tiles.forEach(tile => getTileShadowKinds(tile).forEach(kind => kinds.add(kind)));
+    return kinds;
+}
+
+export function validateShadowUseForCheck(tiles = []) {
+    const kinds = getTilesShadowUse(tiles);
+    if (kinds.has('Qi') && kinds.has('Id')) {
+        return {
+            valid: false,
+            kind: 'mixed',
+            error: 'A check can include Qi tiles or Id tiles, but not both.'
+        };
+    }
+
+    return {
+        valid: true,
+        kind: kinds.has('Qi') ? 'Qi' : kinds.has('Id') ? 'Id' : null,
+        error: null
+    };
+}
+
+export function adjustAberrationForShadowUse(currentAberration, shadowKind) {
+    const current = parseInt(currentAberration, 10) || 0;
+    if (shadowKind === 'Qi') return current + 1;
+    if (shadowKind === 'Id') return current - 1;
+    return current;
+}
+
+export function getShadowTagCounts(tiles = []) {
+    const counts = { day: 0, night: 0, dawn: 0, dusk: 0, terminator: 0 };
+
+    tiles.forEach(tile => {
+        if (tile?.isBuried) return;
+        tileTagList(tile).forEach(tag => {
+            const baseTag = getMechanicalBaseTag(normalizeTagForXp(tag));
+            if (counts[baseTag] !== undefined) counts[baseTag] += 1;
+        });
+    });
+
+    return counts;
+}
+
+export function classifyAberration(aberration = 0, maxShadow = 0, tagCounts = {}) {
+    const value = parseInt(aberration, 10) || 0;
+    const max = Math.max(0, parseInt(maxShadow, 10) || 0);
+    const dusk = Math.max(0, parseInt(tagCounts.dusk, 10) || 0);
+    const dawn = Math.max(0, parseInt(tagCounts.dawn, 10) || 0);
+    const terminator = Math.max(0, parseInt(tagCounts.terminator, 10) || 0);
+    const states = new Set();
+
+    if (Math.abs(value) <= terminator) states.add('Neutral');
+    if (value >= 1 - dusk) states.add('Rising');
+    if (value <= -1 + dawn) states.add('Falling');
+    if (value > max) states.add('Risen Aberrant');
+    if (value < -max) states.add('Fallen Aberrant');
+
+    if (value === 0) states.add('Neutral');
+
+    return Array.from(states);
+}
+
+export function formatAberration(aberration = 0, maxShadow = 0, tagCounts = {}) {
+    const value = parseInt(aberration, 10) || 0;
+    const states = classifyAberration(value, maxShadow, tagCounts);
+    const rank = Math.abs(value);
+    const base = value > 0 ? `Rising ${rank}` : value < 0 ? `Falling ${rank}` : 'Neutral 0';
+    const combined = states.length ? states.join(' / ') : 'Unaligned';
+    return `${base} (${combined})`;
+}
+
+export const SHADOW_ABILITIES = [
+    { id: 'qi-test', side: 'Qi', tier: 'Neutral/Rising', label: 'Spend 1 Shadow to add max Shadow to a test.' },
+    { id: 'qi-color', side: 'Qi', tier: 'Neutral/Rising', label: 'Spend 1 Shadow to add a color to a tile for one check.' },
+    { id: 'qi-heal', side: 'Qi', tier: 'Rising', label: 'Spend 1 Shadow to touch-heal any target, restoring max Shadow to 1 resource.' },
+    { id: 'qi-soak', side: 'Qi', tier: 'Rising', label: 'Spend 1 Shadow to give any target their Aberration rank as Soak for one round.' },
+    { id: 'qi-add-reach', side: 'Qi', tier: 'Rising', label: 'Spend 1 Shadow to give an Add to all targets within Reach range.' },
+    { id: 'qi-risen-blast', side: 'Qi', tier: 'Risen Aberrant', label: 'Risen Blast Zone: on your test, all targets heal 1 standard resource each; dice above d6 are suppressed 1 step.' },
+    { id: 'id-impact', side: 'Id', tier: 'Neutral/Falling', label: 'Spend 1 Shadow to add max Shadow to impact.' },
+    { id: 'id-press', side: 'Id', tier: 'Neutral/Falling', label: 'Spend 1 Shadow to pay for a Press.' },
+    { id: 'id-drain', side: 'Id', tier: 'Falling', label: 'Spend 1 Shadow to touch-drain any target, leaching Aberration rank from Health.' },
+    { id: 'id-reroll', side: 'Id', tier: 'Falling', label: 'Spend 1 Shadow to let any target reroll all dice on a check.' },
+    { id: 'id-haywire', side: 'Id', tier: 'Falling', label: 'Spend 1 Shadow to force all targets within Reach range to Haywire.' },
+    { id: 'id-fallen-blast', side: 'Id', tier: 'Fallen Aberrant', label: 'Fallen Blast Zone: on your test, all targets lose 1 standard resource each; dice above d6 are boosted 1 step.' }
+];
+
+export function getAvailableShadowAbilities(aberration = 0, maxShadow = 0, tagCounts = {}) {
+    const states = classifyAberration(aberration, maxShadow, tagCounts);
+    const has = (state) => states.includes(state);
+
+    return SHADOW_ABILITIES.filter(ability => {
+        if (ability.side === 'Qi' && ability.tier === 'Neutral/Rising') return has('Neutral') || has('Rising');
+        if (ability.side === 'Qi' && ability.tier === 'Rising') return has('Rising');
+        if (ability.side === 'Qi' && ability.tier === 'Risen Aberrant') return has('Risen Aberrant');
+        if (ability.side === 'Id' && ability.tier === 'Neutral/Falling') return has('Neutral') || has('Falling');
+        if (ability.side === 'Id' && ability.tier === 'Falling') return has('Falling');
+        if (ability.side === 'Id' && ability.tier === 'Fallen Aberrant') return has('Fallen Aberrant');
+        return false;
+    });
+}
+
+export function getAberrationRank(aberration = 0) {
+    return Math.abs(parseInt(aberration, 10) || 0);
+}
+
+export function validateShadowTags(tile) {
+    const issues = [];
+    const hasQi = tileHasShadowKind(tile, 'Qi');
+    const hasId = tileHasShadowKind(tile, 'Id');
+    const hasAnyShadow = hasQi || hasId;
+
+    tileTagList(tile).forEach(tag => {
+        const baseTag = getMechanicalBaseTag(normalizeTagForXp(tag));
+        if (baseTag === 'day' && !hasQi) {
+            issues.push({ tag, message: 'Day requires a Qi box.' });
+        } else if (baseTag === 'night' && !hasId) {
+            issues.push({ tag, message: 'Night requires an Id box.' });
+        } else if (['dusk', 'dawn', 'terminator'].includes(baseTag) && !hasAnyShadow) {
+            issues.push({ tag, message: `${baseTag[0].toUpperCase()}${baseTag.slice(1)} requires a Qi or Id box.` });
+        } else if (['light', 'gloam'].includes(baseTag)) {
+            issues.push({ tag, message: `${tag} is from the old Shadow rules and is no longer offered for new builds.` });
+        }
+    });
+
+    getTileShadowBoxes(tile).forEach((box, index) => {
+        if (!box.resource) {
+            issues.push({
+                tag: box.kind,
+                message: `${box.kind} box ${index + 1} must choose Health, Energy, or Reflex.`
+            });
+        }
+    });
+
+    return issues;
 }
 
 function getTagName(tag) {
@@ -651,6 +883,9 @@ export class PoolEngine {
         }
 
         xp += getExoticSkillBaseXp(options.exoticSkill);
+        xp += serializeTileBoxes(options.boxes || [])
+            .filter(box => box.type === 'shadow')
+            .length * 2;
 
         return { xp: Math.max(0, xp), unknownTags };
     }
@@ -665,11 +900,14 @@ export class PoolEngine {
         tiles.forEach(tile => {
             if (tile.isBuried) return;
             if (tile.gearSubtype === 'Ammo') return;
-            const colors = tile.colors || [];
-            Object.entries(RESOURCE_COLORS).forEach(([resource, resourceColors]) => {
-                colors.forEach(color => {
-                    if (resourceColors.includes(color)) maxes[resource] += 1;
-                });
+            getTileBoxes(tile).forEach(box => {
+                if (box.type === 'color') {
+                    const resource = COLOR_RESOURCE[box.color];
+                    if (resource) maxes[resource] += 1;
+                } else if (box.type === 'shadow') {
+                    if (NORMAL_RESOURCE_KEYS.includes(box.resource)) maxes[box.resource] += 1;
+                    maxes.sh += 1;
+                }
             });
 
             const tileSteps = this.calculateSteps(tile.dice || []);
@@ -686,6 +924,12 @@ export class PoolEngine {
     calculateShadowMax(statsOrTiles, maybeTiles) {
         const tiles = Array.isArray(statsOrTiles) ? statsOrTiles : (maybeTiles || []);
         return this.calculateResourceMaxes(tiles).sh;
+    }
+
+    calculateStatXp(stats = {}) {
+        return ADVANCEABLE_STATS.reduce((sum, stat) => {
+            return sum + this.calculateOptimalXpCost(this.parseDiceString(stats[stat] || ''));
+        }, 0);
     }
 
     getUnavailableReason(tile) {
@@ -717,6 +961,7 @@ export class PoolEngine {
         let error = null;
         const activeCallColors = [...new Set(callColors.filter(Boolean))];
         const disabledChainIds = options.disabledChainIds || new Set();
+        const usedTiles = [];
         const buildResult = (overrides = {}) => ({
             dice: pool,
             adds,
@@ -725,6 +970,7 @@ export class PoolEngine {
             chainOptions,
             resourceCosts,
             calledTileIds,
+            shadowUse: null,
             error: null,
             ...overrides
         });
@@ -742,7 +988,7 @@ export class PoolEngine {
             if (tiles.some(tile => !tile)) return [];
 
             return activeCallColors.filter(color =>
-                tiles.every(tile => (tile.colors || []).includes(color))
+                tiles.every(tile => tileMatchesCallColor(tile, color))
             );
         };
 
@@ -777,7 +1023,7 @@ export class PoolEngine {
             }
             
             // Color check
-            const matchesCall = activeCallColors.some(c => tile.colors.includes(c));
+            const matchesCall = activeCallColors.some(c => tileMatchesCallColor(tile, c));
             if (!matchesCall) {
                 if (isCallTile) {
                     error = `Call Tile '${tile.name}' does not match any Call Colors.`;
@@ -788,6 +1034,7 @@ export class PoolEngine {
             }
 
             calledTileIds.push(tile.id);
+            usedTiles.push(tile);
             if (isHitchedTile(tile)) {
                 resourceCosts.push({
                     resource: 'en',
@@ -917,16 +1164,20 @@ export class PoolEngine {
 
             burnTiles.forEach(bt => {
                 bt.dice.forEach(d => pool.push({ source: `Burn (${bt.name})`, die: d }));
+                usedTiles.push(bt);
                 adds += 1;
             });
         }
+
+        const shadowUse = validateShadowUseForCheck(usedTiles);
+        if (!shadowUse.valid) return buildResult({ error: shadowUse.error, shadowUse: shadowUse.kind });
 
         // 4. Validate and Add Extra Dice
         if (extraDice && extraDice.length > 0) {
             extraDice.forEach(d => pool.push({ source: `Extra`, die: d }));
         }
 
-        return buildResult();
+        return buildResult({ shadowUse: shadowUse.kind });
     }
 
     rollDie(dieString) {

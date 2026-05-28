@@ -2,7 +2,7 @@
 // This is safe because all cross-imported symbols are functions that are
 // only called at runtime (inside event handlers or render cycles), never
 // during module evaluation.
-import { escapeHtml, getExoticSkillLabel, isHitchedTile, tileTagList } from '../pool.js';
+import { escapeHtml, getExoticSkillLabel, getTileBoxes, isHitchedTile, RESOURCE_LABELS, tileTagList } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
@@ -150,6 +150,7 @@ export function renderCards() {
             && linkedAmmoTiles.length === 0;
         
         // Gradient background based on 2 colors
+        const boxes = getTileBoxes(tile);
         let c1 = COLOR_HEX[(tile.colors || [])[0]] || '#444';
         let c2 = COLOR_HEX[(tile.colors || [])[1]] || c1;
         div.style.background = `linear-gradient(135deg, ${c1}44, ${c2}44)`;
@@ -178,7 +179,14 @@ export function renderCards() {
 
         div.innerHTML = `
             <div class="tile-badges">
-                ${(tile.colors || []).map(c => `<span class="badge" style="background:${COLOR_HEX[c]}; color:${c==='White'||c==='Yellow'?'black':'white'}">${escapeHtml(c)}</span>`).join('')}
+                ${boxes.map(box => {
+                    const label = box.type === 'shadow'
+                        ? `${box.kind} -> ${RESOURCE_LABELS[box.resource] || 'Resource'}`
+                        : box.color;
+                    const chipColor = box.type === 'shadow' ? COLOR_HEX[box.kind] : COLOR_HEX[box.color];
+                    const textColor = ['Yellow', 'Qi'].includes(box.type === 'shadow' ? box.kind : box.color) ? 'black' : 'white';
+                    return `<span class="badge" style="background:${chipColor}; color:${textColor}">${escapeHtml(label)}</span>`;
+                }).join('')}
                 ${tile.type ? `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">${escapeHtml(String(tile.type).toUpperCase())}</span>` : `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">SKILL</span>`}
                 ${tile.gearSubtype ? `<span class="badge tile-subtype-badge" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);">${escapeHtml(String(tile.gearSubtype).toUpperCase())}</span>` : ''}
                 ${exoticLabel ? `<span class="badge exotic-skill-badge">${escapeHtml(exoticLabel)}</span>` : ''}

@@ -10,9 +10,7 @@
     "SOUL": "d6",
     "FOCUS": "d6",
     "MIND": "d8",
-    "SPEED": "d4",
-    "Id": "0",
-    "Qi": "0"
+    "SPEED": "d4"
   },
   "tiles": [
     {
@@ -26,18 +24,26 @@
     {
       "id": "tile-shadow-cloak",
       "name": "Shadow Cloak",
-      "colors": ["Black", "Green"],
+      "colors": ["Id", "Green"],
+      "boxes": [
+        { "type": "shadow", "kind": "Id", "resource": "rx" },
+        { "type": "color", "color": "Green" }
+      ],
       "dice": ["d6", "d4"],
       "tags": "Hidden, Risky",
-      "xpCost": 5
+      "xpCost": 7
     },
     {
       "id": "tile-assassination-strike",
       "name": "Assassination Strike",
-      "colors": ["Red", "Black"],
+      "colors": ["Red", "Id"],
+      "boxes": [
+        { "type": "color", "color": "Red" },
+        { "type": "shadow", "kind": "Id", "resource": "hp" }
+      ],
       "dice": ["d10"],
       "tags": "Chain Shadow Cloak, Sharp, Vital",
-      "xpCost": 18
+      "xpCost": 20
     },
     {
       "id": "tile-aegis-shield",

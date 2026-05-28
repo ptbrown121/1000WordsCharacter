@@ -28,7 +28,7 @@ A zero-dependency, mobile-first web application designed to digitally manage cha
 
 ### 5. Rest & Resources
 - **Current/Max Tracking:** Track the current and maximum values of Health (HP), Energy (EN), and Reflex (RX).
-- **Shadow (SH):** The Shadow resource is completely dynamic. The engine automatically calculates your maximum Shadow points based on the count of Black/White color slots on your tiles.
+- **Shadow (SH):** The Shadow resource is completely dynamic. Qi / Id tile boxes add one chosen normal resource and one Shadow point; buried tiles stop contributing both.
 - **Global Rest:** A one-click "Rest & Reset" button immediately restores all resources to their maximums and un-burns all tiles in your mosaic.
 
 ### 6. Zero Build Toolchain

@@ -522,8 +522,10 @@ export class SpellBuilder {
         else if (school === 'Augur') colors = ['Blue', 'Orange'];
         else {
             document.querySelectorAll('.spell-color-cb:checked').forEach(cb => colors.push(cb.value));
-            if (colors.length < 2) colors.push('White');
-            if (colors.length < 2) colors.push('Black');
+            if (colors.length !== 2) {
+                alert('Divergent spells must select exactly 2 normal colors.');
+                return;
+            }
         }
 
         // Tags string

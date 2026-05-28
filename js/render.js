@@ -26,6 +26,7 @@ export function renderAll() {
     els.valRx.value = dataManager.state.rx ?? 0;
     els.valRxMax.innerText = getEffectiveMax(dataManager.state, 'rx');
     els.valSh.value = dataManager.state.sh || 0;
+    if (els.valAberration) els.valAberration.value = dataManager.state.aberration || 0;
 
     // Temp badges
     renderTempBadge(els.hpTempBadge, dataManager.state.hpTemp);

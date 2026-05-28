@@ -1,4 +1,4 @@
-import { parseDiceInput, parseDiceString, getDiceValidationMessage } from '../pool.js';
+import { ADVANCEABLE_STATS, parseDiceInput, getDiceValidationMessage } from '../pool.js';
 import { els } from '../els.js';
 import { updatePoolPreview } from './pool.js';
 import { updateShadowMax } from './vitals.js';
@@ -18,13 +18,15 @@ export function init(deps) {
         updateXpTracker();
     });
 
-    els.toggleOptionalStats.addEventListener('change', (e) => {
-        dataManager.state.showOptionalStats = e.target.checked;
-        dataManager.saveState();
-        renderOptionalStatsVisibility();
-        renderCards();
-        updatePoolPreview();
-    });
+    if (els.toggleOptionalStats) {
+        els.toggleOptionalStats.addEventListener('change', (e) => {
+            dataManager.state.showOptionalStats = e.target.checked;
+            dataManager.saveState();
+            renderOptionalStatsVisibility();
+            renderCards();
+            updatePoolPreview();
+        });
+    }
 
     // Stats
     els.statSelects.forEach(sel => {
@@ -54,8 +56,8 @@ export function updateXpTracker() {
     // 1. Stats XP - charged via the same cascade formula as tile dice
     // (rulebook System Concept-Dice chart: each advance costs
     // {steps on the advanced die} + {count of other dice}).
-    Object.values(dataManager.state.stats).forEach(str => {
-        spent += poolEngine.calculateOptimalXpCost(parseDiceString(str));
+    ADVANCEABLE_STATS.forEach(stat => {
+        spent += poolEngine.calculateOptimalXpCost(poolEngine.parseDiceString(dataManager.state.stats[stat] || ''));
     });
 
     // 2. Tiles XP
@@ -69,26 +71,23 @@ export function updateXpTracker() {
 }
 
 export function renderOptionalStatsVisibility() {
-    const showOptionalStats = Boolean(dataManager.state.showOptionalStats);
+    if (els.toggleOptionalStats) els.toggleOptionalStats.checked = false;
 
-    els.toggleOptionalStats.checked = showOptionalStats;
     els.optionalStatBoxes.forEach(box => {
-        box.style.display = showOptionalStats ? '' : 'none';
+        box.style.display = 'none';
     });
     
     if (els.shadowPool) {
-        els.shadowPool.style.display = showOptionalStats ? '' : 'none';
+        els.shadowPool.style.display = '';
     }
 
     els.optionalCallOptions.forEach(option => {
-        option.hidden = !showOptionalStats;
+        option.hidden = true;
     });
 
-    if (!showOptionalStats) {
-        [els.callColor1, els.callColor2].forEach(select => {
-            if (select.value === 'Black' || select.value === 'White') {
-                select.value = '';
-            }
-        });
-    }
+    [els.callColor1, els.callColor2].forEach(select => {
+        if (select && (select.value === 'Black' || select.value === 'White' || select.value === 'Qi' || select.value === 'Id')) {
+            select.value = '';
+        }
+    });
 }

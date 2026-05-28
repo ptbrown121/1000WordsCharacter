@@ -8,7 +8,11 @@ import {
     getWeaponTemplateTags,
     getWeaponTemplatesByCategory,
     getHitchValue,
-    isHitchedTile
+    isHitchedTile,
+    adjustAberrationForShadowUse,
+    classifyAberration,
+    getAvailableShadowAbilities,
+    validateShadowTags
 } from '../js/pool.js';
 
 const engine = new PoolEngine();
@@ -292,13 +296,27 @@ describe('calculateResourceMaxes', () => {
     it('adds 1 per matching color slot, plus die-steps for Tough/Vital/Quick', () => {
         const tiles = [
             { colors: ['Red', 'Green'], dice: ['d6'], tags: 'Tough' }, // hp+1, en+1, Tough -> hp += 2 steps
-            { colors: ['Blue', 'Black'], dice: ['d4'], tags: '' }      // rx+1, sh+1
+            {
+                boxes: [
+                    { type: 'color', color: 'Blue' },
+                    { type: 'shadow', kind: 'Id', resource: 'rx' }
+                ],
+                dice: ['d4'],
+                tags: ''
+            }      // rx+2, sh+1
         ];
-        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 3, en: 1, rx: 1, sh: 1 });
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 3, en: 1, rx: 2, sh: 1 });
     });
 
-    it('calculateShadowMax counts Black/White slots', () => {
-        const tiles = [{ colors: ['Black', 'White'], dice: ['d4'], tags: '' }];
+    it('calculateShadowMax counts Qi/Id boxes', () => {
+        const tiles = [{
+            boxes: [
+                { type: 'shadow', kind: 'Qi', resource: 'hp' },
+                { type: 'shadow', kind: 'Id', resource: 'en' }
+            ],
+            dice: ['d4'],
+            tags: ''
+        }];
         assert.equal(engine.calculateShadowMax(tiles), 2);
     });
 
@@ -316,6 +334,143 @@ describe('calculateResourceMaxes', () => {
             { colors: ['Blue', 'Purple'], dice: ['d4'], tags: [] }
         ];
         assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 0, en: 0, rx: 2, sh: 0 });
+    });
+});
+
+describe('new Shadow resources and XP', () => {
+    it('keeps ordinary non-Shadow resource math unchanged', () => {
+        const tiles = [{ colors: ['Red', 'Green'], dice: ['d6'], tags: [] }];
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 1, en: 1, rx: 0, sh: 0 });
+        assert.equal(engine.calculateShadowMax(tiles), 0);
+    });
+
+    it('a Qi box assigned to Energy contributes Energy plus Shadow', () => {
+        const tiles = [{
+            boxes: [
+                { type: 'shadow', kind: 'Qi', resource: 'en' },
+                { type: 'color', color: 'Red' }
+            ],
+            dice: ['d4'],
+            tags: []
+        }];
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 1, en: 1, rx: 0, sh: 1 });
+    });
+
+    it('an Id box assigned to Reflex contributes Reflex plus Shadow', () => {
+        const tiles = [{
+            boxes: [{ type: 'shadow', kind: 'Id', resource: 'rx' }],
+            dice: ['d4'],
+            tags: []
+        }];
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 0, en: 0, rx: 1, sh: 1 });
+    });
+
+    it('buried Qi/Id boxes contribute neither normal resources nor Shadow', () => {
+        const tiles = [{
+            boxes: [
+                { type: 'shadow', kind: 'Qi', resource: 'en' },
+                { type: 'shadow', kind: 'Id', resource: 'rx' }
+            ],
+            dice: ['d4'],
+            tags: [],
+            isBuried: true
+        }];
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 0, en: 0, rx: 0, sh: 0 });
+    });
+
+    it('charges 2 XP per Qi or Id box and does not include them in stat XP', () => {
+        assert.equal(engine.estimateTileXp(['d4'], [], null, {
+            boxes: [{ type: 'shadow', kind: 'Qi', resource: 'hp' }]
+        }), 3);
+        assert.equal(engine.estimateTileXp(['d4'], [], null, {
+            boxes: [{ type: 'shadow', kind: 'Id', resource: 'rx' }]
+        }), 3);
+        assert.equal(engine.calculateStatXp({ BODY: 'd6', Qi: 'd16', Id: 'd16' }), 3);
+    });
+});
+
+describe('new Shadow check validation and Aberration', () => {
+    const stats = { BODY: 'd6' };
+    const qiTile = {
+        id: 'qi',
+        name: 'Bright Step',
+        boxes: [{ type: 'shadow', kind: 'Qi', resource: 'en' }],
+        dice: ['d4'],
+        tags: []
+    };
+    const idTile = {
+        id: 'id',
+        name: 'Dark Step',
+        boxes: [{ type: 'shadow', kind: 'Id', resource: 'rx' }],
+        dice: ['d4'],
+        tags: []
+    };
+
+    it('allows Qi-only and Id-only pools', () => {
+        assert.equal(engine.compilePool(['Red'], stats, qiTile, [], [qiTile], []).error, null);
+        assert.equal(engine.compilePool(['Red'], stats, idTile, [], [idTile], []).error, null);
+    });
+
+    it('rejects pools that mix Qi and Id tiles', () => {
+        const res = engine.compilePool(['Red'], stats, qiTile, [idTile], [qiTile, idTile], []);
+        assert.match(res.error, /Qi tiles or Id tiles, but not both/i);
+    });
+
+    it('moves Aberration toward Risen or Fallen by check use', () => {
+        assert.equal(adjustAberrationForShadowUse(0, 'Qi'), 1);
+        assert.equal(adjustAberrationForShadowUse(1, 'Id'), 0);
+        assert.equal(adjustAberrationForShadowUse(0, 'Id'), -1);
+    });
+});
+
+describe('new Shadow alignment and abilities', () => {
+    const ids = (abilities) => abilities.map(ability => ability.id).sort();
+
+    it('classifies baseline Neutral, Rising, Falling, and Aberrant states', () => {
+        assert.deepEqual(classifyAberration(0, 3, {}), ['Neutral']);
+        assert.ok(classifyAberration(1, 3, {}).includes('Rising'));
+        assert.ok(classifyAberration(-1, 3, {}).includes('Falling'));
+        assert.ok(classifyAberration(4, 3, {}).includes('Risen Aberrant'));
+        assert.ok(classifyAberration(-4, 3, {}).includes('Fallen Aberrant'));
+    });
+
+    it('applies Dusk, Dawn, and Terminator boundary modifiers', () => {
+        assert.ok(classifyAberration(1, 3, { terminator: 1 }).includes('Neutral'));
+        assert.ok(classifyAberration(-1, 3, { terminator: 1 }).includes('Neutral'));
+        assert.ok(classifyAberration(-1, 3, { dusk: 2 }).includes('Rising'));
+        assert.ok(classifyAberration(0, 3, { dawn: 1 }).includes('Falling'));
+        assert.deepEqual(classifyAberration(-1, 3, { dusk: 3 }).sort(), ['Falling', 'Rising'].sort());
+    });
+
+    it('returns Neutral 0 abilities from both sides but not stronger side abilities', () => {
+        assert.deepEqual(ids(getAvailableShadowAbilities(0, 3, {})), [
+            'id-impact',
+            'id-press',
+            'qi-color',
+            'qi-test'
+        ].sort());
+    });
+
+    it('returns Rising, Falling, and Aberrant ability sets', () => {
+        assert.ok(ids(getAvailableShadowAbilities(3, 3, {})).includes('qi-heal'));
+        assert.ok(ids(getAvailableShadowAbilities(-3, 3, {})).includes('id-drain'));
+        assert.ok(ids(getAvailableShadowAbilities(4, 3, {})).includes('qi-risen-blast'));
+        assert.ok(ids(getAvailableShadowAbilities(-4, 3, {})).includes('id-fallen-blast'));
+    });
+});
+
+describe('new Shadow tags', () => {
+    it('validates placement requirements', () => {
+        assert.match(validateShadowTags({ colors: ['Red'], tags: ['Day'] })[0].message, /Qi/);
+        assert.match(validateShadowTags({ colors: ['Red'], tags: ['Night'] })[0].message, /Id/);
+        assert.equal(validateShadowTags({ boxes: [{ type: 'shadow', kind: 'Qi', resource: 'hp' }], tags: ['Dusk'] }).length, 0);
+        assert.equal(validateShadowTags({ boxes: [{ type: 'shadow', kind: 'Id', resource: 'rx' }], tags: ['Dawn'] }).length, 0);
+        assert.equal(validateShadowTags({ boxes: [{ type: 'shadow', kind: 'Qi', resource: 'en' }], tags: ['Terminator'] }).length, 0);
+    });
+
+    it('does not offer old Light and Gloam as valid new Shadow behavior', () => {
+        assert.match(validateShadowTags({ boxes: [{ type: 'shadow', kind: 'Qi', resource: 'hp' }], tags: ['Light'] })[0].message, /old Shadow/);
+        assert.match(validateShadowTags({ boxes: [{ type: 'shadow', kind: 'Id', resource: 'rx' }], tags: ['Gloam'] })[0].message, /old Shadow/);
     });
 });
 
