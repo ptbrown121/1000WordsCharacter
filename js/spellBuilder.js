@@ -11,6 +11,11 @@ import {
 
 const SPELL_NORMAL_COLORS = new Set(['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple']);
 const SPELL_SHADOW_KINDS = new Set(['Qi', 'Id']);
+const SPELL_DEFAULT_BOXES = {
+    Twist: [{ type: 'color', color: 'Yellow' }, { type: 'color', color: 'Purple' }],
+    Forge: [{ type: 'color', color: 'Green' }, { type: 'color', color: 'Red' }],
+    Augur: [{ type: 'color', color: 'Blue' }, { type: 'color', color: 'Orange' }]
+};
 
 export class SpellBuilder {
     constructor(dataManager, renderCallback) {
@@ -78,25 +83,27 @@ export class SpellBuilder {
             this.saveSpell();
         });
 
-        document.getElementById('spell-school').addEventListener('change', (e) => {
-            const colorsGroup = document.getElementById('spell-colors-group');
-            if (e.target.value === 'Divergent') {
-                colorsGroup.style.display = 'block';
-            } else {
-                colorsGroup.style.display = 'none';
-            }
-            this.syncShadowResourceControls();
+        document.getElementById('spell-school').addEventListener('change', () => {
+            this.syncColorCustomizationControls();
+            this.calculateXP();
+        });
+        document.getElementById('spell-custom-colors')?.addEventListener('change', () => {
+            this.syncColorCustomizationControls();
             this.calculateXP();
         });
 
         document.querySelectorAll('.spell-color-cb').forEach(cb => {
             cb.addEventListener('change', () => {
                 this.syncShadowResourceControls();
+                this.renderColorCostNote();
                 this.calculateXP();
             });
         });
         document.querySelectorAll('.spell-shadow-resource').forEach(select => {
-            select.addEventListener('change', () => this.calculateXP());
+            select.addEventListener('change', () => {
+                this.renderColorCostNote();
+                this.calculateXP();
+            });
         });
         
         this.tagSelect.addEventListener('change', (e) => {
@@ -280,19 +287,23 @@ export class SpellBuilder {
                 });
             }
             
-            // Restore color checkboxes if divergent
             const school = document.getElementById('spell-school').value;
-            if (school === 'Divergent') {
-                document.getElementById('spell-colors-group').style.display = 'block';
+            const shouldCustomizeColors = school === 'Divergent'
+                || Boolean(tile.spellState['spell-custom-colors'])
+                || this.spellBoxesDifferFromDefault(school, tile);
+            const customColors = document.getElementById('spell-custom-colors');
+            if (customColors) customColors.checked = shouldCustomizeColors;
+            this.syncColorCustomizationControls({ preserveSelection: true });
+            if (this.isCustomColorMode()) {
                 this.restoreSpellBoxes(tile);
             } else {
-                document.getElementById('spell-colors-group').style.display = 'none';
+                this.applyDefaultSpellBoxes();
             }
             
             this.btnDelete.style.display = 'block';
         } else {
             this.btnDelete.style.display = 'none';
-            document.getElementById('spell-colors-group').style.display = 'none';
+            this.syncColorCustomizationControls();
         }
 
         this.renderTags();
@@ -303,13 +314,70 @@ export class SpellBuilder {
     }
 
     resetSpellColorControls() {
+        const customColors = document.getElementById('spell-custom-colors');
+        if (customColors) {
+            customColors.checked = false;
+            customColors.disabled = false;
+        }
         document.querySelectorAll('.spell-color-cb').forEach(cb => {
             cb.checked = false;
         });
         document.querySelectorAll('.spell-shadow-resource').forEach(select => {
             select.value = '';
         });
+        this.syncColorCustomizationControls();
+    }
+
+    getDefaultSpellBoxes(school = document.getElementById('spell-school').value) {
+        return serializeTileBoxes(SPELL_DEFAULT_BOXES[school] || []);
+    }
+
+    isCustomColorMode() {
+        const school = document.getElementById('spell-school').value;
+        return school === 'Divergent' || Boolean(document.getElementById('spell-custom-colors')?.checked);
+    }
+
+    applyDefaultSpellBoxes() {
+        const school = document.getElementById('spell-school').value;
+        const boxes = this.getDefaultSpellBoxes(school);
+        document.querySelectorAll('.spell-color-cb').forEach(cb => {
+            cb.checked = boxes.some(box => box.type === 'color' && box.color === cb.value);
+        });
+        document.querySelectorAll('.spell-shadow-resource').forEach(select => {
+            select.value = '';
+        });
         this.syncShadowResourceControls();
+    }
+
+    syncColorCustomizationControls(options = {}) {
+        const school = document.getElementById('spell-school').value;
+        const customColors = document.getElementById('spell-custom-colors');
+        const colorsGroup = document.getElementById('spell-colors-group');
+        const forcedCustom = school === 'Divergent';
+        if (customColors) {
+            customColors.disabled = forcedCustom;
+            customColors.checked = forcedCustom || Boolean(customColors.checked);
+        }
+
+        const customMode = this.isCustomColorMode();
+        if (colorsGroup) colorsGroup.style.display = customMode ? 'block' : 'none';
+
+        if (!options.preserveSelection) {
+            if (customMode && school !== 'Divergent') {
+                this.applyDefaultSpellBoxes();
+            } else if (!customMode) {
+                document.querySelectorAll('.spell-color-cb').forEach(cb => {
+                    cb.checked = false;
+                });
+                document.querySelectorAll('.spell-shadow-resource').forEach(select => {
+                    select.value = '';
+                });
+                this.syncShadowResourceControls();
+            }
+        }
+
+        this.syncShadowResourceControls();
+        this.renderColorCostNote();
     }
 
     syncShadowResourceControls() {
@@ -337,16 +405,18 @@ export class SpellBuilder {
         this.syncShadowResourceControls();
     }
 
+    spellBoxesDifferFromDefault(school, tile) {
+        if (!SPELL_DEFAULT_BOXES[school]) return true;
+        const boxes = getTileBoxes(tile);
+        const defaultKeys = this.getDefaultSpellBoxes(school).map(box => box.type === 'shadow' ? box.kind : box.color).sort();
+        const tileKeys = boxes.map(box => box.type === 'shadow' ? box.kind : box.color).sort();
+        return defaultKeys.length !== tileKeys.length || defaultKeys.some((key, index) => key !== tileKeys[index]);
+    }
+
     getSpellBoxSelection() {
         const school = document.getElementById('spell-school').value;
-        if (school === 'Twist') {
-            return { boxes: [{ type: 'color', color: 'Yellow' }, { type: 'color', color: 'Purple' }], error: null };
-        }
-        if (school === 'Forge') {
-            return { boxes: [{ type: 'color', color: 'Green' }, { type: 'color', color: 'Red' }], error: null };
-        }
-        if (school === 'Augur') {
-            return { boxes: [{ type: 'color', color: 'Blue' }, { type: 'color', color: 'Orange' }], error: null };
+        if (!this.isCustomColorMode()) {
+            return { boxes: this.getDefaultSpellBoxes(school), error: null };
         }
 
         const boxes = [];
@@ -360,7 +430,7 @@ export class SpellBuilder {
         });
 
         if (boxes.length !== 2) {
-            return { boxes, error: 'Divergent spells must select exactly 2 color boxes.' };
+            return { boxes, error: 'Custom Shadow/Divergent spells must select exactly 2 color boxes.' };
         }
 
         const missingResource = boxes.find(box => box.type === 'shadow' && !box.resource);
@@ -369,6 +439,47 @@ export class SpellBuilder {
         }
 
         return { boxes: serializeTileBoxes(boxes), error: null };
+    }
+
+    getColorBuildFlags(boxes = this.getSpellBoxSelection().boxes) {
+        const school = document.getElementById('spell-school').value;
+        const shadow = boxes.some(box => box.type === 'shadow');
+        let divergent = school === 'Divergent';
+
+        if (!divergent && this.isCustomColorMode()) {
+            const defaultColors = new Set((SPELL_DEFAULT_BOXES[school] || [])
+                .filter(box => box.type === 'color')
+                .map(box => box.color));
+            const normalColors = boxes
+                .filter(box => box.type === 'color')
+                .map(box => box.color);
+            divergent = normalColors.some(color => !defaultColors.has(color));
+        }
+
+        return {
+            shadow,
+            divergent,
+            xp: (shadow ? 2 : 0) + (divergent ? 2 : 0)
+        };
+    }
+
+    renderColorCostNote() {
+        const note = document.getElementById('spell-color-cost-note');
+        if (!note) return;
+
+        if (!this.isCustomColorMode()) {
+            note.textContent = 'Standard school colors.';
+            return;
+        }
+
+        const selection = this.getSpellBoxSelection();
+        const flags = this.getColorBuildFlags(selection.boxes);
+        const labels = [];
+        if (flags.shadow) labels.push('Shadow +2 XP');
+        if (flags.divergent) labels.push('Divergent +2 XP');
+        note.textContent = labels.length > 0
+            ? `Color build: ${labels.join(' + ')} = ${flags.xp} XP.`
+            : 'Color build: standard school colors, 0 XP.';
     }
 
     renderActions() {
@@ -506,9 +617,11 @@ export class SpellBuilder {
     calculateBaseXP() {
         let xp = 0;
 
-        // School
-        const school = document.getElementById('spell-school').value;
-        if (school === 'Divergent') xp += 2;
+        // Color build flags. Shadow and Divergent are independent costs:
+        // e.g. Forge with Red+Qi is Shadow only (+2), while Forge with Blue+Qi
+        // is both Shadow and Divergent (+4).
+        const colorSelection = this.getSpellBoxSelection();
+        xp += this.getColorBuildFlags(colorSelection.boxes).xp;
 
         // Base actions
         this.currentActions.forEach(act => xp += act.xp);
@@ -684,7 +797,9 @@ export class SpellBuilder {
             'spell-custom-tags': document.getElementById('spell-custom-tags').value,
             'spell-unchained': document.getElementById('spell-unchained').checked,
             'spell-chain-target': document.getElementById('spell-chain-target') ? document.getElementById('spell-chain-target').value : '',
+            'spell-custom-colors': Boolean(document.getElementById('spell-custom-colors')?.checked),
             spellBoxes: boxes,
+            colorBuild: this.getColorBuildFlags(boxes),
             tagsList: [...this.currentFormTags],
             // The user-typed details, separate from the auto-generated
             // preview sentence. Saved here so re-editing repopulates only

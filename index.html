@@ -602,8 +602,15 @@
                             <option value="Twist">Twist (Yellow/Purple)</option>
                             <option value="Forge">Forge (Green/Red)</option>
                             <option value="Augur">Augur (Blue/Orange)</option>
-                            <option value="Divergent">Divergent (Custom Colors) [+2 🗱]</option>
+                            <option value="Divergent">Divergent (Custom School) [+2 🗱]</option>
                         </select>
+                    </div>
+                    <div class="form-group" id="spell-custom-colors-container">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal;">
+                            <input type="checkbox" id="spell-custom-colors">
+                            Customize color boxes (Shadow / Divergent)
+                        </label>
+                        <small style="display: block; margin-top: 0.35rem; color: var(--text-secondary); font-size: 0.8rem;">For a Shadow version of Twist, Forge, or Augur, keep that school selected and customize its boxes.</small>
                     </div>
                     <div class="form-group" id="spell-colors-group" style="display: none;">
                         <label>Select 2 Color Boxes</label>
@@ -637,6 +644,7 @@
                                 </select>
                             </label>
                         </div>
+                        <small id="spell-color-cost-note" style="display: block; margin-top: 0.45rem; color: var(--text-secondary); font-size: 0.8rem;">Standard school colors.</small>
                     </div>
 
                     <div class="form-group">
