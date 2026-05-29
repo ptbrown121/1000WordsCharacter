@@ -49,6 +49,15 @@
     box-shadow: 0 0 18px rgba(0, 255, 200, 0.45);
 }
 
+.tile-card.tile-reorder-mode {
+    cursor: grab;
+    touch-action: none;
+}
+
+.tile-card.tile-reorder-mode:active {
+    cursor: grabbing;
+}
+
 .tile-card.selected-call {
     outline: 3px solid white;
     box-shadow: 0 0 15px white;
@@ -228,10 +237,10 @@
 
 .tile-drag-handle {
     align-items: center;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.32);
+    background: rgba(0, 255, 200, 0.16);
+    border: 1px solid rgba(0, 255, 200, 0.46);
     border-radius: 4px;
-    color: white;
+    color: #9fffe8;
     cursor: grab;
     display: inline-flex;
     font-size: 0.6rem;
@@ -246,6 +255,34 @@
 
 .tile-drag-handle:active {
     cursor: grabbing;
+}
+
+.tile-reorder-controls {
+    display: grid;
+    gap: 0.4rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0.55rem;
+    position: relative;
+    z-index: 3;
+}
+
+.btn-tile-move-up,
+.btn-tile-move-down {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.32);
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    min-height: 36px;
+    padding: 0.35rem 0.45rem;
+}
+
+.btn-tile-move-up:disabled,
+.btn-tile-move-down:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
 }
 
 .tile-card.selected-burn {

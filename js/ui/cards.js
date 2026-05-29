@@ -17,6 +17,7 @@ let openTileModalFn;
 let draggedTileId = null;
 let pointerDragState = null;
 let suppressCardClickUntil = 0;
+let reorderMode = false;
 
 function clearDragClasses() {
     document.querySelectorAll('.tile-dragging, .tile-drop-target').forEach(card => {
@@ -30,6 +31,27 @@ function restoreCustomSortControls() {
         els.btnSortDir.dataset.dir = 'asc';
         els.btnSortDir.innerHTML = '\u2193';
     }
+    if (els.ignoreFavoritesSort) els.ignoreFavoritesSort.checked = true;
+}
+
+function syncReorderButton() {
+    if (!els.btnReorderTiles) return;
+    els.btnReorderTiles.classList.toggle('active', reorderMode);
+    els.btnReorderTiles.setAttribute('aria-pressed', reorderMode ? 'true' : 'false');
+    els.btnReorderTiles.textContent = reorderMode ? 'Done' : 'Reorder';
+}
+
+function updateCustomOrder(visibleTileIds, draggedId, targetId) {
+    dataManager.reorderTilesByVisibleMove(visibleTileIds, draggedId, targetId);
+    restoreCustomSortControls();
+    renderCards();
+}
+
+function moveTileByStep(visibleTileIds, tileId, step) {
+    const currentIndex = visibleTileIds.indexOf(tileId);
+    const targetId = visibleTileIds[currentIndex + step];
+    if (!targetId) return;
+    updateCustomOrder(visibleTileIds, tileId, targetId);
 }
 
 export function init(deps) {
@@ -42,6 +64,14 @@ export function init(deps) {
         els.searchTiles.addEventListener('input', () => renderCards());
         if (els.sortTilesBy) els.sortTilesBy.addEventListener('change', () => renderCards());
         if (els.ignoreFavoritesSort) els.ignoreFavoritesSort.addEventListener('change', () => renderCards());
+        if (els.btnReorderTiles) {
+            els.btnReorderTiles.addEventListener('click', () => {
+                reorderMode = !reorderMode;
+                if (reorderMode) restoreCustomSortControls();
+                syncReorderButton();
+                renderCards();
+            });
+        }
         if (els.btnSortDir) {
             els.btnSortDir.addEventListener('click', () => {
                 const dir = els.btnSortDir.dataset.dir === 'asc' ? 'desc' : 'asc';
@@ -84,6 +114,8 @@ export function handleCardClick(tile) {
 
 export function renderCards() {
     els.cardContainer.innerHTML = '';
+    syncReorderButton();
+    els.cardContainer.classList.toggle('card-grid-reorder-mode', reorderMode);
     
     let searchTerm = '';
     if (els.searchTiles) {
@@ -154,8 +186,9 @@ export function renderCards() {
     filteredTiles.forEach(tile => {
         const div = document.createElement('div');
         div.className = 'tile-card';
-        div.draggable = true;
+        div.draggable = reorderMode;
         div.dataset.tileId = tile.id;
+        if (reorderMode) div.classList.add('tile-reorder-mode');
         const tileNameLabel = escapeHtml(tile.name);
         const armorLabel = formatArmorBase(tile.armorType);
         const weaponLabel = formatWeaponBase(tile.weapon);
@@ -200,7 +233,7 @@ export function renderCards() {
 
         div.innerHTML = `
             <div class="tile-badges">
-                <button class="tile-drag-handle" title="Drag ${tileNameLabel} to reorder" aria-label="Drag ${tileNameLabel} to reorder" type="button">Drag</button>
+                ${reorderMode ? `<span class="tile-drag-handle" title="Drag ${tileNameLabel} to reorder">Move</span>` : ''}
                 ${boxes.map(box => {
                     const label = box.type === 'shadow'
                         ? `${box.kind} -> ${RESOURCE_LABELS[box.resource] || 'Resource'}`
@@ -220,6 +253,10 @@ export function renderCards() {
                     <div class="tile-name" style="margin-bottom: 0;">${escapeHtml(tile.name)}</div>
                     <button class="btn-favorite ${tile.isFavorite ? 'active' : ''}" title="Toggle Favorite" aria-label="Toggle Favorite">\u2605</button>
                 </div>
+                ${reorderMode ? `<div class="tile-reorder-controls" aria-label="Reorder ${tileNameLabel}">
+                    <button type="button" class="btn-tile-move-up" aria-label="Move ${tileNameLabel} up">Up</button>
+                    <button type="button" class="btn-tile-move-down" aria-label="Move ${tileNameLabel} down">Down</button>
+                </div>` : ''}
                 <div class="tile-tags">${escapeHtml(tileTagList(tile).join(', '))}</div>
                 ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">\ud83d\udee1\ufe0f ${escapeHtml(armorLabel)}</div>` : ''}
                 ${weaponLabel ? `<div class="tile-weapon" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(weaponLabel)}</div>` : ''}
@@ -236,10 +273,26 @@ export function renderCards() {
             ${actionButtons}
         `;
 
-        const dragHandle = div.querySelector('.tile-drag-handle');
-        if (dragHandle) {
-            dragHandle.addEventListener('click', (e) => e.stopPropagation());
-            dragHandle.addEventListener('pointerdown', (e) => {
+        if (reorderMode) {
+            const btnMoveUp = div.querySelector('.btn-tile-move-up');
+            const btnMoveDown = div.querySelector('.btn-tile-move-down');
+            if (btnMoveUp) {
+                btnMoveUp.disabled = visibleTileIds.indexOf(tile.id) === 0;
+                btnMoveUp.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    moveTileByStep(visibleTileIds, tile.id, -1);
+                });
+            }
+            if (btnMoveDown) {
+                btnMoveDown.disabled = visibleTileIds.indexOf(tile.id) === visibleTileIds.length - 1;
+                btnMoveDown.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    moveTileByStep(visibleTileIds, tile.id, 1);
+                });
+            }
+
+            div.addEventListener('pointerdown', (e) => {
+                if (e.target.closest('button, select, input, textarea, a')) return;
                 pointerDragState = {
                     tileId: tile.id,
                     startX: e.clientX,
@@ -247,9 +300,9 @@ export function renderCards() {
                     targetId: '',
                     active: false
                 };
-                dragHandle.setPointerCapture?.(e.pointerId);
+                div.setPointerCapture?.(e.pointerId);
             });
-            dragHandle.addEventListener('pointermove', (e) => {
+            div.addEventListener('pointermove', (e) => {
                 if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
                 const distance = Math.hypot(e.clientX - pointerDragState.startX, e.clientY - pointerDragState.startY);
                 if (!pointerDragState.active && distance < 8) return;
@@ -269,12 +322,12 @@ export function renderCards() {
                     pointerDragState.targetId = '';
                 }
             });
-            dragHandle.addEventListener('pointerup', (e) => {
+            div.addEventListener('pointerup', (e) => {
                 if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
                 const targetId = pointerDragState.targetId;
                 const wasActive = pointerDragState.active;
                 pointerDragState = null;
-                dragHandle.releasePointerCapture?.(e.pointerId);
+                div.releasePointerCapture?.(e.pointerId);
                 clearDragClasses();
                 if (wasActive) {
                     suppressCardClickUntil = Date.now() + 600;
@@ -282,60 +335,52 @@ export function renderCards() {
                     e.stopPropagation();
                 }
                 if (wasActive && targetId) {
-                    dataManager.reorderTilesByVisibleMove(visibleTileIds, tile.id, targetId);
-                    restoreCustomSortControls();
-                    renderCards();
+                    updateCustomOrder(visibleTileIds, tile.id, targetId);
                 }
             });
-            dragHandle.addEventListener('pointercancel', () => {
+            div.addEventListener('pointercancel', () => {
                 pointerDragState = null;
                 clearDragClasses();
             });
-        }
 
-        div.addEventListener('dragstart', (e) => {
-            if (!e.target.closest('.tile-drag-handle')) {
+            div.addEventListener('dragstart', (e) => {
+                draggedTileId = tile.id;
+                suppressCardClickUntil = Date.now() + 600;
+                div.classList.add('tile-dragging');
+                if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', tile.id);
+                }
+            });
+
+            div.addEventListener('dragover', (e) => {
+                const incomingId = draggedTileId || e.dataTransfer?.getData('text/plain');
+                if (!incomingId || incomingId === tile.id) return;
                 e.preventDefault();
-                return;
-            }
-            draggedTileId = tile.id;
-            suppressCardClickUntil = Date.now() + 600;
-            div.classList.add('tile-dragging');
-            if (e.dataTransfer) {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', tile.id);
-            }
-        });
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                div.classList.add('tile-drop-target');
+            });
 
-        div.addEventListener('dragover', (e) => {
-            const incomingId = draggedTileId || e.dataTransfer?.getData('text/plain');
-            if (!incomingId || incomingId === tile.id) return;
-            e.preventDefault();
-            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-            div.classList.add('tile-drop-target');
-        });
+            div.addEventListener('dragleave', () => {
+                div.classList.remove('tile-drop-target');
+            });
 
-        div.addEventListener('dragleave', () => {
-            div.classList.remove('tile-drop-target');
-        });
+            div.addEventListener('drop', (e) => {
+                const incomingId = e.dataTransfer?.getData('text/plain') || draggedTileId;
+                if (!incomingId || incomingId === tile.id) return;
+                e.preventDefault();
+                e.stopPropagation();
+                draggedTileId = null;
+                suppressCardClickUntil = Date.now() + 600;
+                updateCustomOrder(visibleTileIds, incomingId, tile.id);
+            });
 
-        div.addEventListener('drop', (e) => {
-            const incomingId = e.dataTransfer?.getData('text/plain') || draggedTileId;
-            if (!incomingId || incomingId === tile.id) return;
-            e.preventDefault();
-            e.stopPropagation();
-            dataManager.reorderTilesByVisibleMove(visibleTileIds, incomingId, tile.id);
-            restoreCustomSortControls();
-            draggedTileId = null;
-            suppressCardClickUntil = Date.now() + 600;
-            renderCards();
-        });
-
-        div.addEventListener('dragend', () => {
-            draggedTileId = null;
-            suppressCardClickUntil = Date.now() + 600;
-            clearDragClasses();
-        });
+            div.addEventListener('dragend', () => {
+                draggedTileId = null;
+                suppressCardClickUntil = Date.now() + 600;
+                clearDragClasses();
+            });
+        }
 
         const btnFavorite = div.querySelector('.btn-favorite');
         if (btnFavorite) {
@@ -455,6 +500,7 @@ export function renderCards() {
 
         // Click to Select for Pool
         div.addEventListener('click', () => {
+            if (reorderMode) return;
             if (Date.now() < suppressCardClickUntil) return;
             handleCardClick(tile);
         });

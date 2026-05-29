@@ -50,6 +50,7 @@ export const els = {
     charRosterSelect: document.getElementById('char-roster-select'),
     btnDelChar: document.getElementById('btn-del-char'),
     searchTiles: document.getElementById('search-tiles'),
+    btnReorderTiles: document.getElementById('btn-reorder-tiles'),
     sortTilesBy: document.getElementById('sort-tiles-by'),
     btnSortDir: document.getElementById('btn-sort-dir'),
     ignoreFavoritesSort: document.getElementById('ignore-favorites-sort'),
