@@ -90,6 +90,8 @@ export const els = {
     btnCalculate: document.getElementById('btn-calculate'),
     manualInputsContainer: document.getElementById('manual-inputs-container'),
     extraDiceInput: document.getElementById('extra-dice-input'),
+    risenAberrantEffect: document.getElementById('risen-aberrant-effect'),
+    fallenAberrantEffect: document.getElementById('fallen-aberrant-effect'),
 
     rollResults: document.getElementById('roll-results'),
     resultNotices: document.getElementById('result-notices'),

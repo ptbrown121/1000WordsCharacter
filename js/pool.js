@@ -389,6 +389,10 @@ const DIE_STEPS = {
     d14: 6,
     d16: 7
 };
+const DICE_BY_STEP = Object.fromEntries(
+    Object.entries(DIE_STEPS).map(([die, step]) => [step, die])
+);
+const D6_STEP = DIE_STEPS.d6;
 
 function normalizeMechanicalTag(tag) {
     return String(tag || '')
@@ -503,6 +507,21 @@ export function adjustAberrationForShadowUse(currentAberration, shadowKind) {
     if (shadowKind === 'Qi') return current + 1;
     if (shadowKind === 'Id') return current - 1;
     return current;
+}
+
+export function getAberrantDieStepNet(effects = {}) {
+    return (effects.fallen ? 1 : 0) - (effects.risen ? 1 : 0);
+}
+
+export function applyAberrantDieStepEffects(die, effects = {}) {
+    const currentStep = DIE_STEPS[die];
+    if (currentStep === undefined || currentStep <= D6_STEP) return die;
+
+    const netStep = getAberrantDieStepNet(effects);
+    if (netStep === 0) return die;
+
+    const nextStep = Math.max(D6_STEP, Math.min(DIE_STEPS.d16, currentStep + netStep));
+    return DICE_BY_STEP[nextStep] || die;
 }
 
 export function getShadowTagCounts(tiles = []) {
@@ -994,7 +1013,9 @@ export class PoolEngine {
         let error = null;
         const activeCallColors = [...new Set(callColors.filter(Boolean))];
         const disabledChainIds = options.disabledChainIds || new Set();
+        const aberrantEffects = options.aberrantEffects || {};
         const usedTiles = [];
+        const dieStepEffects = [];
         const buildResult = (overrides = {}) => ({
             dice: pool,
             adds,
@@ -1004,6 +1025,7 @@ export class PoolEngine {
             resourceCosts,
             calledTileIds,
             shadowUse: null,
+            dieStepEffects,
             error: null,
             ...overrides
         });
@@ -1220,6 +1242,22 @@ export class PoolEngine {
         // 4. Validate and Add Extra Dice
         if (extraDice && extraDice.length > 0) {
             extraDice.forEach(d => pool.push({ source: `Extra`, die: d }));
+        }
+
+        const netDieStep = getAberrantDieStepNet(aberrantEffects);
+        if (netDieStep !== 0) {
+            pool = pool.map(dieEntry => {
+                const adjustedDie = applyAberrantDieStepEffects(dieEntry.die, aberrantEffects);
+                if (adjustedDie !== dieEntry.die) {
+                    dieStepEffects.push({
+                        source: dieEntry.source,
+                        from: dieEntry.die,
+                        to: adjustedDie,
+                        direction: netDieStep > 0 ? 'boosted' : 'suppressed'
+                    });
+                }
+                return { ...dieEntry, die: adjustedDie };
+            });
         }
 
         return buildResult({ shadowUse: shadowUse.kind });

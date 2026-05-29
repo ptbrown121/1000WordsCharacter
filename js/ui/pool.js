@@ -1,4 +1,13 @@
-import { adjustAberrationForShadowUse, escapeHtml, isHitchedTile, parseDiceInput, getDiceValidationMessage, RESOURCE_LABELS } from '../pool.js';
+import {
+    adjustAberrationForShadowUse,
+    classifyAberration,
+    escapeHtml,
+    getDiceValidationMessage,
+    getShadowTagCounts,
+    isHitchedTile,
+    parseDiceInput,
+    RESOURCE_LABELS
+} from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { showResults } from './resolution.js';
@@ -25,6 +34,8 @@ export function init(deps) {
     els.callColor1.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
     els.callColor2.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
     els.extraDiceInput.addEventListener('input', updatePoolPreview);
+    els.risenAberrantEffect?.addEventListener('change', updatePoolPreview);
+    els.fallenAberrantEffect?.addEventListener('change', updatePoolPreview);
     els.chainOptions.addEventListener('change', (e) => {
         if (!e.target.classList.contains('chain-cb')) return;
         const chainId = e.target.dataset.chainId;
@@ -73,8 +84,18 @@ export function getExtraDice() {
 }
 
 export function getPoolOptions() {
+    const maxShadow = poolEngine.calculateResourceMaxes(dataManager.state.tiles || []).sh;
+    const alignmentStates = classifyAberration(
+        dataManager.state.aberration || 0,
+        maxShadow,
+        getShadowTagCounts(dataManager.state.tiles || [])
+    );
     return {
-        disabledChainIds: new Set(uiState.disabledChainIds)
+        disabledChainIds: new Set(uiState.disabledChainIds),
+        aberrantEffects: {
+            risen: alignmentStates.includes('Risen Aberrant') || Boolean(els.risenAberrantEffect?.checked),
+            fallen: alignmentStates.includes('Fallen Aberrant') || Boolean(els.fallenAberrantEffect?.checked)
+        }
     };
 }
 
@@ -297,6 +318,9 @@ export function updatePoolPreview() {
         if ((res.tagBonuses || []).length > 0) addsText += ` | Tag Bonus: +${selectedTagBonus}`;
         if ((res.resourceCosts || []).length > 0) {
             addsText += ` | Costs: ${res.resourceCosts.map(cost => `${cost.reason || 'Cost'} ${cost.amount} ${cost.resource.toUpperCase()}`).join(', ')}`;
+        }
+        if ((res.dieStepEffects || []).length > 0) {
+            addsText += ` | Aberrant dice: ${res.dieStepEffects.map(effect => `${effect.from}->${effect.to}`).join(', ')}`;
         }
         els.poolAddsDisplay.innerText = addsText;
     }

@@ -11,7 +11,9 @@ import {
     isHitchedTile,
     calculateHitchRebateTotal,
     adjustAberrationForShadowUse,
+    applyAberrantDieStepEffects,
     classifyAberration,
+    getAberrantDieStepNet,
     getAvailableShadowAbilities,
     validateShadowTags
 } from '../js/pool.js';
@@ -479,6 +481,24 @@ describe('new Shadow alignment and abilities', () => {
     });
 });
 
+describe('Aberrant Blast Zone die effects', () => {
+    it('boosts or suppresses only dice above d6', () => {
+        assert.equal(applyAberrantDieStepEffects('d4', { fallen: true }), 'd4');
+        assert.equal(applyAberrantDieStepEffects('d6', { fallen: true }), 'd6');
+        assert.equal(applyAberrantDieStepEffects('d8', { fallen: true }), 'd10');
+        assert.equal(applyAberrantDieStepEffects('d16', { fallen: true }), 'd16');
+
+        assert.equal(applyAberrantDieStepEffects('d6', { risen: true }), 'd6');
+        assert.equal(applyAberrantDieStepEffects('d8', { risen: true }), 'd6');
+        assert.equal(applyAberrantDieStepEffects('d10', { risen: true }), 'd8');
+    });
+
+    it('cancels when both Risen and Fallen effects are active', () => {
+        assert.equal(getAberrantDieStepNet({ risen: true, fallen: true }), 0);
+        assert.equal(applyAberrantDieStepEffects('d10', { risen: true, fallen: true }), 'd10');
+    });
+});
+
 describe('new Shadow tags', () => {
     it('validates placement requirements', () => {
         assert.match(validateShadowTags({ colors: ['Red'], tags: ['Day'] })[0].message, /Qi/);
@@ -514,6 +534,27 @@ describe('compilePool', () => {
         const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
         assert.equal(res.error, null);
         assert.equal(res.dice.length, 2); // BODY d6 + tile d8
+    });
+
+    it('applies Aberrant Blast Zone die-step effects to compiled pools', () => {
+        const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: '' };
+        const burnTile = { id: '2', name: 'Bomb', colors: ['Red'], dice: ['d10'], tags: '' };
+        const res = engine.compilePool(['Red'], stats, callTile, [burnTile], [callTile, burnTile], ['d12'], {
+            aberrantEffects: { fallen: true }
+        });
+        assert.equal(res.error, null);
+        assert.deepEqual(res.dice.map(die => die.die), ['d6', 'd10', 'd12', 'd14']);
+        assert.deepEqual(res.dieStepEffects.map(effect => [effect.from, effect.to]), [
+            ['d8', 'd10'],
+            ['d10', 'd12'],
+            ['d12', 'd14']
+        ]);
+
+        const suppressed = engine.compilePool(['Red'], stats, callTile, [burnTile], [callTile, burnTile], ['d12'], {
+            aberrantEffects: { risen: true }
+        });
+        assert.equal(suppressed.error, null);
+        assert.deepEqual(suppressed.dice.map(die => die.die), ['d6', 'd6', 'd8', 'd10']);
     });
 
     it('rejects a burnt call tile', () => {

@@ -205,6 +205,16 @@
                     <input type="text" id="extra-dice-input" placeholder="e.g. d6, d4" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 6px;">
                 </div>
 
+                <div style="margin-top: 0.75rem; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 8px;">
+                    <label style="font-size: 0.9rem; margin-bottom: 0.35rem; display: block;">Aberrant Blast Zone</label>
+                    <label class="filter-toggle" title="Risen Aberrant effect: dice above d6 are reduced 1 die step.">
+                        <input type="checkbox" id="risen-aberrant-effect"> Under Risen Aberrant effect
+                    </label>
+                    <label class="filter-toggle" title="Fallen Aberrant effect: dice above d6 are increased 1 die step.">
+                        <input type="checkbox" id="fallen-aberrant-effect"> Under Fallen Aberrant effect
+                    </label>
+                </div>
+
                 <div class="pool-summary">
                     <h3>Current Pool</h3>
                     <div id="pool-dice-display">Select colors/tiles to build pool.</div>
