@@ -79,6 +79,29 @@ describe('buildRulesReviewItems', () => {
         assert.ok(items.some(item => item.category === 'Arcana' && item.message.includes('Loose Spell')));
     });
 
+    it('treats World links as Arcana spell chains', () => {
+        const state = {
+            xpEarned: 100,
+            stats: {},
+            tiles: [
+                {
+                    id: 'skill',
+                    type: 'Skill',
+                    name: 'Forge',
+                    colors: ['Green', 'Red'],
+                    dice: ['d6'],
+                    tags: [],
+                    xpCost: 3,
+                    exoticSkill: { id: 'arcana-forge', system: 'Arcana', specialty: 'Forge', label: 'Arcana: Forge', baseXp: 2 }
+                },
+                { id: 's1', type: 'Gear', name: 'Spark', isSpell: true, dice: ['d4'], tags: ['Spell', 'World Forge'], xpCost: 1 }
+            ]
+        };
+
+        const items = buildRulesReviewItems(state, engine);
+        assert.equal(items.some(item => item.category === 'Arcana'), false);
+    });
+
     it('flags sheets with more than 6 XP of Hitch rebates', () => {
         const state = {
             xpEarned: 100,

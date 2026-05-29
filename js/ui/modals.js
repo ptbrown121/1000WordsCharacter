@@ -403,9 +403,9 @@ export function init(deps) {
         const val = e.target.value;
         const motorizedStat = document.getElementById('tag-motorized-stat');
         const hitchValue = document.getElementById('tag-hitch-value');
-        if (val === 'Custom' || val === 'Chain') {
+        if (val === 'Custom' || val === 'Chain' || val === 'World') {
             els.tagCustomInput.style.display = 'inline-block';
-            els.tagCustomInput.placeholder = val === 'Chain' ? 'Tile Name to Chain' : 'Custom Tag Name';
+            els.tagCustomInput.placeholder = val === 'Custom' ? 'Custom Tag Name' : 'Tile Name to Link';
             els.tagCustomInput.focus();
             motorizedStat.style.display = 'none';
             hitchValue.style.display = 'none';
@@ -432,9 +432,9 @@ export function init(deps) {
         
         if (selVal === 'Custom') {
             finalTag = els.tagCustomInput.value.trim();
-        } else if (selVal === 'Chain') {
+        } else if (selVal === 'Chain' || selVal === 'World') {
             const target = els.tagCustomInput.value.trim();
-            if (target) finalTag = `Chain ${target}`;
+            if (target) finalTag = `${selVal} ${target}`;
         } else if (selVal === 'Motorized') {
             const stat = document.getElementById('tag-motorized-stat').value;
             if (!stat) {

@@ -660,6 +660,7 @@ function stripMechanicalPrefix(normalizedTag) {
 function getMechanicalBaseTag(normalizedTag) {
     const withoutPrefix = stripMechanicalPrefix(normalizedTag);
     if (withoutPrefix.startsWith('chain ')) return 'chain';
+    if (withoutPrefix.startsWith('world ')) return 'world';
     if (withoutPrefix.startsWith('hitch')) return 'hitch';
     if (withoutPrefix.startsWith('motorized')) return 'motorized';
     if (withoutPrefix.startsWith('while ')) return 'while x';
@@ -672,7 +673,9 @@ function getArcaneSacrificeKey(tag) {
 }
 
 function getDuplicateKey(tag) {
-    return normalizeTagForXp(getTagName(tag));
+    const normalized = normalizeTagForXp(getTagName(tag));
+    if (getMechanicalBaseTag(normalized) === 'world') return '';
+    return normalized;
 }
 
 export function getHitchValue(tile) {
@@ -726,6 +729,10 @@ export class PoolEngine {
 
         if (ARCANE_DETAIL_TAGS.has(baseTag)) {
             return { name, counts: true, reason: 'Arcane Detail tags count' };
+        }
+
+        if (baseTag === 'world') {
+            return { name, counts: false, reason: 'World tags do not count' };
         }
 
         if (/^(range|duration)\s*:/i.test(normalized) || RANGE_DURATION_XP.has(baseTag)) {
@@ -836,6 +843,7 @@ export class PoolEngine {
         const baseTag = getMechanicalBaseTag(t);
 
         if (!t) return { xp: 0, recognized: true, category: 'blank' };
+        if (baseTag === 'world') return { xp: 0, recognized: true, category: 'world' };
         if (baseTag === 'hitch') {
             const match = t.match(/hitch\s*(\d+)/i);
             const value = match ? Math.min(6, Math.max(1, parseInt(match[1], 10) || 1)) : 3;
@@ -1156,13 +1164,18 @@ export class PoolEngine {
             // Chain tags
             for (let index = 0; index < tags.length; index++) {
                 const tag = tags[index];
-                if (tag.startsWith('chain ')) {
-                    const targetName = tag.replace('chain ', '').trim();
-                    const chainId = `${tile.id}:chain:${index}:${targetName.toLowerCase()}`;
+                const isChainTag = tag.startsWith('chain ');
+                const isWorldTag = tag.startsWith('world ');
+                if (isChainTag || isWorldTag) {
+                    const linkKind = isWorldTag ? 'world' : 'chain';
+                    const linkLabel = isWorldTag ? 'World' : 'Chain';
+                    const targetName = tag.replace(/^(chain|world)\s+/, '').trim();
+                    const chainId = `${tile.id}:${linkKind}:${index}:${targetName.toLowerCase()}`;
                     const targetTile = allTiles.find(t => (t.name || '').toLowerCase() === targetName);
                     const disabled = isChainDisabled(chainId);
                     const chainOption = {
                         id: chainId,
+                        type: linkKind,
                         sourceTileId: tile.id,
                         sourceTileName: tile.name,
                         targetTileId: targetTile?.id || null,
@@ -1177,20 +1190,20 @@ export class PoolEngine {
 
                     if (!targetTile) {
                         chainOption.status = 'missing';
-                        error = `Chain target '${targetName}' was not found.`;
+                        error = `${linkLabel} target '${targetName}' was not found.`;
                         return;
                     }
 
                     const chainUnavailableReason = this.getUnavailableReason(targetTile);
                     if (chainUnavailableReason) {
                         chainOption.status = 'blocked';
-                        error = `Chain target '${targetTile.name}' is ${chainUnavailableReason} and cannot be called.`;
+                        error = `${linkLabel} target '${targetTile.name}' is ${chainUnavailableReason} and cannot be called.`;
                         return;
                     }
 
                     if (!hasSharedCallColor(tile, targetTile)) {
                         chainOption.status = 'blocked';
-                        error = `Chain from '${tile.name}' to '${targetTile.name}' must share one selected Call color.`;
+                        error = `${linkLabel} from '${tile.name}' to '${targetTile.name}' must share one selected Call color.`;
                         return;
                     }
 

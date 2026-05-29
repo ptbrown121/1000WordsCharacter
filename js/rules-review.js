@@ -10,7 +10,10 @@ function tileXpTotal(state) {
 
 function hasChainTo(tile, targetName) {
     const target = String(targetName || '').trim().toLowerCase();
-    return tileTagList(tile).some(tag => String(tag).trim().toLowerCase() === `chain ${target}`);
+    return tileTagList(tile).some(tag => {
+        const normalized = String(tag).trim().toLowerCase();
+        return normalized === `chain ${target}` || normalized === `world ${target}`;
+    });
 }
 
 function hasArcanaSkill(tile) {

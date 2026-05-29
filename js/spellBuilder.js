@@ -108,9 +108,10 @@ export class SpellBuilder {
         
         this.tagSelect.addEventListener('change', (e) => {
             const hitchValue = document.getElementById('spell-tag-hitch-value');
-            if (e.target.value === 'Custom') {
+            if (e.target.value === 'Custom' || e.target.value === 'World') {
                 this.tagCustomInput.style.display = 'block';
-                this.tagCustomXp.style.display = 'block';
+                this.tagCustomInput.placeholder = e.target.value === 'World' ? 'Tile Name to Link' : 'Custom Tag...';
+                this.tagCustomXp.style.display = e.target.value === 'World' ? 'none' : 'block';
                 if (hitchValue) hitchValue.style.display = 'none';
             } else if (e.target.value === 'Hitch') {
                 this.tagCustomInput.style.display = 'none';
@@ -148,6 +149,12 @@ export class SpellBuilder {
                 if (!val) return;
                 this.tagCustomInput.value = '';
                 this.tagCustomXp.value = '2';
+            } else if (val === 'World') {
+                const target = this.tagCustomInput.value.trim();
+                if (!target) return;
+                val = `World ${target}`;
+                xp = 0;
+                this.tagCustomInput.value = '';
             } else if (val === 'Hitch') {
                 const rebate = Math.min(6, Math.max(1, parseInt(document.getElementById('spell-tag-hitch-value').value, 10) || 3));
                 val = `Hitch ${rebate}`;

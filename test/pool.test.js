@@ -55,7 +55,7 @@ describe('classifyTagForLimit (rulebook p.13 / p.2014)', () => {
     it('exempts Flaw / Range / Duration / Exotic tags', () => {
         for (const t of ['Old', 'Primitive', 'Rare', 'Risky', 'Worn', 'Bulky', 'Heavy',
             'Hitch 3', 'Sap', 'Tire', 'Drain', 'Witch', 'Range: Short', 'Duration: Instant',
-            'Bestial', 'Celestial', 'Cyber']) {
+            'Bestial', 'Celestial', 'Cyber', 'World Helper']) {
             assert.equal(counts(t), false, `${t} should be exempt`);
         }
     });
@@ -139,12 +139,14 @@ describe('estimateTileXp', () => {
     it('adds tag modifiers to the dice cost (floored at 0)', () => {
         assert.equal(engine.estimateTileXp(['d6'], ['Keen']), 5);      // 3 + 2
         assert.equal(engine.estimateTileXp(['d4'], ['Chain Foo']), 5); // 1 + 4
+        assert.equal(engine.estimateTileXp(['d4'], ['World Foo']), 1); // World is free
         assert.equal(engine.estimateTileXp(['d4'], ['Old', 'Worn']), 0); // 1 - 2 - 2 -> max(0)
     });
 
     it('charges duplicate tags 2 XP more than the previous copy', () => {
         assert.equal(engine.estimateTileXp(['d6'], ['Keen', 'Keen']), 9); // d6 3 + Keen 2 + duplicate Keen 4
         assert.equal(engine.estimateTileXp(['d8'], ['Old', 'Old']), 4);   // d8 6 -2 + duplicate Old 0
+        assert.equal(engine.estimateTileXp(['d4'], ['World Foo', 'World Foo']), 1);
     });
 
     it('subtracts XP for every flaw, including Bulky and Heavy', () => {
@@ -603,6 +605,17 @@ describe('compilePool', () => {
         assert.equal(res.dice.length, 3); // BODY d6 + Sword d8 + Helper d10
         assert.equal(res.adds, 3);        // base 2 + chain 1
         assert.equal(res.chainOptions.length, 1);
+    });
+
+    it('resolves a World tag as a free chain link', () => {
+        const helper = { id: 'h', name: 'Helper', colors: ['Red'], dice: ['d10'], tags: '' };
+        const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: 'World Helper' };
+        const res = engine.compilePool(['Red'], stats, callTile, [], [callTile, helper], []);
+        assert.equal(res.error, null);
+        assert.equal(res.dice.length, 3);
+        assert.equal(res.adds, 3);
+        assert.equal(res.chainOptions.length, 1);
+        assert.equal(res.chainOptions[0].type, 'world');
     });
 
     it('rejects buried chain and burn tiles', () => {
