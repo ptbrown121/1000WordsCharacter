@@ -232,6 +232,15 @@ const X_FLAW_TAGS = new Set([
 ]);
 const ARCANE_FLAW_TAGS = new Set(['drain', 'sap', 'tire', 'witch']);
 const ARCANE_DETAIL_TAGS = new Set(['escape!', 'rite', 'sustain']);
+const ARCANE_SACRIFICE_COSTS = {
+    sap: { resource: 'en', reason: 'Sap' },
+    tire: { resource: 'rx', reason: 'Tire' },
+    drain: { resource: 'hp', reason: 'Drain' }
+};
+const ARCANE_SACRIFICE_ALIASES = {
+    saps: 'sap',
+    drains: 'drain'
+};
 const FLAW_TAGS = new Set([...F_FLAW_TAGS, ...X_FLAW_TAGS, ...ARCANE_FLAW_TAGS, 'hitch']);
 const EXOTIC_TAGS = new Set(['bestial', 'celestial', 'cyber']);
 
@@ -638,6 +647,11 @@ function getMechanicalBaseTag(normalizedTag) {
     return withoutPrefix;
 }
 
+function getArcaneSacrificeKey(tag) {
+    const baseTag = getMechanicalBaseTag(normalizeTagForXp(tag));
+    return ARCANE_SACRIFICE_ALIASES[baseTag] || baseTag;
+}
+
 function getDuplicateKey(tag) {
     return normalizeTagForXp(getTagName(tag));
 }
@@ -655,6 +669,16 @@ export function isHitchedTile(tile) {
 
 export function calculateHitchRebateTotal(tiles = []) {
     return tiles.reduce((sum, tile) => sum + getHitchValue(tile), 0);
+}
+
+function getArcaneSacrificeCostTags(tile) {
+    const tags = tileTagList(tile);
+    Object.entries(tile?.spellState || {}).forEach(([key, value]) => {
+        if (!key.startsWith('spell-mod-val-')) return;
+        if ((parseInt(value, 10) || 0) <= 0) return;
+        tags.push(key.replace('spell-mod-val-', ''));
+    });
+    return tags;
 }
 
 export class PoolEngine {
@@ -1053,6 +1077,18 @@ export class PoolEngine {
                     reason: 'Hitch'
                 });
             }
+            getArcaneSacrificeCostTags(tile).forEach(tag => {
+                const sacrificeKey = getArcaneSacrificeKey(tag);
+                const sacrificeCost = ARCANE_SACRIFICE_COSTS[sacrificeKey];
+                if (!sacrificeCost) return;
+                resourceCosts.push({
+                    resource: sacrificeCost.resource,
+                    amount: 1,
+                    sourceTileId: tile.id,
+                    sourceTileName: tile.name,
+                    reason: sacrificeCost.reason
+                });
+            });
 
             // Add tile dice
             tile.dice.forEach(d => pool.push({ source: `Tile (${tile.name})`, die: d }));

@@ -1,4 +1,4 @@
-import { adjustAberrationForShadowUse, escapeHtml, isHitchedTile, parseDiceInput, getDiceValidationMessage } from '../pool.js';
+import { adjustAberrationForShadowUse, escapeHtml, isHitchedTile, parseDiceInput, getDiceValidationMessage, RESOURCE_LABELS } from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { showResults } from './resolution.js';
@@ -8,10 +8,19 @@ import { renderRulesReview } from './rulesReview.js';
 
 let dataManager;
 let poolEngine;
+let renderAll;
+
+const RESOURCE_INPUTS = {
+    hp: 'valHp',
+    en: 'valEn',
+    rx: 'valRx',
+    sh: 'valSh'
+};
 
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
+    renderAll = deps.renderAll;
 
     els.callColor1.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
     els.callColor2.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
@@ -86,28 +95,40 @@ function getAmmoResolutionOptions(calledTileIds = []) {
 }
 
 function applyResourceCosts(resourceCosts = []) {
-    const enCost = resourceCosts
-        .filter(cost => cost.resource === 'en')
-        .reduce((sum, cost) => sum + (parseInt(cost.amount, 10) || 0), 0);
+    const totals = resourceCosts.reduce((acc, cost) => {
+        const resource = cost.resource;
+        const amount = parseInt(cost.amount, 10) || 0;
+        if (!resource || amount <= 0) return acc;
+        acc[resource] = (acc[resource] || 0) + amount;
+        return acc;
+    }, {});
+    const entries = Object.entries(totals).filter(([, amount]) => amount > 0);
 
-    if (enCost <= 0) return true;
+    if (entries.length === 0) return true;
 
-    const names = resourceCosts
-        .filter(cost => cost.resource === 'en')
-        .map(cost => cost.sourceTileName)
+    const costText = resourceCosts
+        .map(cost => `${cost.sourceTileName} (${cost.reason || 'cost'}: ${cost.amount} ${RESOURCE_LABELS[cost.resource] || cost.resource.toUpperCase()})`)
         .join(', ');
-    const currentEn = parseInt(dataManager.state.en, 10) || 0;
-    if (currentEn < enCost && !dataManager.state.gmOverride) {
-        alert(`Calling ${names} costs ${enCost} EN for Hitch, but only ${currentEn} EN is available.`);
-        return false;
+
+    for (const [resource, amount] of entries) {
+        const current = parseInt(dataManager.state[resource], 10) || 0;
+        if (current < amount && !dataManager.state.gmOverride) {
+            alert(`Calling ${costText} requires ${amount} ${RESOURCE_LABELS[resource] || resource.toUpperCase()}, but only ${current} is available.`);
+            return false;
+        }
     }
 
-    const spend = confirm(`Calling ${names} costs ${enCost} EN for Hitch. Spend it now?`);
+    const spend = confirm(`Calling ${costText}. Spend these resources now?`);
     if (!spend) return false;
 
-    dataManager.state.en = Math.max(0, currentEn - enCost);
+    entries.forEach(([resource, amount]) => {
+        const current = parseInt(dataManager.state[resource], 10) || 0;
+        dataManager.state[resource] = Math.max(0, current - amount);
+        const input = els[RESOURCE_INPUTS[resource]];
+        if (input) input.value = dataManager.state[resource];
+    });
     dataManager.saveState();
-    els.valEn.value = dataManager.state.en;
+    if (renderAll) renderAll();
     return true;
 }
 
@@ -274,7 +295,9 @@ export function updatePoolPreview() {
         const selectedTagBonus = calculateSelectedTagBonus(res.tagBonuses || []);
         let addsText = `Adds (Keep): ${res.adds}`;
         if ((res.tagBonuses || []).length > 0) addsText += ` | Tag Bonus: +${selectedTagBonus}`;
-        if ((res.resourceCosts || []).length > 0) addsText += ` | Costs: ${res.resourceCosts.map(cost => `${cost.amount} ${cost.resource.toUpperCase()}`).join(', ')}`;
+        if ((res.resourceCosts || []).length > 0) {
+            addsText += ` | Costs: ${res.resourceCosts.map(cost => `${cost.reason || 'Cost'} ${cost.amount} ${cost.resource.toUpperCase()}`).join(', ')}`;
+        }
         els.poolAddsDisplay.innerText = addsText;
     }
 

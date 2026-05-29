@@ -594,6 +594,87 @@ describe('compilePool', () => {
         assert.match(burnRes.error, /cannot be burned/i);
     });
 
+    it('reports Arcane sacrifice flaw resource costs by flaw type', () => {
+        const spell = { id: 's', name: 'Blood Spell', colors: ['Red'], dice: ['d6'], tags: ['Spell', 'Sap', 'Tire', 'Drain'] };
+        const res = engine.compilePool(['Red'], stats, spell, [], [spell], []);
+        assert.equal(res.error, null);
+        assert.deepEqual(res.resourceCosts.map(cost => ({
+            resource: cost.resource,
+            amount: cost.amount,
+            reason: cost.reason
+        })), [
+            { resource: 'en', amount: 1, reason: 'Sap' },
+            { resource: 'rx', amount: 1, reason: 'Tire' },
+            { resource: 'hp', amount: 1, reason: 'Drain' }
+        ]);
+    });
+
+    it('stacks Hitch and Drain when both are saved as tags', () => {
+        const spell = {
+            id: 's',
+            name: 'Detonate',
+            colors: ['Red', 'Id'],
+            boxes: [
+                { type: 'color', color: 'Red' },
+                { type: 'shadow', kind: 'Id', resource: 'en' }
+            ],
+            dice: ['d8'],
+            tags: ['Spell', 'Chain Forge', 'Hitch 3', 'Drain', 'DOWN'],
+            isSpell: true
+        };
+        const forgeSkill = { id: 'forge', name: 'Forge', colors: ['Red'], dice: ['d6'], tags: [], isSpellcastSkill: true };
+        const res = engine.compilePool(['Red'], stats, spell, [], [spell, forgeSkill], []);
+        assert.equal(res.error, null);
+        assert.deepEqual(res.resourceCosts.map(cost => ({
+            resource: cost.resource,
+            amount: cost.amount,
+            reason: cost.reason
+        })), [
+            { resource: 'en', amount: 1, reason: 'Hitch' },
+            { resource: 'hp', amount: 1, reason: 'Drain' }
+        ]);
+    });
+
+    it('stacks Hitch with Arcane sacrifice flaws saved as spell modifiers', () => {
+        const spell = {
+            id: 's',
+            name: 'Costly Spell',
+            colors: ['Red'],
+            dice: ['d6'],
+            tags: ['Spell', 'Hitch 3'],
+            spellState: {
+                'spell-mod-val-Drain': '1'
+            }
+        };
+        const res = engine.compilePool(['Red'], stats, spell, [], [spell], []);
+        assert.equal(res.error, null);
+        assert.deepEqual(res.resourceCosts.map(cost => ({
+            resource: cost.resource,
+            amount: cost.amount,
+            reason: cost.reason
+        })), [
+            { resource: 'en', amount: 1, reason: 'Hitch' },
+            { resource: 'hp', amount: 1, reason: 'Drain' }
+        ]);
+    });
+
+    it('recognizes legacy plural Arcane sacrifice modifier labels', () => {
+        const spell = {
+            id: 's',
+            name: 'Legacy Spell',
+            colors: ['Red'],
+            dice: ['d6'],
+            tags: ['Spell'],
+            spellState: {
+                'spell-mod-val-Saps': '1',
+                'spell-mod-val-Drains': '1'
+            }
+        };
+        const res = engine.compilePool(['Red'], stats, spell, [], [spell], []);
+        assert.equal(res.error, null);
+        assert.deepEqual(res.resourceCosts.map(cost => cost.resource), ['en', 'hp']);
+    });
+
     it('surfaces a contextual tag bonus equal to the tile’s die steps', () => {
         const callTile = { id: '1', name: 'Plate', colors: ['Red'], dice: ['d6'], tags: 'Ironclad' };
         const res = engine.compilePool(['Red'], stats, callTile, [], [callTile], []);
