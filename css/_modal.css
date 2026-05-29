@@ -134,6 +134,80 @@
     width: 1.35rem;
 }
 
+.tile-box-button-grid {
+    display: grid;
+    gap: 0.4rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 0.5rem;
+}
+
+.tile-box-option {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 0.85rem;
+    font-weight: 700;
+    min-height: 42px;
+    padding: 0.5rem 0.35rem;
+}
+
+.tile-box-option.active {
+    background: rgba(0,255,200,0.14);
+    border-color: rgba(0,255,200,0.5);
+    color: #00ffcc;
+}
+
+.tile-box-option-red.active {
+    background: rgba(255,51,51,0.22);
+    border-color: #ff3333;
+    color: white;
+}
+
+.tile-box-option-orange.active {
+    background: rgba(255,153,51,0.22);
+    border-color: #ff9933;
+    color: white;
+}
+
+.tile-box-option-yellow.active {
+    background: rgba(255,204,0,0.22);
+    border-color: #ffcc00;
+    color: white;
+}
+
+.tile-box-option-green.active {
+    background: rgba(51,204,51,0.22);
+    border-color: #33cc33;
+    color: white;
+}
+
+.tile-box-option-blue.active {
+    background: rgba(51,153,255,0.22);
+    border-color: #3399ff;
+    color: white;
+}
+
+.tile-box-option-purple.active {
+    background: rgba(153,51,255,0.22);
+    border-color: #9933ff;
+    color: white;
+}
+
+.tile-box-option-qi.active {
+    background: rgba(247,243,208,0.24);
+    border-color: #f7f3d0;
+    color: white;
+}
+
+.tile-box-option-id.active {
+    background: rgba(90,74,105,0.48);
+    border-color: #9c88b4;
+    color: white;
+}
+
 .color-checkboxes {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));

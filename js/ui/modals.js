@@ -168,6 +168,26 @@ function syncTileBoxResourceVisibility() {
         resourceSelect.style.display = isShadow ? 'block' : 'none';
         if (!isShadow) resourceSelect.value = '';
     });
+    syncTileBoxButtons();
+}
+
+function syncTileBoxButtons() {
+    document.querySelectorAll('.tile-box-button-grid').forEach(grid => {
+        const index = grid.dataset.boxIndex;
+        const selectedValue = document.querySelector(`.tile-box-type[data-box-index="${index}"]`)?.value || '';
+        grid.querySelectorAll('.tile-box-option').forEach(button => {
+            const isSelected = button.dataset.value === selectedValue;
+            button.classList.toggle('active', isSelected);
+            button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        });
+    });
+}
+
+function setTileBoxValue(index, value) {
+    const typeInput = document.querySelector(`.tile-box-type[data-box-index="${index}"]`);
+    if (!typeInput) return;
+    typeInput.value = value;
+    typeInput.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function getFormBoxes() {
@@ -527,6 +547,11 @@ export function init(deps) {
         select.addEventListener('change', () => {
             syncTileBoxResourceVisibility();
             renderRulesReview();
+        });
+    });
+    document.querySelectorAll('.tile-box-option').forEach(button => {
+        button.addEventListener('click', () => {
+            setTileBoxValue(button.dataset.boxIndex, button.dataset.value || '');
         });
     });
     document.querySelectorAll('.tile-box-resource').forEach(select => {

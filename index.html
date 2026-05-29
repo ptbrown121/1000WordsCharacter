@@ -434,17 +434,18 @@
                     <div id="tile-box-editor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem;">
                         <div class="tile-box-row" data-box-index="0" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem;">
                             <label style="font-weight: normal; font-size: 0.85rem;">Box 1</label>
-                            <select class="tile-box-type" data-box-index="0" style="width: 100%; margin-top: 0.25rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
-                                <option value="">-- Select box --</option>
-                                <option value="Red">Red</option>
-                                <option value="Orange">Orange</option>
-                                <option value="Yellow">Yellow</option>
-                                <option value="Green">Green</option>
-                                <option value="Blue">Blue</option>
-                                <option value="Purple">Purple</option>
-                                <option value="Qi">Qi (+2 XP)</option>
-                                <option value="Id">Id (+2 XP)</option>
-                            </select>
+                            <input type="hidden" class="tile-box-type" data-box-index="0">
+                            <div class="tile-box-button-grid" data-box-index="0" aria-label="Choose Box 1 color">
+                                <button type="button" class="tile-box-option" data-box-index="0" data-value="">None</button>
+                                <button type="button" class="tile-box-option tile-box-option-red" data-box-index="0" data-value="Red">Red</button>
+                                <button type="button" class="tile-box-option tile-box-option-orange" data-box-index="0" data-value="Orange">Orange</button>
+                                <button type="button" class="tile-box-option tile-box-option-yellow" data-box-index="0" data-value="Yellow">Yellow</button>
+                                <button type="button" class="tile-box-option tile-box-option-green" data-box-index="0" data-value="Green">Green</button>
+                                <button type="button" class="tile-box-option tile-box-option-blue" data-box-index="0" data-value="Blue">Blue</button>
+                                <button type="button" class="tile-box-option tile-box-option-purple" data-box-index="0" data-value="Purple">Purple</button>
+                                <button type="button" class="tile-box-option tile-box-option-qi" data-box-index="0" data-value="Qi">Qi +2</button>
+                                <button type="button" class="tile-box-option tile-box-option-id" data-box-index="0" data-value="Id">Id +2</button>
+                            </div>
                             <select class="tile-box-resource" data-box-index="0" style="display: none; width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
                                 <option value="">-- Normal resource --</option>
                                 <option value="hp">Health</option>
@@ -454,17 +455,18 @@
                         </div>
                         <div class="tile-box-row" data-box-index="1" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem;">
                             <label style="font-weight: normal; font-size: 0.85rem;">Box 2</label>
-                            <select class="tile-box-type" data-box-index="1" style="width: 100%; margin-top: 0.25rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
-                                <option value="">-- Select box --</option>
-                                <option value="Red">Red</option>
-                                <option value="Orange">Orange</option>
-                                <option value="Yellow">Yellow</option>
-                                <option value="Green">Green</option>
-                                <option value="Blue">Blue</option>
-                                <option value="Purple">Purple</option>
-                                <option value="Qi">Qi (+2 XP)</option>
-                                <option value="Id">Id (+2 XP)</option>
-                            </select>
+                            <input type="hidden" class="tile-box-type" data-box-index="1">
+                            <div class="tile-box-button-grid" data-box-index="1" aria-label="Choose Box 2 color">
+                                <button type="button" class="tile-box-option" data-box-index="1" data-value="">None</button>
+                                <button type="button" class="tile-box-option tile-box-option-red" data-box-index="1" data-value="Red">Red</button>
+                                <button type="button" class="tile-box-option tile-box-option-orange" data-box-index="1" data-value="Orange">Orange</button>
+                                <button type="button" class="tile-box-option tile-box-option-yellow" data-box-index="1" data-value="Yellow">Yellow</button>
+                                <button type="button" class="tile-box-option tile-box-option-green" data-box-index="1" data-value="Green">Green</button>
+                                <button type="button" class="tile-box-option tile-box-option-blue" data-box-index="1" data-value="Blue">Blue</button>
+                                <button type="button" class="tile-box-option tile-box-option-purple" data-box-index="1" data-value="Purple">Purple</button>
+                                <button type="button" class="tile-box-option tile-box-option-qi" data-box-index="1" data-value="Qi">Qi +2</button>
+                                <button type="button" class="tile-box-option tile-box-option-id" data-box-index="1" data-value="Id">Id +2</button>
+                            </div>
                             <select class="tile-box-resource" data-box-index="1" style="display: none; width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px;">
                                 <option value="">-- Normal resource --</option>
                                 <option value="hp">Health</option>
@@ -639,15 +641,25 @@
                     </div>
                     <div class="form-group" id="spell-colors-group" style="display: none;">
                         <label>Select 2 Color Boxes</label>
-                        <div class="color-checkboxes">
-                            <label><input type="checkbox" value="Red" class="spell-color-cb"> Red</label>
-                            <label><input type="checkbox" value="Orange" class="spell-color-cb"> Orange</label>
-                            <label><input type="checkbox" value="Yellow" class="spell-color-cb"> Yellow</label>
-                            <label><input type="checkbox" value="Green" class="spell-color-cb"> Green</label>
-                            <label><input type="checkbox" value="Blue" class="spell-color-cb"> Blue</label>
-                            <label><input type="checkbox" value="Purple" class="spell-color-cb"> Purple</label>
-                            <label><input type="checkbox" value="Qi" class="spell-color-cb spell-shadow-cb"> Qi</label>
-                            <label><input type="checkbox" value="Id" class="spell-color-cb spell-shadow-cb"> Id</label>
+                        <div hidden>
+                            <input type="checkbox" value="Red" class="spell-color-cb">
+                            <input type="checkbox" value="Orange" class="spell-color-cb">
+                            <input type="checkbox" value="Yellow" class="spell-color-cb">
+                            <input type="checkbox" value="Green" class="spell-color-cb">
+                            <input type="checkbox" value="Blue" class="spell-color-cb">
+                            <input type="checkbox" value="Purple" class="spell-color-cb">
+                            <input type="checkbox" value="Qi" class="spell-color-cb spell-shadow-cb">
+                            <input type="checkbox" value="Id" class="spell-color-cb spell-shadow-cb">
+                        </div>
+                        <div class="tile-box-button-grid spell-box-button-grid" aria-label="Choose spell color boxes">
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-red" data-value="Red" aria-pressed="false">Red</button>
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-orange" data-value="Orange" aria-pressed="false">Orange</button>
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-yellow" data-value="Yellow" aria-pressed="false">Yellow</button>
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-green" data-value="Green" aria-pressed="false">Green</button>
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-blue" data-value="Blue" aria-pressed="false">Blue</button>
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-purple" data-value="Purple" aria-pressed="false">Purple</button>
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-qi" data-value="Qi" aria-pressed="false">Qi +2</button>
+                            <button type="button" class="tile-box-option spell-box-option tile-box-option-id" data-value="Id" aria-pressed="false">Id +2</button>
                         </div>
                         <div id="spell-shadow-resource-options" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
                             <label class="spell-shadow-resource-row" data-shadow-kind="Qi" style="display: none; font-weight: normal; font-size: 0.85rem;">
@@ -970,6 +982,17 @@
                     <div class="form-group">
                         <label>Base Dice</label>
                         <input type="text" id="spell-dice" required value="d4" placeholder="e.g. d4, d6">
+                        <div id="spell-dice-selected" class="dice-selected-list" aria-live="polite"></div>
+                        <div id="spell-dice-buttons" class="dice-button-grid" aria-label="Choose spell dice">
+                            <button type="button" class="dice-add-btn" data-die="d3">+ d3</button>
+                            <button type="button" class="dice-add-btn" data-die="d4">+ d4</button>
+                            <button type="button" class="dice-add-btn" data-die="d6">+ d6</button>
+                            <button type="button" class="dice-add-btn" data-die="d8">+ d8</button>
+                            <button type="button" class="dice-add-btn" data-die="d10">+ d10</button>
+                            <button type="button" class="dice-add-btn" data-die="d12">+ d12</button>
+                            <button type="button" class="dice-add-btn" data-die="d14">+ d14</button>
+                            <button type="button" class="dice-add-btn" data-die="d16">+ d16</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Custom Narrative Tags (comma separated)</label>

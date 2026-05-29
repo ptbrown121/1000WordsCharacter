@@ -38,6 +38,9 @@ export class SpellBuilder {
         this.btnDelete = document.getElementById('btn-spell-delete');
         this.xpBadge = document.getElementById('spell-xp-badge');
         this.tagLimitStatus = document.getElementById('spell-tag-limit-status');
+        this.diceInput = document.getElementById('spell-dice');
+        this.diceSelected = document.getElementById('spell-dice-selected');
+        this.diceButtons = document.getElementById('spell-dice-buttons');
         
         // Tag Elements
         this.tagSelect = document.getElementById('spell-tag-select');
@@ -76,7 +79,12 @@ export class SpellBuilder {
         });
 
         this.form.addEventListener('change', () => this.calculateXP());
-        document.getElementById('spell-dice').addEventListener('input', () => this.calculateXP());
+        this.diceInput.addEventListener('input', () => this.calculateXP());
+        this.diceButtons?.addEventListener('click', (e) => {
+            const button = e.target.closest('.dice-add-btn');
+            if (!button || !this.diceButtons.contains(button)) return;
+            this.addSpellDie(button.dataset.die);
+        });
 
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -97,6 +105,11 @@ export class SpellBuilder {
                 this.syncShadowResourceControls();
                 this.renderColorCostNote();
                 this.calculateXP();
+            });
+        });
+        document.querySelectorAll('.spell-box-option').forEach(button => {
+            button.addEventListener('click', () => {
+                this.toggleSpellBoxButton(button.dataset.value);
             });
         });
         document.querySelectorAll('.spell-shadow-resource').forEach(select => {
@@ -398,6 +411,23 @@ export class SpellBuilder {
                 if (select) select.value = '';
             }
         });
+        this.syncSpellBoxButtons();
+    }
+
+    syncSpellBoxButtons() {
+        document.querySelectorAll('.spell-box-option').forEach(button => {
+            const cb = document.querySelector(`.spell-color-cb[value="${button.dataset.value}"]`);
+            const active = Boolean(cb?.checked);
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    toggleSpellBoxButton(value) {
+        const cb = document.querySelector(`.spell-color-cb[value="${value}"]`);
+        if (!cb) return;
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     restoreSpellBoxes(tile) {
@@ -593,9 +623,53 @@ export class SpellBuilder {
         }
     }
 
+    getSpellDiceTokens() {
+        return this.diceInput.value
+            .split(',')
+            .map(token => token.trim())
+            .filter(Boolean);
+    }
+
+    setSpellDiceTokens(tokens) {
+        this.diceInput.value = tokens.join(', ');
+        this.diceInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    addSpellDie(die) {
+        this.setSpellDiceTokens([...this.getSpellDiceTokens(), die]);
+    }
+
+    syncSpellDiceChips() {
+        if (!this.diceSelected) return;
+        this.diceSelected.innerHTML = '';
+        this.getSpellDiceTokens().forEach((die, index) => {
+            const chip = document.createElement('span');
+            chip.className = 'dice-selected-chip';
+
+            const label = document.createElement('span');
+            label.textContent = die;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'dice-remove-btn';
+            removeBtn.textContent = '\u00d7';
+            removeBtn.title = `Remove ${die}`;
+            removeBtn.setAttribute('aria-label', `Remove ${die}`);
+            removeBtn.addEventListener('click', () => {
+                const nextTokens = this.getSpellDiceTokens();
+                nextTokens.splice(index, 1);
+                this.setSpellDiceTokens(nextTokens);
+            });
+
+            chip.appendChild(label);
+            chip.appendChild(removeBtn);
+            this.diceSelected.appendChild(chip);
+        });
+    }
+
     getSpellDiceInfo() {
-        const diceRaw = document.getElementById('spell-dice').value.trim();
-        const diceTokens = diceRaw ? diceRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : ['d4'];
+        const diceRaw = this.diceInput.value.trim();
+        const diceTokens = diceRaw ? diceRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
 
         return {
             diceArray: diceTokens.filter(die => VALID_DICE.has(die)),
@@ -606,6 +680,7 @@ export class SpellBuilder {
     renderTagLimitStatus() {
         if (!this.tagLimitStatus) return null;
 
+        this.syncSpellDiceChips();
         const { diceArray, invalidDice } = this.getSpellDiceInfo();
         this.tagLimitStatus.classList.remove('valid', 'invalid');
 
