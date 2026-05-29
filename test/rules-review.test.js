@@ -27,6 +27,32 @@ describe('buildRulesReviewItems', () => {
         assert.ok(items.some(item => item.category === 'Exotic' && item.message.includes('Arcana: Twist')));
     });
 
+    it('accounts for Qi and Id box XP in sheet-level XP checks', () => {
+        const state = {
+            xpEarned: 100,
+            stats: {},
+            tiles: [{
+                id: 'shadow-skill',
+                type: 'Skill',
+                name: 'Shadow Logic',
+                colors: ['Red', 'Id'],
+                boxes: [
+                    { type: 'color', color: 'Red' },
+                    { type: 'shadow', kind: 'Id', resource: 'en' }
+                ],
+                dice: ['d4'],
+                tags: [],
+                xpCost: 3
+            }]
+        };
+
+        const items = buildRulesReviewItems(state, engine);
+        assert.equal(items.some(item =>
+            item.category === 'XP'
+            && item.message.includes('Shadow Logic')
+        ), false);
+    });
+
     it('flags Arcana spell capacity overages and missing Arcana chains', () => {
         const state = {
             xpEarned: 100,

@@ -53,7 +53,8 @@ export function buildRulesReviewItems(state, poolEngine) {
         if (!tile.isSpell && tile.gearSubtype !== 'Ammo') {
             const estimate = poolEngine.estimateTileXpDetails(dice, tileTagList(tile), tile.armorType, {
                 weapon: tile.weapon,
-                exoticSkill: tile.exoticSkill
+                exoticSkill: tile.exoticSkill,
+                boxes: tile.boxes
             }).xp;
             const stored = parseInt(tile.xpCost, 10) || 0;
             if (stored !== estimate) {
