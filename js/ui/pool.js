@@ -33,6 +33,7 @@ export function init(deps) {
 
     els.callColor1.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
     els.callColor2.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
+    els.btnClearCall?.addEventListener('click', clearCallSelection);
     els.extraDiceInput.addEventListener('input', updatePoolPreview);
     els.risenAberrantEffect?.addEventListener('change', updatePoolPreview);
     els.fallenAberrantEffect?.addEventListener('change', updatePoolPreview);
@@ -72,6 +73,17 @@ export function init(deps) {
 
     els.btnRoll.addEventListener('click', executeVirtualRoll);
     els.btnCalculate.addEventListener('click', executeManualCalculate);
+}
+
+export function clearCallSelection() {
+    els.callColor1.value = '';
+    els.callColor2.value = '';
+    uiState.callTile = null;
+    uiState.burnTiles = [];
+    uiState.disabledChainIds.clear();
+    uiState.selectedTagBonusIds.clear();
+    renderCards();
+    updatePoolPreview();
 }
 
 export function getExtraDice() {

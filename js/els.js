@@ -71,6 +71,7 @@ export const els = {
 
     callColor1: document.getElementById('call-color-1'),
     callColor2: document.getElementById('call-color-2'),
+    btnClearCall: document.getElementById('btn-clear-call'),
     optionalCallOptions: document.querySelectorAll('.optional-call-option'),
     autoFilterCall: document.getElementById('auto-filter-call'),
     poolDiceDisplay: document.getElementById('pool-dice-display'),
