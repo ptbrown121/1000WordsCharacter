@@ -479,13 +479,23 @@
                 <div class="form-group">
                     <label>Dice (comma separated, e.g., d4, d6)</label>
                     <input type="text" id="tile-dice" placeholder="d4">
+                    <div id="tile-dice-buttons" class="dice-button-grid" aria-label="Choose tile dice">
+                        <button type="button" class="dice-toggle-btn" data-die="d3">d3</button>
+                        <button type="button" class="dice-toggle-btn" data-die="d4">d4</button>
+                        <button type="button" class="dice-toggle-btn" data-die="d6">d6</button>
+                        <button type="button" class="dice-toggle-btn" data-die="d8">d8</button>
+                        <button type="button" class="dice-toggle-btn" data-die="d10">d10</button>
+                        <button type="button" class="dice-toggle-btn" data-die="d12">d12</button>
+                        <button type="button" class="dice-toggle-btn" data-die="d14">d14</button>
+                        <button type="button" class="dice-toggle-btn" data-die="d16">d16</button>
+                    </div>
                     <small id="tile-dice-note" style="display: block; margin-top: 0.3rem; color: var(--text-secondary); font-size: 0.8rem;"></small>
                 </div>
 
                 <div class="form-group">
                     <label>Tags</label>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <div style="display: flex; gap: 0.5rem; width: 100%;">
+                    <div class="tag-add-controls" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <div class="tag-add-row" style="display: flex; gap: 0.5rem; width: 100%;">
                             <select id="tag-select" style="flex: 1; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.5rem; font-size: 1rem;">
                             <option value="">-- Select Tag --</option>
                             <optgroup label="Mechanics">

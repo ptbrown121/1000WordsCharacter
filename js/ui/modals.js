@@ -26,6 +26,46 @@ let poolEngine;
 // Modal-local: tags being edited in the tile modal.
 export let currentFormTags = [];
 
+function resetTileModalScroll() {
+    const modalContent = els.modal.querySelector('.modal-content');
+    if (!modalContent) return;
+    modalContent.scrollTop = 0;
+    requestAnimationFrame(() => {
+        modalContent.scrollTop = 0;
+    });
+}
+
+function getTileDiceTokens() {
+    return els.tileDice.value
+        .split(',')
+        .map(token => token.trim())
+        .filter(Boolean);
+}
+
+function setTileDiceTokens(tokens) {
+    els.tileDice.value = tokens.join(', ');
+    els.tileDice.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function syncTileDiceButtons() {
+    if (!els.tileDiceButtons) return;
+    const selectedDice = new Set(getTileDiceTokens().map(token => token.toLowerCase()));
+    els.tileDiceButtons.querySelectorAll('.dice-toggle-btn').forEach(button => {
+        const isSelected = selectedDice.has(button.dataset.die);
+        button.classList.toggle('active', isSelected);
+        button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    });
+}
+
+function toggleTileDie(die) {
+    const tokens = getTileDiceTokens();
+    const hasDie = tokens.some(token => token.toLowerCase() === die);
+    const nextTokens = hasDie
+        ? tokens.filter(token => token.toLowerCase() !== die)
+        : [...tokens, die];
+    setTileDiceTokens(nextTokens);
+}
+
 // Armor base (page 29): material x coverage. Coverage sets intrinsic Base Soak.
 export const ARMOR_MATERIALS = new Set(['Soft', 'Hard']);
 export const ARMOR_COVERAGE_SOAK = { Open: 0, Full: 1, Closed: 3 };
@@ -298,6 +338,7 @@ export function renderTagLimitStatus(el, diceStr, tagsArray) {
 }
 
 export function renderTileTagLimitStatus() {
+    syncTileDiceButtons();
     return renderTagLimitStatus(els.tileTagLimitStatus, els.tileDice.value, currentFormTags);
 }
 
@@ -423,6 +464,11 @@ export function init(deps) {
     });
 
     els.tileDice.addEventListener('input', renderTileTagLimitStatus);
+    els.tileDiceButtons?.addEventListener('click', (e) => {
+        const button = e.target.closest('.dice-toggle-btn');
+        if (!button || !els.tileDiceButtons.contains(button)) return;
+        toggleTileDie(button.dataset.die);
+    });
     document.getElementById('tile-type').addEventListener('change', syncTileTypeSections);
     document.getElementById('gear-subtype').addEventListener('change', syncTileTypeSections);
     document.getElementById('tile-exotic-skill').addEventListener('change', (e) => {
@@ -562,6 +608,7 @@ export function openModal(tile = null) {
     renderWeaponTemplatePreview(weaponTemplate.value);
     syncTileTypeSections();
     renderFormTags();
+    resetTileModalScroll();
 }
 
 export function renderFormTags() {

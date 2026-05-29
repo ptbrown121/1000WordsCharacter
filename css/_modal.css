@@ -62,6 +62,41 @@
     color: #ff6666;
 }
 
+.tag-add-controls,
+.tag-add-row {
+    min-width: 0;
+}
+
+.tag-add-row select {
+    min-width: 0;
+}
+
+.dice-button-grid {
+    display: grid;
+    gap: 0.4rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 0.5rem;
+}
+
+.dice-toggle-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 0.95rem;
+    font-weight: 700;
+    min-height: 42px;
+    padding: 0.55rem 0.4rem;
+}
+
+.dice-toggle-btn.active {
+    background: rgba(0,255,200,0.14);
+    border-color: rgba(0,255,200,0.5);
+    color: #00ffcc;
+}
+
 .color-checkboxes {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));

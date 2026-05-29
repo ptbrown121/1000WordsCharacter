@@ -187,6 +187,17 @@
         width: 100%;
         margin: 0;
     }
+    #tile-modal .tag-add-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    #tile-modal #tag-select {
+        width: 100%;
+    }
+    #tile-modal #btn-add-tag {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
     #weapon-template-preview {
         flex-basis: 100% !important;
     }

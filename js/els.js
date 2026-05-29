@@ -63,6 +63,7 @@ export const els = {
     btnAddTag: document.getElementById('btn-add-tag'),
     tagsContainer: document.getElementById('selected-tags-container'),
     tileDice: document.getElementById('tile-dice'),
+    tileDiceButtons: document.getElementById('tile-dice-buttons'),
     tileTagLimitStatus: document.getElementById('tile-tag-limit-status'),
 
     tileXp: document.getElementById('tile-xp'),
