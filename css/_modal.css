@@ -78,7 +78,7 @@
     margin-top: 0.5rem;
 }
 
-.dice-toggle-btn {
+.dice-add-btn {
     background: rgba(255,255,255,0.06);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
@@ -91,10 +91,47 @@
     padding: 0.55rem 0.4rem;
 }
 
-.dice-toggle-btn.active {
+.dice-add-btn:active {
     background: rgba(0,255,200,0.14);
     border-color: rgba(0,255,200,0.5);
     color: #00ffcc;
+}
+
+.dice-selected-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    min-height: 0.5rem;
+}
+
+.dice-selected-chip {
+    align-items: center;
+    background: rgba(0,255,200,0.12);
+    border: 1px solid rgba(0,255,200,0.35);
+    border-radius: 999px;
+    color: var(--text-primary);
+    display: inline-flex;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 0.35rem;
+    padding: 0.25rem 0.35rem 0.25rem 0.6rem;
+}
+
+.dice-remove-btn {
+    align-items: center;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.8rem;
+    height: 1.35rem;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    width: 1.35rem;
 }
 
 .color-checkboxes {

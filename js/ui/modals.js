@@ -48,22 +48,36 @@ function setTileDiceTokens(tokens) {
 }
 
 function syncTileDiceButtons() {
-    if (!els.tileDiceButtons) return;
-    const selectedDice = new Set(getTileDiceTokens().map(token => token.toLowerCase()));
-    els.tileDiceButtons.querySelectorAll('.dice-toggle-btn').forEach(button => {
-        const isSelected = selectedDice.has(button.dataset.die);
-        button.classList.toggle('active', isSelected);
-        button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    if (!els.tileDiceSelected) return;
+    els.tileDiceSelected.innerHTML = '';
+    const tokens = getTileDiceTokens();
+    tokens.forEach((die, index) => {
+        const chip = document.createElement('span');
+        chip.className = 'dice-selected-chip';
+
+        const label = document.createElement('span');
+        label.textContent = die;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'dice-remove-btn';
+        removeBtn.textContent = '\u00d7';
+        removeBtn.title = `Remove ${die}`;
+        removeBtn.setAttribute('aria-label', `Remove ${die}`);
+        removeBtn.addEventListener('click', () => {
+            const nextTokens = getTileDiceTokens();
+            nextTokens.splice(index, 1);
+            setTileDiceTokens(nextTokens);
+        });
+
+        chip.appendChild(label);
+        chip.appendChild(removeBtn);
+        els.tileDiceSelected.appendChild(chip);
     });
 }
 
-function toggleTileDie(die) {
-    const tokens = getTileDiceTokens();
-    const hasDie = tokens.some(token => token.toLowerCase() === die);
-    const nextTokens = hasDie
-        ? tokens.filter(token => token.toLowerCase() !== die)
-        : [...tokens, die];
-    setTileDiceTokens(nextTokens);
+function addTileDie(die) {
+    setTileDiceTokens([...getTileDiceTokens(), die]);
 }
 
 // Armor base (page 29): material x coverage. Coverage sets intrinsic Base Soak.
@@ -465,9 +479,9 @@ export function init(deps) {
 
     els.tileDice.addEventListener('input', renderTileTagLimitStatus);
     els.tileDiceButtons?.addEventListener('click', (e) => {
-        const button = e.target.closest('.dice-toggle-btn');
+        const button = e.target.closest('.dice-add-btn');
         if (!button || !els.tileDiceButtons.contains(button)) return;
-        toggleTileDie(button.dataset.die);
+        addTileDie(button.dataset.die);
     });
     document.getElementById('tile-type').addEventListener('change', syncTileTypeSections);
     document.getElementById('gear-subtype').addEventListener('change', syncTileTypeSections);
