@@ -149,6 +149,13 @@ describe('estimateTileXp', () => {
         assert.equal(engine.estimateTileXp(['d4'], ['World Foo', 'World Foo']), 1);
     });
 
+    it('charges parameterized duplicate tags by mechanical tag name', () => {
+        assert.equal(engine.estimateTileXp(['d4'], ['Chain Forge', 'Chain Ward']), 11); // d4 1 + Chain 4 + duplicate Chain 6
+        assert.equal(engine.estimateTileXp(['d4'], ['Chain A', 'Chain B', 'Chain C']), 19); // 1 + 4 + 6 + 8
+        assert.equal(engine.estimateTileXp(['d4'], ['Motorized: BODY', 'Motorized: SPEED']), 7); // 1 + 2 + 4
+        assert.equal(engine.estimateTileXp(['d8'], ['Hitch 1', 'Hitch 6']), 1); // d8 6 -1 + duplicate Hitch (-6 + 2)
+    });
+
     it('subtracts XP for every flaw, including Bulky and Heavy', () => {
         const base = engine.calculateOptimalXpCost(['d8']); // 6
         for (const flaw of ['Old', 'Primitive', 'Rare', 'Risky', 'Worn', 'Bulky', 'Heavy']) {

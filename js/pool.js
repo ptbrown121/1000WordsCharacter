@@ -674,8 +674,9 @@ function getArcaneSacrificeKey(tag) {
 
 function getDuplicateKey(tag) {
     const normalized = normalizeTagForXp(getTagName(tag));
-    if (getMechanicalBaseTag(normalized) === 'world') return '';
-    return normalized;
+    const baseTag = getMechanicalBaseTag(normalized);
+    if (baseTag === 'world') return '';
+    return baseTag || normalized;
 }
 
 export function getHitchValue(tile) {
