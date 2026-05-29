@@ -241,6 +241,31 @@ export function normalizeStateForShadowRules(state) {
     return state;
 }
 
+export function reorderTilesByVisibleMove(allTiles = [], visibleTileIds = [], draggedId, targetId) {
+    if (!draggedId || !targetId || draggedId === targetId) return allTiles;
+    const visibleIdSet = new Set(visibleTileIds);
+    if (!visibleIdSet.has(draggedId) || !visibleIdSet.has(targetId)) return allTiles;
+
+    const visibleOrder = visibleTileIds.filter(id => allTiles.some(tile => tile.id === id));
+    const fromIndex = visibleOrder.indexOf(draggedId);
+    const toIndex = visibleOrder.indexOf(targetId);
+    if (fromIndex === -1 || toIndex === -1) return allTiles;
+
+    const [dragged] = visibleOrder.splice(fromIndex, 1);
+    visibleOrder.splice(toIndex, 0, dragged);
+
+    const tileById = new Map(allTiles.map(tile => [tile.id, tile]));
+    const reorderedVisibleTiles = visibleOrder
+        .map(id => tileById.get(id))
+        .filter(Boolean);
+    let visibleIndex = 0;
+
+    return allTiles.map(tile => {
+        if (!visibleIdSet.has(tile.id)) return tile;
+        return reorderedVisibleTiles[visibleIndex++] || tile;
+    });
+}
+
 export class DataManager {
     constructor() {
         this.loadRoster();
@@ -375,6 +400,11 @@ export class DataManager {
 
     deleteTile(id) {
         this.state.tiles = this.state.tiles.filter(t => t.id !== id);
+        this.saveState();
+    }
+
+    reorderTilesByVisibleMove(visibleTileIds, draggedId, targetId) {
+        this.state.tiles = reorderTilesByVisibleMove(this.state.tiles, visibleTileIds, draggedId, targetId);
         this.saveState();
     }
 

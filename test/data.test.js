@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getEffectiveMax, normalizeStateForShadowRules, normalizeTileTags } from '../js/data.js';
+import { getEffectiveMax, normalizeStateForShadowRules, normalizeTileTags, reorderTilesByVisibleMove } from '../js/data.js';
 
 describe('getEffectiveMax', () => {
     it('sums base max + perm + temp for HP/EN/RX', () => {
@@ -152,5 +152,32 @@ describe('normalizeStateForShadowRules', () => {
         assert.equal(state.stats.Qi, undefined);
         assert.equal(state.stats.Id, undefined);
         assert.equal(state.legacyShadowWarning, true);
+    });
+});
+
+describe('reorderTilesByVisibleMove', () => {
+    it('moves a dragged tile within the visible custom order', () => {
+        const tiles = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }];
+
+        assert.deepEqual(
+            reorderTilesByVisibleMove(tiles, ['a', 'b', 'c', 'd'], 'c', 'a').map(tile => tile.id),
+            ['c', 'a', 'b', 'd']
+        );
+    });
+
+    it('preserves hidden tile slots while reordering the visible subset', () => {
+        const tiles = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }];
+
+        assert.deepEqual(
+            reorderTilesByVisibleMove(tiles, ['b', 'd', 'e'], 'e', 'b').map(tile => tile.id),
+            ['a', 'e', 'c', 'b', 'd']
+        );
+    });
+
+    it('returns the original order for invalid moves', () => {
+        const tiles = [{ id: 'a' }, { id: 'b' }];
+
+        assert.equal(reorderTilesByVisibleMove(tiles, ['a', 'b'], 'a', 'a'), tiles);
+        assert.equal(reorderTilesByVisibleMove(tiles, ['a'], 'b', 'a'), tiles);
     });
 });

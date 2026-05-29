@@ -39,6 +39,16 @@
     box-shadow: 0 10px 20px rgba(0,0,0,0.5);
 }
 
+.tile-card.tile-dragging {
+    opacity: 0.55;
+    transform: scale(0.98);
+}
+
+.tile-card.tile-drop-target {
+    outline: 3px dashed rgba(0, 255, 200, 0.9);
+    box-shadow: 0 0 18px rgba(0, 255, 200, 0.45);
+}
+
 .tile-card.selected-call {
     outline: 3px solid white;
     box-shadow: 0 0 15px white;
@@ -214,6 +224,28 @@
     flex-wrap: wrap;
     margin-bottom: 0.5rem;
     z-index: 2;
+}
+
+.tile-drag-handle {
+    align-items: center;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.32);
+    border-radius: 4px;
+    color: white;
+    cursor: grab;
+    display: inline-flex;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    padding: 0.2rem 0.4rem;
+    position: relative;
+    text-transform: uppercase;
+    touch-action: none;
+    z-index: 3;
+}
+
+.tile-drag-handle:active {
+    cursor: grabbing;
 }
 
 .tile-card.selected-burn {

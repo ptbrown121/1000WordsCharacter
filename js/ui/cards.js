@@ -14,6 +14,23 @@ import { renderRulesReview } from './rulesReview.js';
 let dataManager;
 let spellBuilder;
 let openTileModalFn;
+let draggedTileId = null;
+let pointerDragState = null;
+let suppressCardClickUntil = 0;
+
+function clearDragClasses() {
+    document.querySelectorAll('.tile-dragging, .tile-drop-target').forEach(card => {
+        card.classList.remove('tile-dragging', 'tile-drop-target');
+    });
+}
+
+function restoreCustomSortControls() {
+    if (els.sortTilesBy) els.sortTilesBy.value = 'default';
+    if (els.btnSortDir) {
+        els.btnSortDir.dataset.dir = 'asc';
+        els.btnSortDir.innerHTML = '\u2193';
+    }
+}
 
 export function init(deps) {
     dataManager = deps.dataManager;
@@ -132,9 +149,13 @@ export function renderCards() {
         });
     }
 
+    const visibleTileIds = filteredTiles.map(tile => tile.id);
+
     filteredTiles.forEach(tile => {
         const div = document.createElement('div');
         div.className = 'tile-card';
+        div.draggable = true;
+        div.dataset.tileId = tile.id;
         const tileNameLabel = escapeHtml(tile.name);
         const armorLabel = formatArmorBase(tile.armorType);
         const weaponLabel = formatWeaponBase(tile.weapon);
@@ -179,6 +200,7 @@ export function renderCards() {
 
         div.innerHTML = `
             <div class="tile-badges">
+                <button class="tile-drag-handle" title="Drag ${tileNameLabel} to reorder" aria-label="Drag ${tileNameLabel} to reorder" type="button">Drag</button>
                 ${boxes.map(box => {
                     const label = box.type === 'shadow'
                         ? `${box.kind} -> ${RESOURCE_LABELS[box.resource] || 'Resource'}`
@@ -213,6 +235,107 @@ export function renderCards() {
             </div>
             ${actionButtons}
         `;
+
+        const dragHandle = div.querySelector('.tile-drag-handle');
+        if (dragHandle) {
+            dragHandle.addEventListener('click', (e) => e.stopPropagation());
+            dragHandle.addEventListener('pointerdown', (e) => {
+                pointerDragState = {
+                    tileId: tile.id,
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    targetId: '',
+                    active: false
+                };
+                dragHandle.setPointerCapture?.(e.pointerId);
+            });
+            dragHandle.addEventListener('pointermove', (e) => {
+                if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
+                const distance = Math.hypot(e.clientX - pointerDragState.startX, e.clientY - pointerDragState.startY);
+                if (!pointerDragState.active && distance < 8) return;
+
+                pointerDragState.active = true;
+                suppressCardClickUntil = Date.now() + 600;
+                e.preventDefault();
+                clearDragClasses();
+                div.classList.add('tile-dragging');
+
+                const targetCard = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.tile-card');
+                const targetId = targetCard?.dataset.tileId || '';
+                if (targetId && targetId !== tile.id) {
+                    targetCard.classList.add('tile-drop-target');
+                    pointerDragState.targetId = targetId;
+                } else {
+                    pointerDragState.targetId = '';
+                }
+            });
+            dragHandle.addEventListener('pointerup', (e) => {
+                if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
+                const targetId = pointerDragState.targetId;
+                const wasActive = pointerDragState.active;
+                pointerDragState = null;
+                dragHandle.releasePointerCapture?.(e.pointerId);
+                clearDragClasses();
+                if (wasActive) {
+                    suppressCardClickUntil = Date.now() + 600;
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                if (wasActive && targetId) {
+                    dataManager.reorderTilesByVisibleMove(visibleTileIds, tile.id, targetId);
+                    restoreCustomSortControls();
+                    renderCards();
+                }
+            });
+            dragHandle.addEventListener('pointercancel', () => {
+                pointerDragState = null;
+                clearDragClasses();
+            });
+        }
+
+        div.addEventListener('dragstart', (e) => {
+            if (!e.target.closest('.tile-drag-handle')) {
+                e.preventDefault();
+                return;
+            }
+            draggedTileId = tile.id;
+            suppressCardClickUntil = Date.now() + 600;
+            div.classList.add('tile-dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', tile.id);
+            }
+        });
+
+        div.addEventListener('dragover', (e) => {
+            const incomingId = draggedTileId || e.dataTransfer?.getData('text/plain');
+            if (!incomingId || incomingId === tile.id) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            div.classList.add('tile-drop-target');
+        });
+
+        div.addEventListener('dragleave', () => {
+            div.classList.remove('tile-drop-target');
+        });
+
+        div.addEventListener('drop', (e) => {
+            const incomingId = e.dataTransfer?.getData('text/plain') || draggedTileId;
+            if (!incomingId || incomingId === tile.id) return;
+            e.preventDefault();
+            e.stopPropagation();
+            dataManager.reorderTilesByVisibleMove(visibleTileIds, incomingId, tile.id);
+            restoreCustomSortControls();
+            draggedTileId = null;
+            suppressCardClickUntil = Date.now() + 600;
+            renderCards();
+        });
+
+        div.addEventListener('dragend', () => {
+            draggedTileId = null;
+            suppressCardClickUntil = Date.now() + 600;
+            clearDragClasses();
+        });
 
         const btnFavorite = div.querySelector('.btn-favorite');
         if (btnFavorite) {
@@ -331,7 +454,10 @@ export function renderCards() {
         }
 
         // Click to Select for Pool
-        div.addEventListener('click', () => handleCardClick(tile));
+        div.addEventListener('click', () => {
+            if (Date.now() < suppressCardClickUntil) return;
+            handleCardClick(tile);
+        });
         
         // Long press or right click to Edit
         div.addEventListener('contextmenu', (e) => {
