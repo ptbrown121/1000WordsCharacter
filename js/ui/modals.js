@@ -436,6 +436,123 @@ export function renderXpEstimateNote(unknownTags = []) {
     el.style.display = 'block';
 }
 
+function resetPendingTagControls() {
+    els.tagSelect.value = '';
+    els.tagCustomInput.value = '';
+    els.tagCustomInput.style.display = 'none';
+    const motorizedStat = document.getElementById('tag-motorized-stat');
+    motorizedStat.style.display = 'none';
+    motorizedStat.value = '';
+    const hitchValue = document.getElementById('tag-hitch-value');
+    hitchValue.style.display = 'none';
+    hitchValue.value = '3';
+    document.getElementById('tag-exempt').checked = false;
+}
+
+function getPendingTileTag() {
+    const selVal = els.tagSelect.value;
+    if (!selVal) return null;
+
+    let finalTag = '';
+    let reason = '';
+
+    if (selVal === 'Custom') {
+        finalTag = els.tagCustomInput.value.trim();
+        if (!finalTag) reason = 'Custom needs a tag name.';
+    } else if (selVal === 'Chain' || selVal === 'World') {
+        const target = els.tagCustomInput.value.trim();
+        if (target) {
+            finalTag = `${selVal} ${target}`;
+        } else {
+            reason = `${selVal} needs a linked tile name.`;
+        }
+    } else if (selVal === 'Motorized') {
+        const stat = document.getElementById('tag-motorized-stat').value;
+        if (stat) {
+            finalTag = `Motorized: ${stat}`;
+        } else {
+            reason = 'Motorized needs a stat.';
+        }
+    } else if (selVal === 'Hitch') {
+        const rebate = Math.min(6, Math.max(1, parseInt(document.getElementById('tag-hitch-value').value, 10) || 3));
+        finalTag = `Hitch ${rebate}`;
+    } else {
+        finalTag = selVal;
+    }
+
+    if (finalTag && document.getElementById('tag-exempt').checked) {
+        finalTag = `${finalTag} (Exempt)`;
+    }
+
+    return {
+        label: selVal,
+        tag: finalTag,
+        canAdd: Boolean(finalTag),
+        reason
+    };
+}
+
+function addPendingTileTag({ showAlert = true } = {}) {
+    const pending = getPendingTileTag();
+    if (!pending) return false;
+    if (!pending.canAdd) {
+        if (showAlert) alert(pending.reason || 'Complete the selected tag before adding it.');
+        return false;
+    }
+
+    currentFormTags.push(pending.tag);
+    renderFormTags();
+    resetPendingTagControls();
+    return true;
+}
+
+function showPendingTagDialog(pending, subjectLabel) {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal active pending-tag-dialog';
+        overlay.innerHTML = `
+            <div class="modal-content glass-panel pending-tag-dialog-content" role="dialog" aria-modal="true" aria-labelledby="pending-tag-title">
+                <h2 id="pending-tag-title">Add selected tag?</h2>
+                <p>You selected <strong>${pending.label}</strong> for this ${subjectLabel}, but it has not been added yet.</p>
+                ${pending.canAdd
+                    ? `<p class="pending-tag-preview">Pending tag: <strong>${pending.tag}</strong></p>`
+                    : `<p class="pending-tag-warning">${pending.reason || 'Finish the tag details before adding it.'}</p>`}
+                <div class="pending-tag-actions">
+                    <button type="button" class="btn btn-outline" data-choice="cancel">Cancel</button>
+                    <button type="button" class="btn btn-outline" data-choice="save">Save without tag</button>
+                    ${pending.canAdd ? '<button type="button" class="btn btn-action" data-choice="add">Add tag and save</button>' : ''}
+                </div>
+            </div>
+        `;
+
+        const close = (choice) => {
+            overlay.remove();
+            resolve(choice);
+        };
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close('cancel');
+            const button = e.target.closest('button[data-choice]');
+            if (button && overlay.contains(button)) close(button.dataset.choice);
+        });
+        overlay.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') close('cancel');
+        });
+        document.body.appendChild(overlay);
+        overlay.querySelector('button[data-choice="cancel"]')?.focus();
+    });
+}
+
+async function confirmPendingTagBeforeTileSave() {
+    const pending = getPendingTileTag();
+    if (!pending) return true;
+
+    const choice = await showPendingTagDialog(pending, 'tile');
+    if (choice === 'cancel') return false;
+    if (choice === 'add') return addPendingTileTag({ showAlert: true });
+    return true;
+}
+
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
@@ -491,57 +608,11 @@ export function init(deps) {
         }
     });
 
-    els.btnAddTag.addEventListener('click', () => {
-        const selVal = els.tagSelect.value;
-        let finalTag = '';
-        
-        if (!selVal) return;
-        
-        if (selVal === 'Custom') {
-            finalTag = els.tagCustomInput.value.trim();
-        } else if (selVal === 'Chain' || selVal === 'World') {
-            const target = els.tagCustomInput.value.trim();
-            if (target) finalTag = `${selVal} ${target}`;
-        } else if (selVal === 'Motorized') {
-            const stat = document.getElementById('tag-motorized-stat').value;
-            if (!stat) {
-                alert('Select a stat for the Motorized tag.');
-                return;
-            }
-            finalTag = `Motorized: ${stat}`;
-        } else if (selVal === 'Hitch') {
-            const rebate = Math.min(6, Math.max(1, parseInt(document.getElementById('tag-hitch-value').value, 10) || 3));
-            finalTag = `Hitch ${rebate}`;
-        } else {
-            finalTag = selVal;
-        }
+    els.btnAddTag.addEventListener('click', () => addPendingTileTag({ showAlert: true }));
 
-        if (finalTag) {
-            const isExempt = document.getElementById('tag-exempt').checked;
-            if (isExempt) {
-                finalTag = `${finalTag} (Exempt)`;
-            }
-        }
-
-        if (finalTag) {
-            currentFormTags.push(finalTag);
-            renderFormTags();
-            els.tagSelect.value = '';
-            els.tagCustomInput.value = '';
-            els.tagCustomInput.style.display = 'none';
-            const motorizedStat = document.getElementById('tag-motorized-stat');
-            motorizedStat.style.display = 'none';
-            motorizedStat.value = '';
-            const hitchValue = document.getElementById('tag-hitch-value');
-            hitchValue.style.display = 'none';
-            hitchValue.value = '3';
-            document.getElementById('tag-exempt').checked = false;
-        }
-    });
-
-    els.form.addEventListener('submit', (e) => {
+    els.form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        saveTileFromForm();
+        await saveTileFromForm();
     });
 
     els.tileDice.addEventListener('input', renderTileTagLimitStatus);
@@ -739,7 +810,9 @@ export function closeModal() {
     els.modal.classList.remove('active');
 }
 
-export function saveTileFromForm() {
+export async function saveTileFromForm() {
+    if (!await confirmPendingTagBeforeTileSave()) return;
+
     const id = document.getElementById('tile-id').value;
     const type = document.getElementById('tile-type').value;
     const isSpellcastSkill = type === 'Skill' && document.getElementById('tile-is-spellcast').checked;

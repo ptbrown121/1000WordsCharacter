@@ -199,45 +199,7 @@ export class SpellBuilder {
         });
 
         this.btnAddTag.addEventListener('click', () => {
-            let val = this.tagSelect.value;
-            let xp = parseInt(this.tagSelect.options[this.tagSelect.selectedIndex].dataset.xp || 0, 10);
-
-            if (val === 'Custom') {
-                val = this.tagCustomInput.value.trim();
-                xp = parseInt(this.tagCustomXp.value || 0, 10);
-                if (!val) return;
-                this.tagCustomInput.value = '';
-                this.tagCustomXp.value = '2';
-            } else if (val === 'World') {
-                const target = this.tagCustomInput.value.trim();
-                if (!target) return;
-                val = `World ${target}`;
-                xp = 0;
-                this.tagCustomInput.value = '';
-            } else if (val === 'Hitch') {
-                const rebate = Math.min(6, Math.max(1, parseInt(document.getElementById('spell-tag-hitch-value').value, 10) || 3));
-                val = `Hitch ${rebate}`;
-                xp = -rebate;
-            } else if (!val) {
-                return;
-            }
-
-            const isExempt = document.getElementById('spell-tag-exempt').checked;
-            if (isExempt) {
-                val = `${val} (Exempt)`;
-            }
-
-            this.currentFormTags.push({ name: val, xp: xp });
-            
-            document.getElementById('spell-tag-exempt').checked = false;
-            const hitchValue = document.getElementById('spell-tag-hitch-value');
-            if (hitchValue) {
-                hitchValue.style.display = 'none';
-                hitchValue.value = '3';
-            }
-            
-            this.renderTags();
-            this.calculateXP();
+            this.addPendingSpellTag({ showAlert: true });
         });
         
         this.btnDelete.addEventListener('click', () => {
