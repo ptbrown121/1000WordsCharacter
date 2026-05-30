@@ -1077,6 +1077,7 @@ export class PoolEngine {
         let error = null;
         const activeCallColors = [...new Set(callColors.filter(Boolean))];
         const disabledChainIds = options.disabledChainIds || new Set();
+        const chainColorSelections = options.chainColorSelections || {};
         const aberrantEffects = options.aberrantEffects || {};
         const hitchCallTiles = options.hitchCallTiles || [];
         const usedTiles = [];
@@ -1099,6 +1100,10 @@ export class PoolEngine {
             if (Array.isArray(disabledChainIds)) return disabledChainIds.includes(chainId);
             return false;
         };
+        const getSelectedChainColor = (chainId) => {
+            if (chainColorSelections instanceof Map) return chainColorSelections.get(chainId) || '';
+            return chainColorSelections[chainId] || '';
+        };
 
         if (activeCallColors.length === 0) {
             return buildResult({ error: "Select at least 1 color for the Call." });
@@ -1111,8 +1116,6 @@ export class PoolEngine {
                 tiles.every(tile => tileMatchesCallColor(tile, color))
             );
         };
-
-        const hasSharedCallColor = (...tiles) => getSharedCallColors(...tiles).length > 0;
 
         // 1. Add Stat Dice matching the Call Colors
         activeCallColors.forEach(color => {
@@ -1132,7 +1135,7 @@ export class PoolEngine {
         });
 
         // Recursive resolution for call tiles and chains
-        const resolveTile = (tile, isCallTile, visitedIds) => {
+        const resolveTile = (tile, isCallTile, visitedIds, chainColor = '') => {
             if (!tile || visitedIds.has(tile.id)) return;
             visitedIds.add(tile.id);
 
@@ -1230,6 +1233,8 @@ export class PoolEngine {
                     const chainId = `${tile.id}:${linkKind}:${index}:${targetName.toLowerCase()}`;
                     const targetTile = allTiles.find(t => (t.name || '').toLowerCase() === targetName);
                     const disabled = isChainDisabled(chainId);
+                    const sharedColors = targetTile ? getSharedCallColors(tile, targetTile) : [];
+                    const selectedColor = getSelectedChainColor(chainId);
                     const chainOption = {
                         id: chainId,
                         type: linkKind,
@@ -1238,6 +1243,10 @@ export class PoolEngine {
                         targetTileId: targetTile?.id || null,
                         targetTileName: targetTile?.name || targetName,
                         targetFound: Boolean(targetTile),
+                        availableColors: sharedColors,
+                        selectedColor: chainColor || selectedColor || (sharedColors.length === 1 ? sharedColors[0] : ''),
+                        inheritedColor: chainColor,
+                        requiresColorChoice: !chainColor && sharedColors.length > 1,
                         enabled: !disabled,
                         status: disabled ? 'suppressed' : 'active'
                     };
@@ -1258,13 +1267,34 @@ export class PoolEngine {
                         return;
                     }
 
-                    if (!hasSharedCallColor(tile, targetTile)) {
+                    if (sharedColors.length === 0) {
                         chainOption.status = 'blocked';
                         error = `${linkLabel} from '${tile.name}' to '${targetTile.name}' must share one selected Call color.`;
                         return;
                     }
 
-                    resolveTile(targetTile, false, visitedIds);
+                    if (chainColor && !sharedColors.includes(chainColor)) {
+                        chainOption.status = 'blocked';
+                        error = `${linkLabel} from '${tile.name}' to '${targetTile.name}' cannot continue on ${chainColor}.`;
+                        return;
+                    }
+
+                    let nextChainColor = chainColor;
+                    if (!nextChainColor) {
+                        if (sharedColors.length === 1) {
+                            nextChainColor = sharedColors[0];
+                            chainOption.selectedColor = nextChainColor;
+                        } else if (selectedColor && sharedColors.includes(selectedColor)) {
+                            nextChainColor = selectedColor;
+                            chainOption.selectedColor = nextChainColor;
+                        } else {
+                            chainOption.status = 'needs-color';
+                            error = `${linkLabel} from '${tile.name}' to '${targetTile.name}' can chain on ${sharedColors.join(' or ')}. Choose one chain color.`;
+                            return;
+                        }
+                    }
+
+                    resolveTile(targetTile, false, visitedIds, nextChainColor);
                     if (error) return;
                 }
             }

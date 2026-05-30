@@ -53,14 +53,27 @@ export function init(deps) {
     els.risenAberrantEffect?.addEventListener('change', updatePoolPreview);
     els.fallenAberrantEffect?.addEventListener('change', updatePoolPreview);
     els.chainOptions.addEventListener('change', (e) => {
-        if (!e.target.classList.contains('chain-cb')) return;
-        const chainId = e.target.dataset.chainId;
-        if (e.target.checked) {
-            uiState.disabledChainIds.delete(chainId);
-        } else {
-            uiState.disabledChainIds.add(chainId);
+        if (e.target.classList.contains('chain-cb')) {
+            const chainId = e.target.dataset.chainId;
+            if (e.target.checked) {
+                uiState.disabledChainIds.delete(chainId);
+            } else {
+                uiState.disabledChainIds.add(chainId);
+            }
+            updatePoolPreview();
+            return;
         }
-        updatePoolPreview();
+        if (e.target.classList.contains('chain-color-select')) {
+            const chainId = e.target.dataset.chainId;
+            const color = e.target.value;
+            if (color) {
+                uiState.chainColorSelections[chainId] = color;
+            } else {
+                delete uiState.chainColorSelections[chainId];
+            }
+            uiState.disabledChainIds.delete(chainId);
+            updatePoolPreview();
+        }
     });
     els.tagBonusOptions.addEventListener('change', (e) => {
         if (!e.target.classList.contains('tag-bonus-cb')) return;
@@ -194,6 +207,7 @@ export function clearCallSelection() {
     uiState.hitchCallTiles = [];
     uiState.burnTiles = [];
     uiState.disabledChainIds.clear();
+    uiState.chainColorSelections = {};
     uiState.selectedTagBonusIds.clear();
     renderCards();
     updatePoolPreview();
@@ -219,6 +233,7 @@ export function getPoolOptions() {
     return {
         hitchCallTiles: [...(uiState.hitchCallTiles || [])],
         disabledChainIds: new Set(uiState.disabledChainIds),
+        chainColorSelections: { ...(uiState.chainColorSelections || {}) },
         aberrantEffects: {
             risen: alignmentStates.includes('Risen Aberrant') || Boolean(els.risenAberrantEffect?.checked),
             fallen: alignmentStates.includes('Fallen Aberrant') || Boolean(els.fallenAberrantEffect?.checked)
@@ -293,6 +308,9 @@ export function renderChainOptions(chainOptions = []) {
     uiState.disabledChainIds = new Set(
         Array.from(uiState.disabledChainIds).filter(id => validIds.has(id))
     );
+    uiState.chainColorSelections = Object.fromEntries(
+        Object.entries(uiState.chainColorSelections || {}).filter(([id]) => validIds.has(id))
+    );
 
     els.chainOptions.innerHTML = '';
 
@@ -305,7 +323,7 @@ export function renderChainOptions(chainOptions = []) {
 
     chainOptions.forEach(chain => {
         const option = document.createElement('label');
-        const isBlocked = chain.enabled && ['blocked', 'missing'].includes(chain.status);
+        const isBlocked = chain.enabled && ['blocked', 'missing', 'needs-color'].includes(chain.status);
         option.className = `chain-option${isBlocked ? ' chain-blocked' : ''}`;
 
         const checkbox = document.createElement('input');
@@ -323,15 +341,40 @@ export function renderChainOptions(chainOptions = []) {
 
         const context = document.createElement('span');
         context.className = 'chain-context';
+        const selectedColor = chain.selectedColor || uiState.chainColorSelections[chain.id] || '';
         context.textContent = chain.enabled
-            ? 'Called with the source tile and grants its dice plus one Add'
+            ? selectedColor
+                ? `Chaining on ${selectedColor}; grants its dice plus one Add`
+                : 'Called with the source tile and grants its dice plus one Add'
             : 'Suppressed for this roll';
+
+        if (chain.enabled && chain.requiresColorChoice && (chain.availableColors || []).length > 1) {
+            const colorSelect = document.createElement('select');
+            colorSelect.className = 'chain-color-select';
+            colorSelect.dataset.chainId = chain.id;
+            colorSelect.setAttribute('aria-label', `Choose chain color for ${chain.sourceTileName} to ${chain.targetTileName}`);
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '-- Chain color --';
+            colorSelect.appendChild(placeholder);
+
+            chain.availableColors.forEach(color => {
+                const optionEl = document.createElement('option');
+                optionEl.value = color;
+                optionEl.textContent = color;
+                colorSelect.appendChild(optionEl);
+            });
+            colorSelect.value = selectedColor || '';
+            main.appendChild(colorSelect);
+        }
 
         const status = document.createElement('span');
         status.className = `chain-status chain-status-${chain.status}`;
         status.textContent = chain.enabled ? 'On' : 'Off';
         if (chain.status === 'missing') status.textContent = 'Missing';
         if (chain.status === 'blocked') status.textContent = 'Blocked';
+        if (chain.status === 'needs-color') status.textContent = 'Choose Color';
 
         main.appendChild(title);
         main.appendChild(context);

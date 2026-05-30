@@ -106,20 +106,36 @@
                     <span id="armor-soak-detail" class="pool-detail">No active armor</span>
                 </div>
             </div>
-            <div class="pool" style="--pool-color: #fff">
+            <div class="pool counter-pool" style="--pool-color: #fff">
                 <label>XP</label>
-                <div style="display: flex; align-items: center;">
-                    <span id="val-xp-spent" style="font-weight: bold; font-size: 1.2rem;">0</span>
-                    <span style="font-weight: bold; margin: 0 0.5rem;">/</span>
-                    <input type="number" id="val-xp-earned" value="75" style="width: 4rem;">
+                <div class="pool-inner">
+                    <div class="counter-control" aria-label="XP spent">
+                        <button type="button" class="btn-counter-step" data-counter="xpSpent" data-step="-1" aria-label="Decrease XP spent">-</button>
+                        <span id="val-xp-spent" class="pool-readout">0</span>
+                        <button type="button" class="btn-counter-step" data-counter="xpSpent" data-step="1" aria-label="Increase XP spent">+</button>
+                    </div>
+                    <span>/</span>
+                    <div class="counter-control" aria-label="XP earned">
+                        <button type="button" class="btn-counter-step" data-counter="xpEarned" data-step="-1" aria-label="Decrease XP earned">-</button>
+                        <input type="number" id="val-xp-earned" value="75" inputmode="numeric">
+                        <button type="button" class="btn-counter-step" data-counter="xpEarned" data-step="1" aria-label="Increase XP earned">+</button>
+                    </div>
                 </div>
             </div>
-            <div class="pool" style="--pool-color: #ffd166">
+            <div class="pool counter-pool" style="--pool-color: #ffd166">
                 <label>Story Points</label>
-                <div style="display: flex; align-items: center;">
-                    <input type="number" id="val-story-points-spent" value="0" inputmode="numeric" aria-label="Story Points spent" style="width: 4rem;">
-                    <span style="font-weight: bold; margin: 0 0.5rem;">/</span>
-                    <input type="number" id="val-story-points-earned" value="0" inputmode="numeric" aria-label="Story Points earned" style="width: 4rem;">
+                <div class="pool-inner">
+                    <div class="counter-control" aria-label="Story Points spent">
+                        <button type="button" class="btn-counter-step" data-counter="storyPointsSpent" data-step="-1" aria-label="Decrease Story Points spent">-</button>
+                        <input type="number" id="val-story-points-spent" value="0" inputmode="numeric" aria-label="Story Points spent">
+                        <button type="button" class="btn-counter-step" data-counter="storyPointsSpent" data-step="1" aria-label="Increase Story Points spent">+</button>
+                    </div>
+                    <span>/</span>
+                    <div class="counter-control" aria-label="Story Points earned">
+                        <button type="button" class="btn-counter-step" data-counter="storyPointsEarned" data-step="-1" aria-label="Decrease Story Points earned">-</button>
+                        <input type="number" id="val-story-points-earned" value="0" inputmode="numeric" aria-label="Story Points earned">
+                        <button type="button" class="btn-counter-step" data-counter="storyPointsEarned" data-step="1" aria-label="Increase Story Points earned">+</button>
+                    </div>
                 </div>
             </div>
         </div>

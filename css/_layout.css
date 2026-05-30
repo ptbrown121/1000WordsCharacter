@@ -44,6 +44,15 @@ header {
     border-radius: 8px;
     border-left: 4px solid var(--pool-color);
 }
+
+.counter-pool {
+    flex-wrap: wrap;
+}
+
+.counter-pool .pool-inner {
+    flex: 1 1 16rem;
+}
+
 .pool label {
     flex: 0 0 auto;
     font-weight: 600;
@@ -73,7 +82,8 @@ header {
     white-space: nowrap;
 }
 
-.vital-current-control {
+.vital-current-control,
+.counter-control {
     display: grid;
     grid-template-columns: 2.5rem 3rem 2.5rem;
     align-items: center;
@@ -82,16 +92,28 @@ header {
     overflow: hidden;
 }
 
-.vital-current-control input {
+.vital-current-control input,
+.counter-control input,
+.counter-control .pool-readout {
     min-height: 2.5rem;
 }
 
+.counter-control .pool-readout {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-width: 0;
+}
+
 .vital-current-control input::-webkit-outer-spin-button,
-.vital-current-control input::-webkit-inner-spin-button {
+.vital-current-control input::-webkit-inner-spin-button,
+.counter-control input::-webkit-outer-spin-button,
+.counter-control input::-webkit-inner-spin-button {
     margin: 0;
 }
 
-.btn-vital-step {
+.btn-vital-step,
+.btn-counter-step {
     min-width: 2.5rem;
     min-height: 2.5rem;
     border: none;
@@ -106,13 +128,16 @@ header {
     touch-action: manipulation;
 }
 
-.btn-vital-step:last-child {
+.btn-vital-step:last-child,
+.btn-counter-step:last-child {
     border-right: none;
     border-left: 1px solid rgba(255,255,255,0.12);
 }
 
 .btn-vital-step:hover,
-.btn-vital-step:focus-visible {
+.btn-vital-step:focus-visible,
+.btn-counter-step:hover,
+.btn-counter-step:focus-visible {
     background: rgba(255,255,255,0.16);
     outline: none;
 }
@@ -145,6 +170,16 @@ header {
     cursor: pointer;
     font-size: 0.9rem;
     padding: 0.1rem;
+}
+
+@media (max-width: 520px) {
+    .resource-pools {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .counter-pool .pool-inner {
+        flex-basis: 100%;
+    }
 }
 
 /* Stats */

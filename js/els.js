@@ -17,6 +17,7 @@ export const els = {
     valXpSpent: document.getElementById('val-xp-spent'),
     valStoryPointsSpent: document.getElementById('val-story-points-spent'),
     valStoryPointsEarned: document.getElementById('val-story-points-earned'),
+    counterStepButtons: document.querySelectorAll('.btn-counter-step'),
     valHp: document.getElementById('val-hp'),
     valHpMax: document.getElementById('val-hp-max'),
     hpTempBadge: document.getElementById('hp-temp-badge'),

@@ -332,6 +332,18 @@
     font-size: 0.75rem;
 }
 
+.chain-color-select {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 0.8rem;
+    margin-top: 0.35rem;
+    max-width: 11rem;
+    padding: 0.35rem 0.45rem;
+}
+
 .tag-bonus-steps,
 .chain-status {
     color: #ffcc00;
@@ -344,7 +356,8 @@
 }
 
 .chain-status.chain-status-blocked,
-.chain-status.chain-status-missing {
+.chain-status.chain-status-missing,
+.chain-status.chain-status-needs-color {
     color: #ff6666;
 }
 

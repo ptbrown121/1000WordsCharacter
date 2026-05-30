@@ -91,23 +91,78 @@ function closeStatDiceModal() {
     els.statDiceModal.classList.remove('active');
 }
 
+function calculateBaseXpSpent() {
+    let spent = 0;
+
+    // 1. Stats XP - charged via the same cascade formula as tile dice
+    // (rulebook System Concept-Dice chart: each advance costs
+    // {steps on the advanced die} + {count of other dice}).
+    ADVANCEABLE_STATS.forEach(stat => {
+        spent += poolEngine.calculateOptimalXpCost(poolEngine.parseDiceString(dataManager.state.stats[stat] || ''));
+    });
+
+    // 2. Tiles XP
+    dataManager.state.tiles.forEach(t => {
+        spent += (parseInt(t.xpCost, 10) || 0);
+    });
+
+    return spent;
+}
+
+function getDisplayedXpSpent() {
+    return Math.max(0, calculateBaseXpSpent() + (parseInt(dataManager.state.xpSpentAdjustment, 10) || 0));
+}
+
+function setCounterValue(counter, value) {
+    const normalized = Math.max(0, parseInt(value, 10) || 0);
+
+    if (counter === 'xpSpent') {
+        dataManager.state.xpSpentAdjustment = normalized - calculateBaseXpSpent();
+        dataManager.saveState();
+        updateXpTracker();
+    } else if (counter === 'xpEarned') {
+        dataManager.state.xpEarned = normalized;
+        dataManager.saveState();
+        updateXpTracker();
+    } else if (counter === 'storyPointsSpent') {
+        dataManager.state.storyPointsSpent = normalized;
+        els.valStoryPointsSpent.value = normalized;
+        dataManager.saveState();
+    } else if (counter === 'storyPointsEarned') {
+        dataManager.state.storyPointsEarned = normalized;
+        dataManager.state.storyPoints = normalized;
+        els.valStoryPointsEarned.value = normalized;
+        dataManager.saveState();
+    }
+}
+
+function getCounterValue(counter) {
+    if (counter === 'xpSpent') return getDisplayedXpSpent();
+    if (counter === 'xpEarned') return parseInt(dataManager.state.xpEarned, 10) || 0;
+    if (counter === 'storyPointsSpent') return parseInt(dataManager.state.storyPointsSpent, 10) || 0;
+    if (counter === 'storyPointsEarned') return parseInt(dataManager.state.storyPointsEarned, 10) || 0;
+    return 0;
+}
+
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
 
     els.valXpEarned.addEventListener('change', (e) => {
-        dataManager.state.xpEarned = parseInt(e.target.value, 10) || 0;
-        dataManager.saveState();
-        updateXpTracker();
+        setCounterValue('xpEarned', e.target.value);
     });
     els.valStoryPointsSpent.addEventListener('change', (e) => {
-        dataManager.state.storyPointsSpent = parseInt(e.target.value, 10) || 0;
-        dataManager.saveState();
+        setCounterValue('storyPointsSpent', e.target.value);
     });
     els.valStoryPointsEarned.addEventListener('change', (e) => {
-        dataManager.state.storyPointsEarned = parseInt(e.target.value, 10) || 0;
-        dataManager.state.storyPoints = dataManager.state.storyPointsEarned;
-        dataManager.saveState();
+        setCounterValue('storyPointsEarned', e.target.value);
+    });
+    els.counterStepButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const counter = button.dataset.counter;
+            const step = parseInt(button.dataset.step, 10) || 0;
+            setCounterValue(counter, getCounterValue(counter) + step);
+        });
     });
 
     if (els.toggleOptionalStats) {
@@ -148,21 +203,7 @@ export function init(deps) {
 }
 
 export function updateXpTracker() {
-    let spent = 0;
-
-    // 1. Stats XP - charged via the same cascade formula as tile dice
-    // (rulebook System Concept-Dice chart: each advance costs
-    // {steps on the advanced die} + {count of other dice}).
-    ADVANCEABLE_STATS.forEach(stat => {
-        spent += poolEngine.calculateOptimalXpCost(poolEngine.parseDiceString(dataManager.state.stats[stat] || ''));
-    });
-
-    // 2. Tiles XP
-    dataManager.state.tiles.forEach(t => {
-        spent += (parseInt(t.xpCost, 10) || 0);
-    });
-
-    els.valXpSpent.innerText = spent;
+    els.valXpSpent.innerText = getDisplayedXpSpent();
     els.valXpEarned.value = dataManager.state.xpEarned;
     renderRulesReview();
 }

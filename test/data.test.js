@@ -179,6 +179,25 @@ describe('normalizeStateForShadowRules', () => {
         assert.equal(state.storyPointsSpent, 3);
         assert.equal(state.storyPoints, 7);
     });
+
+    it('defaults XP spent adjustment for older saves', () => {
+        const state = normalizeStateForShadowRules({
+            stats: {},
+            tiles: []
+        });
+
+        assert.equal(state.xpSpentAdjustment, 0);
+    });
+
+    it('normalizes XP spent adjustment from saved input', () => {
+        const state = normalizeStateForShadowRules({
+            stats: {},
+            tiles: [],
+            xpSpentAdjustment: '2'
+        });
+
+        assert.equal(state.xpSpentAdjustment, 2);
+    });
 });
 
 describe('reorderTilesByVisibleMove', () => {

@@ -19,6 +19,8 @@ export const uiState = {
     burnTiles: [],
     // Chain IDs the user has explicitly disabled for this roll.
     disabledChainIds: new Set(),
+    // Chain ID -> selected normal color for ambiguous chain links.
+    chainColorSelections: {},
     // Tag-bonus IDs the user has opted into for this roll.
     selectedTagBonusIds: new Set(),
     // Result of the most recent roll/calculate, kept for re-renders.

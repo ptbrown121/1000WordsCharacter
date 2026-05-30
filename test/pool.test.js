@@ -717,6 +717,45 @@ describe('compilePool', () => {
         assert.equal(res.chainOptions[0].type, 'world');
     });
 
+    it('requires a chain color choice when a link can follow multiple selected colors', () => {
+        const spell = { id: 'spell', name: 'Spell', colors: ['Yellow', 'Purple'], dice: ['d6'], tags: 'Chain Twist' };
+        const twist = { id: 'twist', name: 'Twist', colors: ['Yellow', 'Purple'], dice: ['d6'], tags: '' };
+        const res = engine.compilePool(['Yellow', 'Purple'], stats, spell, [], [spell, twist], []);
+
+        assert.match(res.error, /Choose one chain color/i);
+        assert.equal(res.chainOptions[0].status, 'needs-color');
+        assert.deepEqual(res.chainOptions[0].availableColors, ['Yellow', 'Purple']);
+    });
+
+    it('keeps recursive chains on the initially selected chain color', () => {
+        const spell = { id: 'spell', name: 'Spell', colors: ['Yellow', 'Purple'], dice: ['d6'], tags: 'Chain Twist' };
+        const twist = { id: 'twist', name: 'Twist', colors: ['Yellow', 'Purple'], dice: ['d6'], tags: 'Chain Bridge' };
+        const bridge = { id: 'bridge', name: 'Bridge', colors: ['Yellow', 'Blue'], dice: ['d6'], tags: 'Chain Outlet' };
+        const outlet = { id: 'outlet', name: 'Outlet', colors: ['Blue', 'Green'], dice: ['d6'], tags: '' };
+
+        const res = engine.compilePool(['Yellow', 'Purple', 'Blue', 'Green'], stats, spell, [], [spell, twist, bridge, outlet], [], {
+            chainColorSelections: { 'spell:chain:0:twist': 'Yellow' }
+        });
+
+        assert.match(res.error, /cannot continue on Yellow/i);
+        assert.equal(res.chainOptions[2].status, 'blocked');
+        assert.equal(res.chainOptions[2].inheritedColor, 'Yellow');
+    });
+
+    it('allows a recursive chain when every link can continue on the chosen color', () => {
+        const spell = { id: 'spell', name: 'Spell', colors: ['Yellow', 'Purple'], dice: ['d6'], tags: 'Chain Twist' };
+        const twist = { id: 'twist', name: 'Twist', colors: ['Yellow', 'Purple'], dice: ['d6'], tags: 'Chain Bridge' };
+        const bridge = { id: 'bridge', name: 'Bridge', colors: ['Yellow', 'Blue'], dice: ['d6'], tags: '' };
+
+        const res = engine.compilePool(['Yellow', 'Purple', 'Blue'], stats, spell, [], [spell, twist, bridge], [], {
+            chainColorSelections: { 'spell:chain:0:twist': 'Yellow' }
+        });
+
+        assert.equal(res.error, null);
+        assert.equal(res.adds, 4);
+        assert.deepEqual(res.chainOptions.map(chain => chain.selectedColor), ['Yellow', 'Yellow']);
+    });
+
     it('rejects buried chain and burn tiles', () => {
         const buriedHelper = { id: 'h', name: 'Helper', colors: ['Red'], dice: ['d10'], tags: '', isBuried: true };
         const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: 'Chain Helper' };

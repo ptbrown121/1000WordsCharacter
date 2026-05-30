@@ -188,6 +188,7 @@ function inferShowOptionalStats(state) {
 const DEFAULT_STATE = {
     name: 'Hero Name',
     xpEarned: 75,
+    xpSpentAdjustment: 0,
     storyPoints: 0,
     storyPointsSpent: 0,
     storyPointsEarned: 0,
@@ -232,6 +233,7 @@ export function normalizeStateForShadowRules(state) {
     }
     state.storyPointsSpent = normalizeNumber(state.storyPointsSpent, 0);
     state.storyPoints = state.storyPointsEarned;
+    state.xpSpentAdjustment = normalizeNumber(state.xpSpentAdjustment, 0);
 
     const stats = state.stats || {};
     const hasLegacyStatData = Boolean(stats.Id || stats.Qi);
@@ -466,6 +468,7 @@ export class DataManager {
             if (newState.stats && newState.tiles) {
                 // Backward compatibility
                 if (newState.xpEarned === undefined) newState.xpEarned = 75;
+                if (newState.xpSpentAdjustment === undefined) newState.xpSpentAdjustment = 0;
                 if (newState.storyPoints === undefined) newState.storyPoints = 0;
                 if (newState.storyPointsEarned === undefined) newState.storyPointsEarned = newState.storyPoints;
                 if (newState.storyPointsSpent === undefined) newState.storyPointsSpent = 0;
