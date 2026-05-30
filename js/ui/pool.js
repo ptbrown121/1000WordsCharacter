@@ -110,7 +110,7 @@ function syncCallColorsFromLegacySelects() {
     handleCallColorChange();
 }
 
-function setCallColors(colors) {
+export function setCallColors(colors) {
     const uniqueColors = [...new Set(colors.filter(Boolean))];
     uiState.callColors = uniqueColors;
     syncLegacyCallColorSelects(uniqueColors);

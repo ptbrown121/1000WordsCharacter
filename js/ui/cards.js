@@ -2,13 +2,13 @@
 // This is safe because all cross-imported symbols are functions that are
 // only called at runtime (inside event handlers or render cycles), never
 // during module evaluation.
-import { escapeHtml, getExoticSkillLabel, getTileBoxes, isGearTagsBroken, isHitchedTile, RESOURCE_LABELS, tileTagList } from '../pool.js';
+import { escapeHtml, getExoticSkillLabel, getTileBoxes, getTileNormalCallColors, isGearTagsBroken, isHitchedTile, RESOURCE_LABELS, tileTagList } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { formatAmmoBase, formatArmorBase, formatWeaponBase } from './modals.js';
 import { renderArmorSoak } from './armorSoak.js';
-import { updatePoolPreview } from './pool.js';
+import { setCallColors, updatePoolPreview } from './pool.js';
 import { updateShadowMax } from './vitals.js';
 import { renderRulesReview } from './rulesReview.js';
 
@@ -130,6 +130,12 @@ function moveTileByStep(visibleTileIds, tileId, step) {
     updateCustomOrder(visibleTileIds, tileId, targetId);
 }
 
+function seedCallColorsFromTile(tile) {
+    if ((uiState.callColors || []).filter(Boolean).length > 0) return;
+    const tileColors = getTileNormalCallColors(tile);
+    if (tileColors.length > 0) setCallColors(tileColors);
+}
+
 export function init(deps) {
     dataManager = deps.dataManager;
     openTileModalFn = deps.openTileModal;
@@ -180,6 +186,7 @@ export function handleCardClick(tile) {
         // Add to pool. If no call tile, make it call. Else make it burn.
         if (!uiState.callTile) {
             uiState.callTile = tile;
+            seedCallColorsFromTile(tile);
         } else if (isHitchedTile(tile)) {
             uiState.hitchCallTiles.push(tile);
         } else {

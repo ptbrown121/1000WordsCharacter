@@ -465,6 +465,12 @@ export function getTileColorsFromBoxes(boxes = []) {
     return serializeTileBoxes(boxes).map(box => box.type === 'shadow' ? box.kind : box.color);
 }
 
+export function getTileNormalCallColors(tile) {
+    return [...new Set(getTileBoxes(tile)
+        .filter(box => box.type === 'color' && NORMAL_COLORS.includes(box.color))
+        .map(box => box.color))];
+}
+
 export function getTileShadowBoxes(tile) {
     return getTileBoxes(tile).filter(box => box.type === 'shadow');
 }

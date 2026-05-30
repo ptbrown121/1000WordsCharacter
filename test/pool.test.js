@@ -9,6 +9,7 @@ import {
     getWeaponTemplatesByCategory,
     getHitchValue,
     isHitchedTile,
+    getTileNormalCallColors,
     calculateHitchRebateTotal,
     calculateArmorSoak,
     calculateArmorSoakDetails,
@@ -488,6 +489,26 @@ describe('new Shadow resources and XP', () => {
             boxes: [{ type: 'shadow', kind: 'Id', resource: 'rx' }]
         }), 3);
         assert.equal(engine.calculateStatXp({ BODY: 'd6', Qi: 'd16', Id: 'd16' }), 3);
+    });
+});
+
+describe('tile call colors', () => {
+    it('extracts normal tile box colors for call color seeding', () => {
+        assert.deepEqual(getTileNormalCallColors({
+            boxes: [
+                { type: 'color', color: 'Red' },
+                { type: 'color', color: 'Green' }
+            ]
+        }), ['Red', 'Green']);
+    });
+
+    it('ignores Qi and Id boxes when seeding GM call colors', () => {
+        assert.deepEqual(getTileNormalCallColors({
+            boxes: [
+                { type: 'shadow', kind: 'Qi', resource: 'hp' },
+                { type: 'color', color: 'Blue' }
+            ]
+        }), ['Blue']);
     });
 });
 
