@@ -17,6 +17,10 @@ export function init(deps) {
         dataManager.saveState();
         updateXpTracker();
     });
+    els.valStoryPoints.addEventListener('change', (e) => {
+        dataManager.state.storyPoints = parseInt(e.target.value, 10) || 0;
+        dataManager.saveState();
+    });
 
     if (els.toggleOptionalStats) {
         els.toggleOptionalStats.addEventListener('change', (e) => {

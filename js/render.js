@@ -17,6 +17,7 @@ export function setDataManager(dm) {
 export function renderAll() {
     els.charName.value = dataManager.state.name;
     els.valXpEarned.value = dataManager.state.xpEarned || 75;
+    els.valStoryPoints.value = dataManager.state.storyPoints ?? 0;
     els.valHp.value = dataManager.state.hp ?? 0;
 
     // Effective max = base max + perm + temp (see getEffectiveMax in data.js).

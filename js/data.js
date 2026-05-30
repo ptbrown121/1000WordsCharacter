@@ -187,6 +187,7 @@ function inferShowOptionalStats(state) {
 const DEFAULT_STATE = {
     name: 'Hero Name',
     xpEarned: 75,
+    storyPoints: 0,
     hp: 0,
     hpMax: 0,
     hpTemp: 0,
@@ -454,6 +455,7 @@ export class DataManager {
             if (newState.stats && newState.tiles) {
                 // Backward compatibility
                 if (newState.xpEarned === undefined) newState.xpEarned = 75;
+                if (newState.storyPoints === undefined) newState.storyPoints = 0;
                 if (newState.hpMax === undefined) newState.hpMax = newState.hp || 10;
                 if (newState.enMax === undefined) newState.enMax = newState.en || 10;
                 if (newState.rxMax === undefined) newState.rxMax = newState.rx || 10;

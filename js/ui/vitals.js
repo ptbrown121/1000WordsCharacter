@@ -11,15 +11,41 @@ const toInt = (value) => {
     return Number.isFinite(n) ? n : 0;
 };
 
+const currentVitalInputs = () => ({
+    hp: els.valHp,
+    en: els.valEn,
+    rx: els.valRx,
+    sh: els.valSh
+});
+
+function saveCurrentVital(key, value) {
+    const input = currentVitalInputs()[key];
+    if (!input) return;
+    dataManager.updateResource(key, value);
+    input.value = dataManager.state[key] ?? 0;
+}
+
+function stepCurrentVital(key, step) {
+    const input = currentVitalInputs()[key];
+    if (!input) return;
+    const current = toInt(input.value);
+    const next = Math.max(0, current + step);
+    saveCurrentVital(key, next);
+}
+
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
     renderAll = deps.renderAll;
 
-    els.valHp.addEventListener('change', (e) => dataManager.updateResource('hp', toInt(e.target.value)));
-    els.valEn.addEventListener('change', (e) => dataManager.updateResource('en', toInt(e.target.value)));
-    els.valRx.addEventListener('change', (e) => dataManager.updateResource('rx', toInt(e.target.value)));
-    els.valSh.addEventListener('change', (e) => { dataManager.state.sh = toInt(e.target.value); dataManager.saveState(); });
+    Object.entries(currentVitalInputs()).forEach(([key, input]) => {
+        input.addEventListener('change', (e) => saveCurrentVital(key, toInt(e.target.value)));
+    });
+    els.vitalStepButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            stepCurrentVital(btn.dataset.vital, toInt(btn.dataset.step));
+        });
+    });
     if (els.valAberration) {
         els.valAberration.addEventListener('change', (e) => {
             dataManager.state.aberration = toInt(e.target.value);
@@ -95,15 +121,8 @@ export function init(deps) {
         const resourceMaxes = poolEngine.calculateResourceMaxes(state.tiles);
 
         state.hpMax = resourceMaxes.hp;
-        state.hp = getEffectiveMax(state, 'hp');
-
         state.enMax = resourceMaxes.en;
-        state.en = getEffectiveMax(state, 'en');
-
         state.rxMax = resourceMaxes.rx;
-        state.rx = getEffectiveMax(state, 'rx');
-
-        state.sh = getEffectiveMax(state, 'sh', resourceMaxes.sh);
 
         dataManager.saveState();
         renderAll();

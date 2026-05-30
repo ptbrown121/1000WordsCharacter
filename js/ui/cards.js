@@ -98,7 +98,6 @@ function restoreCustomSortControls() {
         els.btnSortDir.dataset.dir = 'asc';
         els.btnSortDir.innerHTML = '\u2193';
     }
-    if (els.ignoreFavoritesSort) els.ignoreFavoritesSort.checked = true;
 }
 
 function syncReorderButton() {
@@ -131,7 +130,6 @@ export function init(deps) {
     if (els.searchTiles) {
         els.searchTiles.addEventListener('input', () => renderCards());
         if (els.sortTilesBy) els.sortTilesBy.addEventListener('change', () => renderCards());
-        if (els.ignoreFavoritesSort) els.ignoreFavoritesSort.addEventListener('change', () => renderCards());
         if (els.btnReorderTiles) {
             els.btnReorderTiles.addEventListener('click', () => {
                 reorderMode = !reorderMode;
@@ -215,7 +213,6 @@ export function renderCards() {
 
     let sortDir = els.btnSortDir ? els.btnSortDir.dataset.dir || 'asc' : 'asc';
     let sortVal = els.sortTilesBy ? els.sortTilesBy.value || 'default' : 'default';
-    let ignoreFavs = els.ignoreFavoritesSort ? els.ignoreFavoritesSort.checked : false;
 
     if (sortVal !== 'default') {
         filteredTiles.sort((a, b) => {
@@ -239,14 +236,6 @@ export function renderCards() {
         if (sortDir === 'desc') {
             filteredTiles.reverse();
         }
-    }
-
-    if (!ignoreFavs) {
-        filteredTiles.sort((a, b) => {
-            const aFav = a.isFavorite ? 1 : 0;
-            const bFav = b.isFavorite ? 1 : 0;
-            return bFav - aFav;
-        });
     }
 
     const visibleTileIds = filteredTiles.map(tile => tile.id);
@@ -319,7 +308,6 @@ export function renderCards() {
             <div class="tile-card-content">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div class="tile-name" style="margin-bottom: 0;">${escapeHtml(tile.name)}</div>
-                    <button class="btn-favorite ${tile.isFavorite ? 'active' : ''}" title="Toggle Favorite" aria-label="Toggle Favorite">\u2605</button>
                 </div>
                 ${reorderMode ? `<div class="tile-reorder-controls" aria-label="Reorder ${tileNameLabel}">
                     <button type="button" class="btn-tile-move-up" aria-label="Move ${tileNameLabel} up">Up</button>
@@ -466,16 +454,6 @@ export function renderCards() {
                 stopAutoScroll();
                 suppressCardClickUntil = Date.now() + 600;
                 updateCustomOrder(visibleTileIds, incomingId, tile.id);
-            });
-        }
-
-        const btnFavorite = div.querySelector('.btn-favorite');
-        if (btnFavorite) {
-            btnFavorite.addEventListener('click', (e) => {
-                e.stopPropagation();
-                tile.isFavorite = !tile.isFavorite;
-                dataManager.saveState();
-                renderCards();
             });
         }
 

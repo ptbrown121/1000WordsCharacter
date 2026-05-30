@@ -92,7 +92,11 @@
     padding: 0.35rem 0.7rem;
 }
 
-.call-colors select {
+.call-colors select.call-color-select {
+    display: none;
+}
+
+.call-colors select:not(.call-color-select) {
     background: rgba(0,0,0,0.5);
     color: white;
     border: 1px solid var(--glass-border);
@@ -102,9 +106,86 @@
     margin-bottom: 0.5rem;
 }
 .color-selectors {
-    display: flex;
+    display: grid;
     gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     margin-top: 0.5rem;
+}
+
+.call-color-slot {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.55rem;
+}
+
+.call-color-slot-label {
+    color: var(--text-secondary);
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.call-color-button-grid {
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.call-color-option {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 0.82rem;
+    font-weight: 700;
+    min-height: 40px;
+    padding: 0.45rem 0.3rem;
+}
+
+.call-color-option.active {
+    background: rgba(0,255,200,0.14);
+    border-color: rgba(0,255,200,0.5);
+    color: #00ffcc;
+}
+
+.call-color-red.active {
+    background: rgba(255,51,51,0.22);
+    border-color: #ff3333;
+    color: white;
+}
+
+.call-color-orange.active {
+    background: rgba(255,153,51,0.22);
+    border-color: #ff9933;
+    color: white;
+}
+
+.call-color-yellow.active {
+    background: rgba(255,204,0,0.22);
+    border-color: #ffcc00;
+    color: white;
+}
+
+.call-color-green.active {
+    background: rgba(51,204,51,0.22);
+    border-color: #33cc33;
+    color: white;
+}
+
+.call-color-blue.active {
+    background: rgba(51,153,255,0.22);
+    border-color: #3399ff;
+    color: white;
+}
+
+.call-color-purple.active {
+    background: rgba(153,51,255,0.22);
+    border-color: #9933ff;
+    color: white;
 }
 
 .filter-toggle {

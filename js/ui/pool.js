@@ -31,10 +31,24 @@ export function init(deps) {
     poolEngine = deps.poolEngine;
     renderAll = deps.renderAll;
 
-    els.callColor1.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
-    els.callColor2.addEventListener('change', () => { updatePoolPreview(); if (els.autoFilterCall.checked) renderCards(); });
+    els.callColor1.addEventListener('change', handleCallColorChange);
+    els.callColor2.addEventListener('change', handleCallColorChange);
+    els.callColorOptions.forEach(button => {
+        button.addEventListener('click', () => {
+            setCallColor(button.dataset.callSlot, button.dataset.value);
+        });
+    });
+    syncCallColorButtons();
     els.btnClearCall?.addEventListener('click', clearCallSelection);
-    els.extraDiceInput.addEventListener('input', updatePoolPreview);
+    els.extraDiceInput.addEventListener('input', () => {
+        syncExtraDiceChips();
+        updatePoolPreview();
+    });
+    els.extraDiceButtons?.addEventListener('click', (e) => {
+        const button = e.target.closest('.dice-add-btn');
+        if (!button || !els.extraDiceButtons.contains(button)) return;
+        addExtraDie(button.dataset.die);
+    });
     els.risenAberrantEffect?.addEventListener('change', updatePoolPreview);
     els.fallenAberrantEffect?.addEventListener('change', updatePoolPreview);
     els.chainOptions.addEventListener('change', (e) => {
@@ -75,9 +89,81 @@ export function init(deps) {
     els.btnCalculate.addEventListener('click', executeManualCalculate);
 }
 
+function getCallColorSelect(slot) {
+    return slot === '2' ? els.callColor2 : els.callColor1;
+}
+
+function handleCallColorChange() {
+    syncCallColorButtons();
+    updatePoolPreview();
+    if (els.autoFilterCall.checked) renderCards();
+}
+
+function setCallColor(slot, color) {
+    const select = getCallColorSelect(slot);
+    if (!select) return;
+    select.value = color || '';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function syncCallColorButtons() {
+    els.callColorOptions.forEach(button => {
+        const select = getCallColorSelect(button.dataset.callSlot);
+        const active = Boolean(select && select.value === button.dataset.value);
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+}
+
+function getExtraDiceTokens() {
+    return els.extraDiceInput.value
+        .split(',')
+        .map(token => token.trim())
+        .filter(Boolean);
+}
+
+function setExtraDiceTokens(tokens) {
+    els.extraDiceInput.value = tokens.join(', ');
+    els.extraDiceInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function addExtraDie(die) {
+    setExtraDiceTokens([...getExtraDiceTokens(), die]);
+}
+
+function syncExtraDiceChips() {
+    if (!els.extraDiceSelected) return;
+    els.extraDiceSelected.innerHTML = '';
+
+    getExtraDiceTokens().forEach((die, index) => {
+        const chip = document.createElement('span');
+        chip.className = 'dice-selected-chip';
+
+        const label = document.createElement('span');
+        label.textContent = die;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'dice-remove-btn';
+        removeBtn.textContent = 'x';
+        removeBtn.title = `Remove ${die}`;
+        removeBtn.setAttribute('aria-label', `Remove ${die}`);
+        removeBtn.addEventListener('click', () => {
+            const nextTokens = getExtraDiceTokens();
+            nextTokens.splice(index, 1);
+            setExtraDiceTokens(nextTokens);
+        });
+
+        chip.appendChild(label);
+        chip.appendChild(removeBtn);
+        els.extraDiceSelected.appendChild(chip);
+    });
+}
+
 export function clearCallSelection() {
     els.callColor1.value = '';
     els.callColor2.value = '';
+    syncCallColorButtons();
     uiState.callTile = null;
     uiState.burnTiles = [];
     uiState.disabledChainIds.clear();
@@ -87,6 +173,7 @@ export function clearCallSelection() {
 }
 
 export function getExtraDice() {
+    syncExtraDiceChips();
     const val = els.extraDiceInput.value.trim();
     const { dice, invalid } = parseDiceInput(val);
     return {
