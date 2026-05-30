@@ -17,6 +17,23 @@ const SPELL_DEFAULT_BOXES = {
     Augur: [{ type: 'color', color: 'Blue' }, { type: 'color', color: 'Orange' }]
 };
 
+function bindNoFocusButton(button, handler) {
+    let handledPointer = false;
+    button.addEventListener('pointerdown', (e) => {
+        handledPointer = true;
+        e.preventDefault();
+        handler(e);
+    });
+    button.addEventListener('click', (e) => {
+        if (handledPointer) {
+            handledPointer = false;
+            e.preventDefault();
+            return;
+        }
+        handler(e);
+    });
+}
+
 export class SpellBuilder {
     constructor(dataManager, renderCallback) {
         this.dataManager = dataManager;
@@ -108,7 +125,7 @@ export class SpellBuilder {
             });
         });
         document.querySelectorAll('.spell-box-option').forEach(button => {
-            button.addEventListener('click', () => {
+            bindNoFocusButton(button, () => {
                 this.toggleSpellBoxButton(button.dataset.value);
             });
         });

@@ -189,6 +189,23 @@ function setTileBoxValue(index, value) {
     typeInput.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+function bindNoFocusButton(button, handler) {
+    let handledPointer = false;
+    button.addEventListener('pointerdown', (e) => {
+        handledPointer = true;
+        e.preventDefault();
+        handler(e);
+    });
+    button.addEventListener('click', (e) => {
+        if (handledPointer) {
+            handledPointer = false;
+            e.preventDefault();
+            return;
+        }
+        handler(e);
+    });
+}
+
 function getFormBoxes() {
     return Array.from(document.querySelectorAll('.tile-box-type')).map(typeSelect => {
         const value = typeSelect.value;
@@ -551,7 +568,7 @@ export function init(deps) {
         });
     });
     document.querySelectorAll('.tile-box-option').forEach(button => {
-        button.addEventListener('click', () => {
+        bindNoFocusButton(button, () => {
             setTileBoxValue(button.dataset.boxIndex, button.dataset.value || '');
         });
     });
