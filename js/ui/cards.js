@@ -18,11 +18,78 @@ let draggedTileId = null;
 let pointerDragState = null;
 let suppressCardClickUntil = 0;
 let reorderMode = false;
+let autoScrollFrame = null;
+
+const AUTO_SCROLL_EDGE_PX = 80;
+const AUTO_SCROLL_MAX_PX = 18;
+
+function clearDropTargets() {
+    document.querySelectorAll('.tile-drop-target').forEach(card => {
+        card.classList.remove('tile-drop-target');
+    });
+}
 
 function clearDragClasses() {
     document.querySelectorAll('.tile-dragging, .tile-drop-target').forEach(card => {
         card.classList.remove('tile-dragging', 'tile-drop-target');
     });
+}
+
+function getAutoScrollVelocity(clientY) {
+    if (!Number.isFinite(clientY)) return 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (viewportHeight <= 0) return 0;
+
+    if (clientY < AUTO_SCROLL_EDGE_PX) {
+        return -Math.ceil(AUTO_SCROLL_MAX_PX * (1 - Math.max(0, clientY) / AUTO_SCROLL_EDGE_PX));
+    }
+    if (clientY > viewportHeight - AUTO_SCROLL_EDGE_PX) {
+        const distanceFromBottom = Math.max(0, viewportHeight - clientY);
+        return Math.ceil(AUTO_SCROLL_MAX_PX * (1 - distanceFromBottom / AUTO_SCROLL_EDGE_PX));
+    }
+    return 0;
+}
+
+function updateDropTargetAtPoint(clientX, clientY, sourceTileId) {
+    clearDropTargets();
+    const targetCard = document.elementFromPoint(clientX, clientY)?.closest?.('.tile-card');
+    const targetId = targetCard?.dataset.tileId || '';
+    if (targetId && targetId !== sourceTileId) {
+        targetCard.classList.add('tile-drop-target');
+        return targetId;
+    }
+    return '';
+}
+
+function stopAutoScroll() {
+    if (autoScrollFrame) cancelAnimationFrame(autoScrollFrame);
+    autoScrollFrame = null;
+    if (pointerDragState) pointerDragState.scrollVelocity = 0;
+}
+
+function tickAutoScroll() {
+    autoScrollFrame = null;
+    if (!pointerDragState?.active || !pointerDragState.scrollVelocity) return;
+
+    window.scrollBy({ top: pointerDragState.scrollVelocity, left: 0, behavior: 'auto' });
+    pointerDragState.targetId = updateDropTargetAtPoint(
+        pointerDragState.lastX,
+        pointerDragState.lastY,
+        pointerDragState.tileId
+    );
+    autoScrollFrame = requestAnimationFrame(tickAutoScroll);
+}
+
+function updateAutoScroll(clientX, clientY) {
+    if (!pointerDragState?.active) return;
+    pointerDragState.lastX = clientX;
+    pointerDragState.lastY = clientY;
+    pointerDragState.scrollVelocity = getAutoScrollVelocity(clientY);
+    if (pointerDragState.scrollVelocity && !autoScrollFrame) {
+        autoScrollFrame = requestAnimationFrame(tickAutoScroll);
+    } else if (!pointerDragState.scrollVelocity && autoScrollFrame) {
+        stopAutoScroll();
+    }
 }
 
 function restoreCustomSortControls() {
@@ -43,6 +110,7 @@ function syncReorderButton() {
 
 function updateCustomOrder(visibleTileIds, draggedId, targetId) {
     dataManager.reorderTilesByVisibleMove(visibleTileIds, draggedId, targetId);
+    stopAutoScroll();
     restoreCustomSortControls();
     renderCards();
 }
@@ -186,7 +254,7 @@ export function renderCards() {
     filteredTiles.forEach(tile => {
         const div = document.createElement('div');
         div.className = 'tile-card';
-        div.draggable = reorderMode;
+        div.draggable = false;
         div.dataset.tileId = tile.id;
         if (reorderMode) div.classList.add('tile-reorder-mode');
         const tileNameLabel = escapeHtml(tile.name);
@@ -233,7 +301,7 @@ export function renderCards() {
 
         div.innerHTML = `
             <div class="tile-badges">
-                ${reorderMode ? `<span class="tile-drag-handle" title="Drag ${tileNameLabel} to reorder">Move</span>` : ''}
+                ${reorderMode ? `<button class="tile-drag-handle" title="Drag ${tileNameLabel} to reorder" aria-label="Drag ${tileNameLabel} to reorder" type="button" draggable="true">Move</button>` : ''}
                 ${boxes.map(box => {
                     const label = box.type === 'shadow'
                         ? `${box.kind} -> ${RESOURCE_LABELS[box.resource] || 'Resource'}`
@@ -291,73 +359,96 @@ export function renderCards() {
                 });
             }
 
-            div.addEventListener('pointerdown', (e) => {
-                if (e.target.closest('button, select, input, textarea, a')) return;
-                pointerDragState = {
-                    tileId: tile.id,
-                    startX: e.clientX,
-                    startY: e.clientY,
-                    targetId: '',
-                    active: false
-                };
-                div.setPointerCapture?.(e.pointerId);
-            });
-            div.addEventListener('pointermove', (e) => {
-                if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
-                const distance = Math.hypot(e.clientX - pointerDragState.startX, e.clientY - pointerDragState.startY);
-                if (!pointerDragState.active && distance < 8) return;
+            const dragHandle = div.querySelector('.tile-drag-handle');
+            if (dragHandle) {
+                dragHandle.addEventListener('click', (e) => e.stopPropagation());
+                dragHandle.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    pointerDragState = {
+                        tileId: tile.id,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        lastX: e.clientX,
+                        lastY: e.clientY,
+                        targetId: '',
+                        scrollVelocity: 0,
+                        active: false
+                    };
+                    dragHandle.setPointerCapture?.(e.pointerId);
+                });
+                dragHandle.addEventListener('pointermove', (e) => {
+                    if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
+                    const distance = Math.hypot(e.clientX - pointerDragState.startX, e.clientY - pointerDragState.startY);
+                    if (!pointerDragState.active && distance < 8) return;
 
-                pointerDragState.active = true;
-                suppressCardClickUntil = Date.now() + 600;
-                e.preventDefault();
-                clearDragClasses();
-                div.classList.add('tile-dragging');
-
-                const targetCard = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.tile-card');
-                const targetId = targetCard?.dataset.tileId || '';
-                if (targetId && targetId !== tile.id) {
-                    targetCard.classList.add('tile-drop-target');
-                    pointerDragState.targetId = targetId;
-                } else {
-                    pointerDragState.targetId = '';
-                }
-            });
-            div.addEventListener('pointerup', (e) => {
-                if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
-                const targetId = pointerDragState.targetId;
-                const wasActive = pointerDragState.active;
-                pointerDragState = null;
-                div.releasePointerCapture?.(e.pointerId);
-                clearDragClasses();
-                if (wasActive) {
+                    pointerDragState.active = true;
                     suppressCardClickUntil = Date.now() + 600;
                     e.preventDefault();
                     e.stopPropagation();
-                }
-                if (wasActive && targetId) {
-                    updateCustomOrder(visibleTileIds, tile.id, targetId);
-                }
-            });
-            div.addEventListener('pointercancel', () => {
-                pointerDragState = null;
-                clearDragClasses();
-            });
+                    clearDropTargets();
+                    div.classList.add('tile-dragging');
 
-            div.addEventListener('dragstart', (e) => {
-                draggedTileId = tile.id;
-                suppressCardClickUntil = Date.now() + 600;
-                div.classList.add('tile-dragging');
-                if (e.dataTransfer) {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', tile.id);
-                }
-            });
+                    pointerDragState.lastX = e.clientX;
+                    pointerDragState.lastY = e.clientY;
+                    pointerDragState.targetId = updateDropTargetAtPoint(e.clientX, e.clientY, tile.id);
+                    updateAutoScroll(e.clientX, e.clientY);
+                });
+                dragHandle.addEventListener('pointerup', (e) => {
+                    if (!pointerDragState || pointerDragState.tileId !== tile.id) return;
+                    const targetId = pointerDragState.targetId;
+                    const wasActive = pointerDragState.active;
+                    pointerDragState = null;
+                    stopAutoScroll();
+                    dragHandle.releasePointerCapture?.(e.pointerId);
+                    clearDragClasses();
+                    if (wasActive) {
+                        suppressCardClickUntil = Date.now() + 600;
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    if (wasActive && targetId) {
+                        updateCustomOrder(visibleTileIds, tile.id, targetId);
+                    }
+                });
+                dragHandle.addEventListener('pointercancel', () => {
+                    pointerDragState = null;
+                    stopAutoScroll();
+                    clearDragClasses();
+                });
+
+                dragHandle.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    draggedTileId = tile.id;
+                    suppressCardClickUntil = Date.now() + 600;
+                    div.classList.add('tile-dragging');
+                    if (e.dataTransfer) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', tile.id);
+                    }
+                });
+                dragHandle.addEventListener('dragend', () => {
+                    draggedTileId = null;
+                    stopAutoScroll();
+                    suppressCardClickUntil = Date.now() + 600;
+                    clearDragClasses();
+                });
+            }
 
             div.addEventListener('dragover', (e) => {
                 const incomingId = draggedTileId || e.dataTransfer?.getData('text/plain');
                 if (!incomingId || incomingId === tile.id) return;
                 e.preventDefault();
                 if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                pointerDragState = {
+                    tileId: incomingId,
+                    lastX: e.clientX,
+                    lastY: e.clientY,
+                    targetId: tile.id,
+                    scrollVelocity: getAutoScrollVelocity(e.clientY),
+                    active: true
+                };
+                updateAutoScroll(e.clientX, e.clientY);
                 div.classList.add('tile-drop-target');
             });
 
@@ -371,14 +462,10 @@ export function renderCards() {
                 e.preventDefault();
                 e.stopPropagation();
                 draggedTileId = null;
+                pointerDragState = null;
+                stopAutoScroll();
                 suppressCardClickUntil = Date.now() + 600;
                 updateCustomOrder(visibleTileIds, incomingId, tile.id);
-            });
-
-            div.addEventListener('dragend', () => {
-                draggedTileId = null;
-                suppressCardClickUntil = Date.now() + 600;
-                clearDragClasses();
             });
         }
 
