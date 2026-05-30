@@ -190,8 +190,7 @@ export function renderCards() {
     
     let activeCallColors = [];
     if (els.autoFilterCall && els.autoFilterCall.checked) {
-        if (els.callColor1.value) activeCallColors.push(els.callColor1.value);
-        if (els.callColor2.value) activeCallColors.push(els.callColor2.value);
+        activeCallColors = [...new Set((uiState.callColors || []).filter(Boolean))];
     }
     
     const filteredTiles = dataManager.state.tiles.filter(tile => {

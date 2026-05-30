@@ -31,11 +31,11 @@ export function init(deps) {
     poolEngine = deps.poolEngine;
     renderAll = deps.renderAll;
 
-    els.callColor1.addEventListener('change', handleCallColorChange);
-    els.callColor2.addEventListener('change', handleCallColorChange);
+    els.callColor1.addEventListener('change', syncCallColorsFromLegacySelects);
+    els.callColor2.addEventListener('change', syncCallColorsFromLegacySelects);
     els.callColorOptions.forEach(button => {
         button.addEventListener('click', () => {
-            setCallColor(button.dataset.callSlot, button.dataset.value);
+            toggleCallColor(button.dataset.value);
         });
     });
     syncCallColorButtons();
@@ -89,30 +89,57 @@ export function init(deps) {
     els.btnCalculate.addEventListener('click', executeManualCalculate);
 }
 
-function getCallColorSelect(slot) {
-    return slot === '2' ? els.callColor2 : els.callColor1;
-}
-
 function handleCallColorChange() {
     syncCallColorButtons();
     updatePoolPreview();
     if (els.autoFilterCall.checked) renderCards();
 }
 
-function setCallColor(slot, color) {
-    const select = getCallColorSelect(slot);
-    if (!select) return;
-    select.value = color || '';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
+function getSelectedCallColors() {
+    return [...new Set((uiState.callColors || []).filter(Boolean))];
+}
+
+function syncLegacyCallColorSelects(colors) {
+    els.callColor1.value = colors[0] || '';
+    els.callColor2.value = colors[1] || '';
+}
+
+function syncCallColorsFromLegacySelects() {
+    uiState.callColors = [...new Set([els.callColor1.value, els.callColor2.value].filter(Boolean))];
+    handleCallColorChange();
+}
+
+function setCallColors(colors) {
+    const uniqueColors = [...new Set(colors.filter(Boolean))];
+    uiState.callColors = uniqueColors;
+    syncLegacyCallColorSelects(uniqueColors);
+    handleCallColorChange();
+}
+
+function toggleCallColor(color) {
+    if (!color) return;
+    const selected = getSelectedCallColors();
+    if (selected.includes(color)) {
+        setCallColors(selected.filter(current => current !== color));
+        return;
+    }
+    setCallColors([...selected, color]);
 }
 
 function syncCallColorButtons() {
+    const selected = new Set(getSelectedCallColors());
     els.callColorOptions.forEach(button => {
-        const select = getCallColorSelect(button.dataset.callSlot);
-        const active = Boolean(select && select.value === button.dataset.value);
+        const active = selected.has(button.dataset.value);
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+    if (els.callColorWarning) {
+        const isCustomRoll = selected.size > 2;
+        els.callColorWarning.hidden = !isCustomRoll;
+        els.callColorWarning.textContent = isCustomRoll
+            ? 'Custom roll: more than 2 Call colors selected. Confirm this with the GM.'
+            : '';
+    }
 }
 
 function getExtraDiceTokens() {
@@ -161,9 +188,7 @@ function syncExtraDiceChips() {
 }
 
 export function clearCallSelection() {
-    els.callColor1.value = '';
-    els.callColor2.value = '';
-    syncCallColorButtons();
+    setCallColors([]);
     uiState.callTile = null;
     uiState.burnTiles = [];
     uiState.disabledChainIds.clear();
@@ -373,9 +398,7 @@ export function renderTagBonusOptions(tagBonuses = []) {
 }
 
 export function updatePoolPreview() {
-    const c1 = els.callColor1.value;
-    const c2 = els.callColor2.value;
-    const colors = [c1, c2].filter(c => c);
+    const colors = getSelectedCallColors();
 
     // Update Dropzones visually
     els.callTileZone.innerHTML = uiState.callTile ? `<div class="badge">${escapeHtml(uiState.callTile.name)} (${escapeHtml(uiState.callTile.dice.join(', '))})</div>` : '';
@@ -431,9 +454,7 @@ export function updatePoolPreview() {
 }
 
 export function renderManualInputs() {
-    const c1 = els.callColor1.value;
-    const c2 = els.callColor2.value;
-    const colors = [c1, c2].filter(c => c);
+    const colors = getSelectedCallColors();
     els.manualInputsContainer.innerHTML = '';
 
     const extraDice = getExtraDice();
@@ -454,9 +475,7 @@ export function renderManualInputs() {
 }
 
 export function executeVirtualRoll() {
-    const c1 = els.callColor1.value;
-    const c2 = els.callColor2.value;
-    const colors = [c1, c2].filter(c => c);
+    const colors = getSelectedCallColors();
     const extraDice = getExtraDice();
     if (extraDice.error) {
         alert(extraDice.error);
@@ -505,9 +524,7 @@ export function executeManualCalculate() {
         return;
     }
 
-    const c1 = els.callColor1.value;
-    const c2 = els.callColor2.value;
-    const colors = [c1, c2].filter(c => c);
+    const colors = getSelectedCallColors();
     const extraDice = getExtraDice();
     if (extraDice.error) {
         alert(extraDice.error);

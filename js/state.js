@@ -9,6 +9,9 @@
 export const uiState = {
     // The single tile selected as the "Call" for a roll, or null.
     callTile: null,
+    // Selected GM Call colors. The first two are mirrored into the legacy
+    // hidden selects for compatibility with older UI code.
+    callColors: [],
     // Tiles being burned for this roll. Array of tile objects.
     burnTiles: [],
     // Chain IDs the user has explicitly disabled for this roll.

@@ -108,7 +108,7 @@
 .color-selectors {
     display: grid;
     gap: 0.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    grid-template-columns: 1fr;
     margin-top: 0.5rem;
 }
 
@@ -131,6 +131,7 @@
     display: grid;
     gap: 0.35rem;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 26rem;
 }
 
 .call-color-option {
@@ -150,6 +151,13 @@
     background: rgba(0,255,200,0.14);
     border-color: rgba(0,255,200,0.5);
     color: #00ffcc;
+}
+
+.call-color-warning {
+    color: #ffaa00;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-top: 0.45rem;
 }
 
 .call-color-red.active {

@@ -1,5 +1,6 @@
 import { ADVANCEABLE_STATS, parseDiceInput, getDiceValidationMessage } from '../pool.js';
 import { els } from '../els.js';
+import { uiState } from '../state.js';
 import { updatePoolPreview } from './pool.js';
 import { updateShadowMax } from './vitals.js';
 import { renderCards } from './cards.js';
@@ -181,4 +182,7 @@ export function renderOptionalStatsVisibility() {
             select.value = '';
         }
     });
+    if (Array.isArray(uiState.callColors)) {
+        uiState.callColors = uiState.callColors.filter(color => !['Black', 'White', 'Qi', 'Id'].includes(color));
+    }
 }

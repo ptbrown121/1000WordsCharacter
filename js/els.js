@@ -86,6 +86,7 @@ export const els = {
     callColor1: document.getElementById('call-color-1'),
     callColor2: document.getElementById('call-color-2'),
     callColorOptions: document.querySelectorAll('.call-color-option'),
+    callColorWarning: document.getElementById('call-color-warning'),
     btnClearCall: document.getElementById('btn-clear-call'),
     optionalCallOptions: document.querySelectorAll('.optional-call-option'),
     autoFilterCall: document.getElementById('auto-filter-call'),
