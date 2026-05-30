@@ -156,6 +156,13 @@ header {
     color: var(--text-secondary);
 }
 
+.stat-input-row {
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) 2.5rem;
+    width: 100%;
+}
+
 .stat-select {
     background: rgba(255,255,255,0.1);
     color: white;
@@ -166,6 +173,28 @@ header {
     cursor: pointer;
     width: 100%;
     text-align: center;
+}
+
+.btn-edit-stat-dice {
+    align-items: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 1rem;
+    justify-content: center;
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+    padding: 0;
+    touch-action: manipulation;
+}
+
+.btn-edit-stat-dice:hover,
+.btn-edit-stat-dice:focus-visible {
+    background: rgba(255,255,255,0.16);
+    outline: none;
 }
 
 /* Main Layout */

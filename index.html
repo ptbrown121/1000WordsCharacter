@@ -133,27 +133,45 @@
                 <!-- Core Stats -->
                 <div class="stat-box" data-color="Red">
                     <span class="stat-name" id="stat-label-body">BODY (Red)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="BODY" aria-labelledby="stat-label-body" placeholder="e.g. d6, d8">
+                    <div class="stat-input-row">
+                        <input type="text" class="stat-select stat-input" data-stat="BODY" aria-labelledby="stat-label-body" placeholder="e.g. d6, d8">
+                        <button type="button" class="btn-edit-stat-dice" data-stat="BODY" aria-label="Edit BODY dice" title="Edit BODY Dice">⚙️</button>
+                    </div>
                 </div>
                 <div class="stat-box" data-color="Orange">
                     <span class="stat-name" id="stat-label-power">POWER (Orange)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="POWER" aria-labelledby="stat-label-power" placeholder="e.g. d6, d8">
+                    <div class="stat-input-row">
+                        <input type="text" class="stat-select stat-input" data-stat="POWER" aria-labelledby="stat-label-power" placeholder="e.g. d6, d8">
+                        <button type="button" class="btn-edit-stat-dice" data-stat="POWER" aria-label="Edit POWER dice" title="Edit POWER Dice">⚙️</button>
+                    </div>
                 </div>
                 <div class="stat-box" data-color="Yellow">
                     <span class="stat-name" id="stat-label-soul">SOUL (Yellow)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="SOUL" aria-labelledby="stat-label-soul" placeholder="e.g. d6, d8">
+                    <div class="stat-input-row">
+                        <input type="text" class="stat-select stat-input" data-stat="SOUL" aria-labelledby="stat-label-soul" placeholder="e.g. d6, d8">
+                        <button type="button" class="btn-edit-stat-dice" data-stat="SOUL" aria-label="Edit SOUL dice" title="Edit SOUL Dice">⚙️</button>
+                    </div>
                 </div>
                 <div class="stat-box" data-color="Green">
                     <span class="stat-name" id="stat-label-focus">FOCUS (Green)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="FOCUS" aria-labelledby="stat-label-focus" placeholder="e.g. d6, d8">
+                    <div class="stat-input-row">
+                        <input type="text" class="stat-select stat-input" data-stat="FOCUS" aria-labelledby="stat-label-focus" placeholder="e.g. d6, d8">
+                        <button type="button" class="btn-edit-stat-dice" data-stat="FOCUS" aria-label="Edit FOCUS dice" title="Edit FOCUS Dice">⚙️</button>
+                    </div>
                 </div>
                 <div class="stat-box" data-color="Blue">
                     <span class="stat-name" id="stat-label-mind">MIND (Blue)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="MIND" aria-labelledby="stat-label-mind" placeholder="e.g. d6, d8">
+                    <div class="stat-input-row">
+                        <input type="text" class="stat-select stat-input" data-stat="MIND" aria-labelledby="stat-label-mind" placeholder="e.g. d6, d8">
+                        <button type="button" class="btn-edit-stat-dice" data-stat="MIND" aria-label="Edit MIND dice" title="Edit MIND Dice">⚙️</button>
+                    </div>
                 </div>
                 <div class="stat-box" data-color="Purple">
                     <span class="stat-name" id="stat-label-speed">SPEED (Purple)</span>
-                    <input type="text" class="stat-select stat-input" data-stat="SPEED" aria-labelledby="stat-label-speed" placeholder="e.g. d6, d8">
+                    <div class="stat-input-row">
+                        <input type="text" class="stat-select stat-input" data-stat="SPEED" aria-labelledby="stat-label-speed" placeholder="e.g. d6, d8">
+                        <button type="button" class="btn-edit-stat-dice" data-stat="SPEED" aria-label="Edit SPEED dice" title="Edit SPEED Dice">⚙️</button>
+                    </div>
                 </div>
             </div>
             <div id="shadow-panel" class="shadow-panel">
@@ -1095,6 +1113,34 @@
             <div class="form-actions">
                 <button type="button" id="btn-vital-cancel" class="btn btn-outline">Cancel</button>
                 <button type="button" id="btn-vital-save" class="btn btn-action" style="width: auto; margin-top: 0;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Dice Modal -->
+    <div id="stat-dice-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 460px;">
+            <h2 id="stat-dice-modal-title">Edit Attribute Dice</h2>
+            <input type="hidden" id="stat-dice-modal-key">
+            <div class="form-group">
+                <label>Dice</label>
+                <input type="text" id="stat-dice-input" placeholder="e.g. d6, d8" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); border-radius: 8px; font-size: 1rem;">
+                <div id="stat-dice-selected" class="dice-selected-list" aria-live="polite"></div>
+                <div id="stat-dice-buttons" class="dice-button-grid" aria-label="Choose attribute dice">
+                    <button type="button" class="dice-add-btn" data-die="d3">+ d3</button>
+                    <button type="button" class="dice-add-btn" data-die="d4">+ d4</button>
+                    <button type="button" class="dice-add-btn" data-die="d6">+ d6</button>
+                    <button type="button" class="dice-add-btn" data-die="d8">+ d8</button>
+                    <button type="button" class="dice-add-btn" data-die="d10">+ d10</button>
+                    <button type="button" class="dice-add-btn" data-die="d12">+ d12</button>
+                    <button type="button" class="dice-add-btn" data-die="d14">+ d14</button>
+                    <button type="button" class="dice-add-btn" data-die="d16">+ d16</button>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="btn-stat-dice-clear" class="btn btn-outline">Clear</button>
+                <button type="button" id="btn-stat-dice-cancel" class="btn btn-outline">Cancel</button>
+                <button type="button" id="btn-stat-dice-save" class="btn btn-action" style="width: auto; margin-top: 0;">Save</button>
             </div>
         </div>
     </div>

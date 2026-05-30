@@ -8,6 +8,88 @@ import { renderRulesReview } from './rulesReview.js';
 let dataManager;
 let poolEngine;
 
+function getStatInput(stat) {
+    return [...els.statSelects].find(input => input.dataset.stat === stat);
+}
+
+function refreshAfterStatChange() {
+    updatePoolPreview();
+    updateXpTracker();
+    updateShadowMax();
+    renderRulesReview();
+}
+
+function saveStatDice(stat, value, { resetOnInvalid = false } = {}) {
+    const { dice, invalid } = parseDiceInput(value);
+    if (invalid.length > 0) {
+        alert(getDiceValidationMessage('Stats'));
+        if (resetOnInvalid) {
+            const input = getStatInput(stat);
+            if (input) input.value = dataManager.state.stats[stat] || '';
+        }
+        return false;
+    }
+
+    const normalized = dice.join(', ');
+    dataManager.updateStat(stat, normalized);
+    const input = getStatInput(stat);
+    if (input) input.value = normalized;
+    refreshAfterStatChange();
+    return true;
+}
+
+function getStatDiceTokens() {
+    return els.statDiceInput.value
+        .split(',')
+        .map(token => token.trim())
+        .filter(Boolean);
+}
+
+function setStatDiceTokens(tokens) {
+    els.statDiceInput.value = tokens.join(', ');
+    syncStatDiceChips();
+}
+
+function syncStatDiceChips() {
+    if (!els.statDiceSelected) return;
+    els.statDiceSelected.innerHTML = '';
+
+    getStatDiceTokens().forEach((die, index) => {
+        const chip = document.createElement('span');
+        chip.className = 'dice-selected-chip';
+
+        const label = document.createElement('span');
+        label.textContent = die;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'dice-remove-btn';
+        removeBtn.textContent = 'x';
+        removeBtn.title = `Remove ${die}`;
+        removeBtn.setAttribute('aria-label', `Remove ${die}`);
+        removeBtn.addEventListener('click', () => {
+            const nextTokens = getStatDiceTokens();
+            nextTokens.splice(index, 1);
+            setStatDiceTokens(nextTokens);
+        });
+
+        chip.appendChild(label);
+        chip.appendChild(removeBtn);
+        els.statDiceSelected.appendChild(chip);
+    });
+}
+
+function openStatDiceModal(stat) {
+    els.statDiceModalKey.value = stat;
+    els.statDiceModalTitle.textContent = `Edit ${stat} Dice`;
+    setStatDiceTokens((dataManager.state.stats[stat] || '').split(',').map(token => token.trim()).filter(Boolean));
+    els.statDiceModal.classList.add('active');
+}
+
+function closeStatDiceModal() {
+    els.statDiceModal.classList.remove('active');
+}
+
 export function init(deps) {
     dataManager = deps.dataManager;
     poolEngine = deps.poolEngine;
@@ -35,19 +117,24 @@ export function init(deps) {
     // Stats
     els.statSelects.forEach(sel => {
         sel.addEventListener('change', (e) => {
-            const { invalid } = parseDiceInput(e.target.value);
-            if (invalid.length > 0) {
-                alert(getDiceValidationMessage('Stats'));
-                e.target.value = dataManager.state.stats[e.target.dataset.stat] || '';
-                return;
-            }
-
-            dataManager.updateStat(e.target.dataset.stat, e.target.value);
-            updatePoolPreview();
-            updateXpTracker();
-            updateShadowMax();
-            renderRulesReview();
+            saveStatDice(e.target.dataset.stat, e.target.value, { resetOnInvalid: true });
         });
+    });
+
+    els.statDiceButtons.forEach(btn => {
+        btn.addEventListener('click', () => openStatDiceModal(btn.dataset.stat));
+    });
+    els.statDiceInput.addEventListener('input', syncStatDiceChips);
+    els.statDiceButtonsGrid.addEventListener('click', (e) => {
+        const button = e.target.closest('.dice-add-btn');
+        if (!button || !els.statDiceButtonsGrid.contains(button)) return;
+        setStatDiceTokens([...getStatDiceTokens(), button.dataset.die]);
+    });
+    els.btnStatDiceClear.addEventListener('click', () => setStatDiceTokens([]));
+    els.btnStatDiceCancel.addEventListener('click', closeStatDiceModal);
+    els.btnStatDiceSave.addEventListener('click', () => {
+        const stat = els.statDiceModalKey.value;
+        if (saveStatDice(stat, els.statDiceInput.value)) closeStatDiceModal();
     });
 
     // Auto-Calculate XP
