@@ -10,6 +10,8 @@ import {
     getHitchValue,
     isHitchedTile,
     calculateHitchRebateTotal,
+    calculateArmorSoak,
+    calculateArmorSoakDetails,
     adjustAberrationForShadowUse,
     applyAberrantDieStepEffects,
     classifyAberration,
@@ -224,6 +226,66 @@ describe('Hitch rebates', () => {
     });
 });
 
+describe('armor soak', () => {
+    it('counts armor coverage and Ironclad soak from active armor tiles', () => {
+        const armor = {
+            id: 'plate',
+            name: 'Plate',
+            dice: ['d6'],
+            tags: ['Ironclad'],
+            armorType: { material: 'Hard', coverage: 'Closed' }
+        };
+        const details = calculateArmorSoakDetails([armor]);
+
+        assert.equal(calculateArmorSoak([armor]), 5);
+        assert.equal(details.total, 5);
+        assert.deepEqual(details.sources.map(source => ({
+            tileName: source.tileName,
+            baseSoak: source.baseSoak,
+            ironcladSoak: source.ironcladSoak,
+            total: source.total
+        })), [{ tileName: 'Plate', baseSoak: 3, ironcladSoak: 2, total: 5 }]);
+    });
+
+    it('ignores buried armor for soak', () => {
+        assert.equal(calculateArmorSoak([{
+            id: 'buried',
+            name: 'Buried Plate',
+            dice: ['d8'],
+            tags: ['Ironclad'],
+            isBuried: true,
+            armorType: { material: 'Hard', coverage: 'Closed' }
+        }]), 0);
+    });
+
+    it('ignores burned armor for soak', () => {
+        assert.equal(calculateArmorSoak([{
+            id: 'burned',
+            name: 'Burned Plate',
+            dice: ['d8'],
+            tags: ['Ironclad'],
+            isBurnt: true,
+            armorType: { material: 'Hard', coverage: 'Closed' }
+        }]), 0);
+    });
+
+    it('ignores armor soak while gear tags are broken', () => {
+        const armor = {
+            id: 'broken',
+            type: 'Gear',
+            gearSubtype: 'Armor',
+            name: 'Broken Plate',
+            dice: ['d8'],
+            tags: ['Ironclad'],
+            gearBroken: true,
+            armorType: { material: 'Hard', coverage: 'Closed' }
+        };
+
+        assert.equal(calculateArmorSoak([armor]), 0);
+        assert.deepEqual(calculateArmorSoakDetails([armor]), { total: 0, sources: [] });
+    });
+});
+
 describe('weapon templates', () => {
     it('exposes PDF starting weapon templates with range, skill, and tags', () => {
         const longBlade = getWeaponTemplateById('long-blade');
@@ -365,6 +427,15 @@ describe('calculateResourceMaxes', () => {
             { colors: ['Blue', 'Purple'], dice: ['d4'], tags: [] }
         ];
         assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 0, en: 0, rx: 2, sh: 0 });
+    });
+
+    it('turns off gear resource tags while gear tags are broken', () => {
+        const tiles = [
+            { type: 'Gear', gearSubtype: 'Custom', colors: ['Red'], dice: ['d6'], tags: ['Tough'], gearBroken: true },
+            { type: 'Trait', colors: ['Green'], dice: ['d6'], tags: ['Vital'], gearBroken: true }
+        ];
+
+        assert.deepEqual(engine.calculateResourceMaxes(tiles), { hp: 1, en: 3, rx: 0, sh: 0 });
     });
 });
 
@@ -653,6 +724,32 @@ describe('compilePool', () => {
         const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: '' };
         const burnRes = engine.compilePool(['Red'], stats, callTile, [hitched], [callTile, hitched], []);
         assert.match(burnRes.error, /cannot be burned/i);
+    });
+
+    it('turns off gear Hitch and Chain tags while gear tags are broken', () => {
+        const helper = { id: 'helper', name: 'Helper', colors: ['Red'], dice: ['d10'], tags: '' };
+        const brokenGear = {
+            id: 'gear',
+            type: 'Gear',
+            name: 'Cracked Winch',
+            colors: ['Red'],
+            dice: ['d6'],
+            tags: ['Hitch 5', 'Chain Helper'],
+            gearBroken: true
+        };
+
+        assert.equal(getHitchValue(brokenGear), 5);
+        assert.equal(isHitchedTile(brokenGear), false);
+
+        const res = engine.compilePool(['Red'], stats, brokenGear, [], [brokenGear, helper], []);
+        assert.equal(res.error, null);
+        assert.equal(res.adds, 2);
+        assert.equal(res.chainOptions.length, 0);
+        assert.deepEqual(res.resourceCosts, []);
+        assert.deepEqual(res.dice.map(die => `${die.source}:${die.die}`), [
+            'Stat (BODY):d6',
+            'Tile (Cracked Winch):d6'
+        ]);
     });
 
     it('allows Hitched tiles as extra called dice without granting burn Adds', () => {

@@ -99,6 +99,13 @@
                 </div>
                 <span id="sh-temp-badge" class="temp-badge" style="display: none;"></span>
             </div>
+            <div class="pool" style="--pool-color: #c7d2fe">
+                <label>Armor Soak</label>
+                <div class="pool-inner">
+                    <span id="val-armor-soak" class="pool-readout">0</span>
+                    <span id="armor-soak-detail" class="pool-detail">No active armor</span>
+                </div>
+            </div>
             <div class="pool" style="--pool-color: #fff">
                 <label>XP</label>
                 <div style="display: flex; align-items: center;">
@@ -412,6 +419,12 @@
                             <option value="Ammo">Ammo</option>
                             <option value="Tool">Tool</option>
                         </select>
+                    </div>
+                    <div id="gear-break-container" style="display: none; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal; font-size: 0.9rem; cursor: pointer;">
+                            <input type="checkbox" id="gear-broken"> Gear tags have suffered BREAK
+                        </label>
+                        <small style="display: block; margin-top: 0.3rem; color: var(--text-secondary); font-size: 0.8rem;">BREAK turns off this gear's tags. On armor, it also removes armor soak until repaired.</small>
                     </div>
                     <div id="weapon-builder-container" style="display: none; margin-top: 0.5rem;">
                         <label style="font-weight: normal; font-size: 0.9rem;">Weapon Template</label>
@@ -1187,6 +1200,7 @@
                 <p>When creating a Gear tile, choose a <strong>Gear Subtype</strong> to reveal focused fields for weapons, armor, ammo, or custom gear.</p>
                 <ul style="padding-left: 1.2rem;">
                     <li><strong>Weapons</strong> can use templates grouped by Melee, Near, Far, and Burst. Templates fill range, skill, and starting tags.</li>
+                    <li><strong>Armor Soak</strong> in the header totals active armor coverage plus Ironclad soak from armor dice. Buried, burned, and BREAK-marked armor is ignored.</li>
                     <li><strong>Template Tag Mode</strong> controls whether a weapon template adds only missing tags or replaces the current tag list.</li>
                     <li><strong>Far weapons</strong> include the extra weapon XP surcharge in the auto-estimate.</li>
                     <li><strong>Ammo</strong> has no dice, does not contribute to resource pools, and cannot be selected for the dice pool.</li>

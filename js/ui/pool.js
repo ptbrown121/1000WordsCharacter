@@ -12,6 +12,7 @@ import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { showResults } from './resolution.js';
 import { renderCards } from './cards.js';
+import { renderArmorSoak } from './armorSoak.js';
 import { updateShadowMax } from './vitals.js';
 import { renderRulesReview } from './rulesReview.js';
 
@@ -573,5 +574,6 @@ export function processBurns() {
         renderCards();
         updatePoolPreview();
         updateShadowMax();
+        renderArmorSoak(dataManager.state.tiles || []);
     }
 }

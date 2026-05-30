@@ -28,6 +28,8 @@ export const els = {
     valSh: document.getElementById('val-sh'),
     valShMax: document.getElementById('val-sh-max'),
     shTempBadge: document.getElementById('sh-temp-badge'),
+    valArmorSoak: document.getElementById('val-armor-soak'),
+    armorSoakDetail: document.getElementById('armor-soak-detail'),
     vitalStepButtons: document.querySelectorAll('.btn-vital-step'),
     shadowPool: document.getElementById('shadow-pool'),
     valAberration: document.getElementById('val-aberration'),

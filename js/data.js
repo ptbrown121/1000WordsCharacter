@@ -131,6 +131,7 @@ function normalizeTileMetadata(tile) {
     tile.boxes = rawBoxes.slice(0, 2);
     tile.colors = colorsFromBoxes(tile.boxes);
     tile.exoticSkill = tile.type === 'Skill' ? normalizeStoredExoticSkill(tile.exoticSkill) : null;
+    tile.gearBroken = tile.type === 'Gear' ? Boolean(tile.gearBroken || tile.isGearBroken) : false;
     if (tile.gearSubtype === undefined && tile.type === 'Gear') {
         tile.gearSubtype = tile.ammo ? 'Ammo' : tile.weapon ? 'Weapon' : tile.armorType ? 'Armor' : 'Custom';
     }

@@ -2,11 +2,12 @@
 // This is safe because all cross-imported symbols are functions that are
 // only called at runtime (inside event handlers or render cycles), never
 // during module evaluation.
-import { escapeHtml, getExoticSkillLabel, getTileBoxes, isHitchedTile, RESOURCE_LABELS, tileTagList } from '../pool.js';
+import { escapeHtml, getExoticSkillLabel, getTileBoxes, isGearTagsBroken, isHitchedTile, RESOURCE_LABELS, tileTagList } from '../pool.js';
 import { COLOR_HEX } from '../data.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
 import { formatAmmoBase, formatArmorBase, formatWeaponBase } from './modals.js';
+import { renderArmorSoak } from './armorSoak.js';
 import { updatePoolPreview } from './pool.js';
 import { updateShadowMax } from './vitals.js';
 import { renderRulesReview } from './rulesReview.js';
@@ -65,6 +66,14 @@ function stopAutoScroll() {
     if (autoScrollFrame) cancelAnimationFrame(autoScrollFrame);
     autoScrollFrame = null;
     if (pointerDragState) pointerDragState.scrollVelocity = 0;
+}
+
+function refreshAfterTileStateChange({ shadow = false } = {}) {
+    renderCards();
+    updatePoolPreview();
+    if (shadow) updateShadowMax();
+    renderArmorSoak(dataManager.state.tiles || []);
+    renderRulesReview();
 }
 
 function tickAutoScroll() {
@@ -254,6 +263,10 @@ export function renderCards() {
         const ammoLabel = formatAmmoBase(tile.ammo);
         const isAmmo = tile.type === 'Gear' && tile.gearSubtype === 'Ammo';
         const isHitched = isHitchedTile(tile);
+        const gearBroken = isGearTagsBroken(tile);
+        const gearBreakButton = tile.type === 'Gear'
+            ? `<button class="btn-toggle-gear-break" title="${gearBroken ? 'Repair' : 'Mark BREAK on'} ${tileNameLabel} gear tags" aria-label="${gearBroken ? 'Repair' : 'Mark BREAK on'} ${tileNameLabel} gear tags">${gearBroken ? 'Repair Tags' : 'Break Tags'}</button>`
+            : '';
         const exoticLabel = getExoticSkillLabel(tile.exoticSkill);
         const linkedAmmoTiles = tile.weapon
             ? dataManager.state.tiles.filter(t => t.gearSubtype === 'Ammo' && t.ammo?.targetTileId === tile.id && !t.isBuried)
@@ -274,6 +287,7 @@ export function renderCards() {
         if (uiState.burnTiles.some(t => t.id === tile.id)) div.classList.add('selected-burn');
         if (tile.isBurnt) div.classList.add('tile-burnt');
         if (tile.isBuried) div.classList.add('tile-buried');
+        if (gearBroken) div.classList.add('tile-gear-broken');
         if (isAmmo) div.classList.add('tile-ammo-card');
 
         const actionButtons = tile.isBuried
@@ -282,12 +296,17 @@ export function renderCards() {
                 ? `<div class="tile-card-actions">
                     <button class="btn-use-ammo" ${tile.ammo?.currentSupply > 0 ? '' : 'disabled'} title="Use ammo from ${tileNameLabel}" aria-label="Use ammo from ${tileNameLabel}">Use</button>
                     <button class="btn-restock-ammo" title="Restock ${tileNameLabel}" aria-label="Restock ${tileNameLabel}">Restock</button>
+                    ${gearBreakButton}
                     <button class="btn-bury-tile" title="Bury ${tileNameLabel}" aria-label="Bury ${tileNameLabel}">Bury</button>
                 </div>`
             : tile.isBurnt
-                ? `<button class="btn-unburn" title="Un-burn ${tileNameLabel}" aria-label="Un-burn ${tileNameLabel}">Un-burn</button>`
+                ? `<div class="tile-card-actions">
+                    <button class="btn-unburn" title="Un-burn ${tileNameLabel}" aria-label="Un-burn ${tileNameLabel}">Un-burn</button>
+                    ${gearBreakButton}
+                </div>`
                 : `<div class="tile-card-actions">
                     ${isHitched ? '<span class="tile-hitch-note" title="Hitched tiles cost 1 EN when called and cannot be burned">Hitch: 1 EN</span>' : `<button class="btn-burn-instant" title="Burn ${tileNameLabel}" aria-label="Burn ${tileNameLabel}">Burn</button>`}
+                    ${gearBreakButton}
                     <button class="btn-bury-tile" title="Bury ${tileNameLabel}" aria-label="Bury ${tileNameLabel}">Bury</button>
                 </div>`;
 
@@ -304,6 +323,7 @@ export function renderCards() {
                 }).join('')}
                 ${tile.type ? `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">${escapeHtml(String(tile.type).toUpperCase())}</span>` : `<span class="badge tile-type-badge" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">SKILL</span>`}
                 ${tile.gearSubtype ? `<span class="badge tile-subtype-badge" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);">${escapeHtml(String(tile.gearSubtype).toUpperCase())}</span>` : ''}
+                ${gearBroken ? '<span class="badge gear-broken-badge" title="Gear tags are inactive until repaired">BREAK</span>' : ''}
                 ${exoticLabel ? `<span class="badge exotic-skill-badge">${escapeHtml(exoticLabel)}</span>` : ''}
                 ${tile.weapon?.category ? `<span class="badge weapon-category-badge" style="background: rgba(51, 153, 255, 0.2); color: #99ccff; border: 1px solid rgba(153,204,255,0.6);">${escapeHtml(tile.weapon.category)}</span>` : ''}
                 <span class="badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid #ffd700; margin-left: auto;">${tile.xpCost !== undefined ? escapeHtml(tile.xpCost) : 0} XP</span>
@@ -316,7 +336,7 @@ export function renderCards() {
                     <button type="button" class="btn-tile-move-up" aria-label="Move ${tileNameLabel} up">Up</button>
                     <button type="button" class="btn-tile-move-down" aria-label="Move ${tileNameLabel} down">Down</button>
                 </div>` : ''}
-                <div class="tile-tags">${escapeHtml(tileTagList(tile).join(', '))}</div>
+                <div class="tile-tags${gearBroken ? ' tile-tags-inactive' : ''}">${gearBroken ? 'Inactive tags: ' : ''}${escapeHtml(tileTagList(tile).join(', '))}</div>
                 ${armorLabel ? `<div class="tile-armor" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">\ud83d\udee1\ufe0f ${escapeHtml(armorLabel)}</div>` : ''}
                 ${weaponLabel ? `<div class="tile-weapon" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(weaponLabel)}</div>` : ''}
                 ${linkedAmmoTiles.length ? `<div class="tile-ammo-links" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Ammo: ${escapeHtml(linkedAmmoTiles.map(t => `${t.name} ${t.ammo?.currentSupply ?? 0}/${t.ammo?.maxSupply ?? 0}`).join(', '))}</div>` : ''}
@@ -466,12 +486,27 @@ export function renderCards() {
                 e.stopPropagation();
                 tile.isBuried = false;
                 dataManager.updateTile(tile);
-                renderCards();
-                updatePoolPreview();
-                updateShadowMax();
-                renderRulesReview();
+                refreshAfterTileStateChange({ shadow: true });
             });
-        } else if (isAmmo) {
+        } else {
+            const btnToggleGearBreak = div.querySelector('.btn-toggle-gear-break');
+            if (btnToggleGearBreak) {
+                btnToggleGearBreak.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    tile.gearBroken = !tile.gearBroken;
+                    dataManager.updateTile(tile);
+                    if (uiState.callTile && uiState.callTile.id === tile.id) uiState.callTile = tile;
+                    uiState.hitchCallTiles = uiState.hitchCallTiles.map(t => t.id === tile.id ? tile : t);
+                    if (!isHitchedTile(tile)) {
+                        uiState.hitchCallTiles = uiState.hitchCallTiles.filter(t => t.id !== tile.id);
+                    }
+                    uiState.burnTiles = uiState.burnTiles.map(t => t.id === tile.id ? tile : t);
+                    refreshAfterTileStateChange({ shadow: true });
+                });
+            }
+        }
+
+        if (!tile.isBuried && isAmmo) {
             const btnUseAmmo = div.querySelector('.btn-use-ammo');
             const btnRestockAmmo = div.querySelector('.btn-restock-ammo');
             const btnBury = div.querySelector('.btn-bury-tile');
@@ -497,22 +532,17 @@ export function renderCards() {
                 tile.isBuried = true;
                 tile.isBurnt = false;
                 dataManager.updateTile(tile);
-                renderCards();
-                updatePoolPreview();
-                updateShadowMax();
-                renderRulesReview();
+                refreshAfterTileStateChange({ shadow: true });
             });
-        } else if (tile.isBurnt) {
+        } else if (!tile.isBuried && tile.isBurnt) {
             const btnUnburn = div.querySelector('.btn-unburn');
             btnUnburn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 tile.isBurnt = false;
                 dataManager.updateTile(tile);
-                renderCards();
-                updatePoolPreview();
-                renderRulesReview();
+                refreshAfterTileStateChange();
             });
-        } else {
+        } else if (!tile.isBuried) {
             const btnBurn = div.querySelector('.btn-burn-instant');
             if (btnBurn) {
                 btnBurn.addEventListener('click', (e) => {
@@ -522,9 +552,7 @@ export function renderCards() {
                     uiState.hitchCallTiles = uiState.hitchCallTiles.filter(t => t.id !== tile.id);
                     uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
                     dataManager.updateTile(tile);
-                    renderCards();
-                    updatePoolPreview();
-                    renderRulesReview();
+                    refreshAfterTileStateChange();
                 });
             }
             const btnBury = div.querySelector('.btn-bury-tile');
@@ -536,10 +564,7 @@ export function renderCards() {
                 uiState.hitchCallTiles = uiState.hitchCallTiles.filter(t => t.id !== tile.id);
                 uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
                 dataManager.updateTile(tile);
-                renderCards();
-                updatePoolPreview();
-                updateShadowMax();
-                renderRulesReview();
+                refreshAfterTileStateChange({ shadow: true });
             });
         }
 

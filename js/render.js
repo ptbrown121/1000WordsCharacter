@@ -1,5 +1,6 @@
 import { STAT_COLORS, COLOR_HEX, getEffectiveMax } from './data.js';
 import { els } from './els.js';
+import { renderArmorSoak } from './ui/armorSoak.js';
 import { renderCards } from './ui/cards.js';
 import { updatePoolPreview } from './ui/pool.js';
 import { renderOptionalStatsVisibility, updateXpTracker } from './ui/stats.js';
@@ -27,6 +28,7 @@ export function renderAll() {
     els.valRx.value = dataManager.state.rx ?? 0;
     els.valRxMax.innerText = getEffectiveMax(dataManager.state, 'rx');
     els.valSh.value = dataManager.state.sh || 0;
+    renderArmorSoak(dataManager.state.tiles || []);
     if (els.valAberration) els.valAberration.value = dataManager.state.aberration || 0;
 
     // Temp badges

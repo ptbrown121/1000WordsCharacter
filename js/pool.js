@@ -78,6 +78,14 @@ export function tileTagList(tile) {
         .filter(Boolean);
 }
 
+export function isGearTagsBroken(tile) {
+    return Boolean(tile?.type === 'Gear' && tile?.gearBroken);
+}
+
+export function activeTileTagList(tile) {
+    return isGearTagsBroken(tile) ? [] : tileTagList(tile);
+}
+
 export function getDiceValidationMessage(label = 'Dice') {
     return `${label} must use only: d3, d4, d6, d8, d10, d12, d14, or d16.`;
 }
@@ -371,6 +379,8 @@ const RANGE_DURATION_XP = new Map(Object.entries({
 }));
 
 // Armor base XP (page 29): material + coverage. Hard armor discounts Detail tags by 1 XP.
+export const ARMOR_MATERIALS = new Set(['Soft', 'Hard']);
+export const ARMOR_COVERAGE_SOAK = { Open: 0, Full: 1, Closed: 3 };
 const ARMOR_MATERIAL_XP = { Soft: 0, Hard: 4 };
 const ARMOR_COVERAGE_XP = { Open: 0, Full: 2, Closed: 4 };
 const ARMOR_DETAIL_TAGS = new Set([
@@ -529,7 +539,7 @@ export function getShadowTagCounts(tiles = []) {
 
     tiles.forEach(tile => {
         if (tile?.isBuried) return;
-        tileTagList(tile).forEach(tag => {
+        activeTileTagList(tile).forEach(tag => {
             const baseTag = getMechanicalBaseTag(normalizeTagForXp(tag));
             if (counts[baseTag] !== undefined) counts[baseTag] += 1;
         });
@@ -687,15 +697,54 @@ export function getHitchValue(tile) {
 }
 
 export function isHitchedTile(tile) {
-    return getHitchValue(tile) > 0;
+    if (isGearTagsBroken(tile)) return false;
+    return activeTileTagList(tile).some(tag => getMechanicalBaseTag(normalizeTagForXp(tag)) === 'hitch');
 }
 
 export function calculateHitchRebateTotal(tiles = []) {
     return tiles.reduce((sum, tile) => sum + getHitchValue(tile), 0);
 }
 
+export function calculateArmorSoakDetails(tiles = []) {
+    const sources = [];
+    let total = 0;
+
+    (tiles || []).forEach(tile => {
+        const armorType = tile?.armorType;
+        if (!armorType || tile.isBuried || tile.isBurnt || isGearTagsBroken(tile)) return;
+        if (!ARMOR_MATERIALS.has(armorType.material) || !(armorType.coverage in ARMOR_COVERAGE_SOAK)) return;
+
+        const baseSoak = ARMOR_COVERAGE_SOAK[armorType.coverage];
+        const ironcladCount = activeTileTagList(tile)
+            .filter(tag => getMechanicalBaseTag(normalizeTagForXp(tag)) === 'ironclad')
+            .length;
+        const tileSteps = (tile.dice || []).reduce((sum, die) => sum + (DIE_STEPS[die] || 0), 0);
+        const ironcladSoak = ironcladCount * tileSteps;
+        const sourceTotal = baseSoak + ironcladSoak;
+
+        total += sourceTotal;
+        sources.push({
+            tileId: tile.id,
+            tileName: tile.name || 'Armor',
+            material: armorType.material,
+            coverage: armorType.coverage,
+            baseSoak,
+            ironcladCount,
+            ironcladSoak,
+            total: sourceTotal
+        });
+    });
+
+    return { total, sources };
+}
+
+export function calculateArmorSoak(tiles = []) {
+    return calculateArmorSoakDetails(tiles).total;
+}
+
 function getArcaneSacrificeCostTags(tile) {
-    const tags = tileTagList(tile);
+    if (isGearTagsBroken(tile)) return [];
+    const tags = activeTileTagList(tile);
     Object.entries(tile?.spellState || {}).forEach(([key, value]) => {
         if (!key.startsWith('spell-mod-val-')) return;
         if ((parseInt(value, 10) || 0) <= 0) return;
@@ -972,7 +1021,7 @@ export class PoolEngine {
             });
 
             const tileSteps = this.calculateSteps(tile.dice || []);
-            const tags = tileTagList(tile).map(normalizeMechanicalTag);
+            const tags = activeTileTagList(tile).map(normalizeMechanicalTag);
             tags.forEach(tag => {
                 const resource = RESOURCE_TAGS[tag];
                 if (resource) maxes[resource] += tileSteps;
@@ -1129,7 +1178,7 @@ export class PoolEngine {
             if (!isCallTile) adds += 1;
 
             // Parse tags
-            const tags = tileTagList(tile).map(t => t.toLowerCase());
+            const tags = activeTileTagList(tile).map(t => t.toLowerCase());
             
             // Contextual tag bonuses are surfaced for user selection.
             tags.forEach((tag, index) => {

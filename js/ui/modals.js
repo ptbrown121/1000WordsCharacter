@@ -11,10 +11,13 @@ import {
     getTileBoxes,
     getTileColorsFromBoxes,
     serializeTileBoxes,
-    validateShadowTags
+    validateShadowTags,
+    ARMOR_COVERAGE_SOAK,
+    ARMOR_MATERIALS
 } from '../pool.js';
 import { uiState } from '../state.js';
 import { els } from '../els.js';
+import { renderArmorSoak } from './armorSoak.js';
 import { renderCards } from './cards.js';
 import { updatePoolPreview } from './pool.js';
 import { updateXpTracker } from './stats.js';
@@ -79,10 +82,6 @@ function syncTileDiceButtons() {
 function addTileDie(die) {
     setTileDiceTokens([...getTileDiceTokens(), die]);
 }
-
-// Armor base (page 29): material x coverage. Coverage sets intrinsic Base Soak.
-export const ARMOR_MATERIALS = new Set(['Soft', 'Hard']);
-export const ARMOR_COVERAGE_SOAK = { Open: 0, Full: 1, Closed: 3 };
 
 export function formatArmorBase(armorType) {
     if (!armorType || !ARMOR_MATERIALS.has(armorType.material) || !(armorType.coverage in ARMOR_COVERAGE_SOAK)) {
@@ -277,6 +276,7 @@ function syncTileTypeSections() {
     document.getElementById('spellcast-skill-container').style.display = type === 'Skill' ? 'block' : 'none';
     document.getElementById('exotic-skill-container').style.display = type === 'Skill' ? 'block' : 'none';
     document.getElementById('gear-subtype-container').style.display = type === 'Gear' ? 'block' : 'none';
+    document.getElementById('gear-break-container').style.display = type === 'Gear' ? 'block' : 'none';
     document.getElementById('weapon-builder-container').style.display = type === 'Gear' && gearSubtype === 'Weapon' ? 'block' : 'none';
     document.getElementById('armor-base-container').style.display = type === 'Gear' && gearSubtype === 'Armor' ? 'block' : 'none';
     document.getElementById('ammo-builder-container').style.display = isAmmo ? 'block' : 'none';
@@ -586,6 +586,7 @@ export function openModal(tile = null) {
     const ammoMaxSupply = document.getElementById('ammo-max-supply');
     const ammoReplacesTag = document.getElementById('ammo-replaces-tag');
     const exoticSkill = document.getElementById('tile-exotic-skill');
+    const gearBroken = document.getElementById('gear-broken');
 
     if (tile) {
         document.getElementById('modal-title').innerText = 'Edit Tile';
@@ -605,6 +606,7 @@ export function openModal(tile = null) {
         ammoReplacesTag.value = tile.ammo?.replacesTag || 'Reload';
         armorMaterial.value = tile.armorType?.material || '';
         armorCoverage.value = tile.armorType?.coverage || '';
+        gearBroken.checked = !!tile.gearBroken;
         document.getElementById('tile-is-spellcast').checked = !!tile.isSpellcastSkill;
         exoticSkill.value = tile.exoticSkill?.id || '';
         document.getElementById('tile-name').value = tile.name;
@@ -637,6 +639,7 @@ export function openModal(tile = null) {
         ammoReplacesTag.value = 'Reload';
         armorMaterial.value = '';
         armorCoverage.value = '';
+        gearBroken.checked = false;
         document.getElementById('tile-is-spellcast').checked = false;
         exoticSkill.value = '';
         document.getElementById('tile-description').value = '';
@@ -701,6 +704,7 @@ export function saveTileFromForm() {
     const xpCost = parseInt(els.tileXp.value, 10) || 0;
     const gearSubtype = getFormGearSubtype();
     const isAmmo = type === 'Gear' && gearSubtype === 'Ammo';
+    const gearBroken = type === 'Gear' && document.getElementById('gear-broken').checked;
     
     const boxes = getFormBoxes();
     const checkedColors = getTileColorsFromBoxes(boxes);
@@ -757,6 +761,7 @@ export function saveTileFromForm() {
         weapon,
         ammo,
         armorType,
+        gearBroken,
         isBurnt: existingTile?.isBurnt || false,
         isBuried: existingTile?.isBuried || false
     };
@@ -792,5 +797,6 @@ export function saveTileFromForm() {
     renderCards();
     updatePoolPreview();
     updateXpTracker();
+    renderArmorSoak(dataManager.state.tiles || []);
     renderRulesReview();
 }

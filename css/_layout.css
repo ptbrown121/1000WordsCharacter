@@ -124,6 +124,21 @@ header {
     text-align: center;
 }
 
+.pool-readout {
+    font-weight: bold;
+    font-size: 1.2rem;
+    min-width: 2rem;
+    text-align: center;
+}
+
+.pool-detail {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 12rem;
+}
+
 .btn-edit-vital {
     background: none;
     border: none;
