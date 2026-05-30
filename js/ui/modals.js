@@ -8,6 +8,7 @@ import {
     formatTagLimitStatus,
     tagLimitErrorMessage,
     calculateHitchRebateTotal,
+    escapeHtml,
     getTileBoxes,
     getTileColorsFromBoxes,
     serializeTileBoxes,
@@ -513,10 +514,10 @@ function showPendingTagDialog(pending, subjectLabel) {
         overlay.innerHTML = `
             <div class="modal-content glass-panel pending-tag-dialog-content" role="dialog" aria-modal="true" aria-labelledby="pending-tag-title">
                 <h2 id="pending-tag-title">Add selected tag?</h2>
-                <p>You selected <strong>${pending.label}</strong> for this ${subjectLabel}, but it has not been added yet.</p>
+                <p>You selected <strong>${escapeHtml(pending.label)}</strong> for this ${subjectLabel}, but it has not been added yet.</p>
                 ${pending.canAdd
-                    ? `<p class="pending-tag-preview">Pending tag: <strong>${pending.tag}</strong></p>`
-                    : `<p class="pending-tag-warning">${pending.reason || 'Finish the tag details before adding it.'}</p>`}
+                    ? `<p class="pending-tag-preview">Pending tag: <strong>${escapeHtml(pending.tag)}</strong></p>`
+                    : `<p class="pending-tag-warning">${escapeHtml(pending.reason || 'Finish the tag details before adding it.')}</p>`}
                 <div class="pending-tag-actions">
                     <button type="button" class="btn btn-outline" data-choice="cancel">Cancel</button>
                     <button type="button" class="btn btn-outline" data-choice="save">Save without tag</button>

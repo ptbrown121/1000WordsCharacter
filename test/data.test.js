@@ -153,6 +153,32 @@ describe('normalizeStateForShadowRules', () => {
         assert.equal(state.stats.Id, undefined);
         assert.equal(state.legacyShadowWarning, true);
     });
+
+    it('migrates legacy single Story Points value into earned/spent tracking', () => {
+        const state = normalizeStateForShadowRules({
+            stats: {},
+            tiles: [],
+            storyPoints: 4
+        });
+
+        assert.equal(state.storyPointsEarned, 4);
+        assert.equal(state.storyPointsSpent, 0);
+        assert.equal(state.storyPoints, 4);
+    });
+
+    it('preserves existing Story Points earned/spent values', () => {
+        const state = normalizeStateForShadowRules({
+            stats: {},
+            tiles: [],
+            storyPoints: 99,
+            storyPointsEarned: 7,
+            storyPointsSpent: 3
+        });
+
+        assert.equal(state.storyPointsEarned, 7);
+        assert.equal(state.storyPointsSpent, 3);
+        assert.equal(state.storyPoints, 7);
+    });
 });
 
 describe('reorderTilesByVisibleMove', () => {

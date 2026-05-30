@@ -21,6 +21,46 @@
     scrollbar-gutter: stable;
 }
 
+.pending-tag-dialog {
+    z-index: 300;
+}
+
+.pending-tag-dialog-content {
+    max-width: 420px;
+}
+
+.pending-tag-dialog-content h2 {
+    margin-top: 0;
+}
+
+.pending-tag-dialog-content p {
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.pending-tag-preview {
+    background: rgba(0, 255, 200, 0.08);
+    border: 1px solid rgba(0, 255, 200, 0.25);
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+}
+
+.pending-tag-warning {
+    background: rgba(255, 170, 0, 0.1);
+    border: 1px solid rgba(255, 170, 0, 0.35);
+    border-radius: 8px;
+    color: #ffd166 !important;
+    padding: 0.65rem 0.75rem;
+}
+
+.pending-tag-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
 #tile-modal .modal-content {
     padding-bottom: 0;
 }

@@ -189,6 +189,8 @@ const DEFAULT_STATE = {
     name: 'Hero Name',
     xpEarned: 75,
     storyPoints: 0,
+    storyPointsSpent: 0,
+    storyPointsEarned: 0,
     hp: 0,
     hpMax: 0,
     hpTemp: 0,
@@ -222,6 +224,14 @@ const DEFAULT_STATE = {
 
 export function normalizeStateForShadowRules(state) {
     if (!state || typeof state !== 'object') return state;
+
+    if (state.storyPointsEarned === undefined) {
+        state.storyPointsEarned = normalizeNumber(state.storyPoints, 0);
+    } else {
+        state.storyPointsEarned = normalizeNumber(state.storyPointsEarned, 0);
+    }
+    state.storyPointsSpent = normalizeNumber(state.storyPointsSpent, 0);
+    state.storyPoints = state.storyPointsEarned;
 
     const stats = state.stats || {};
     const hasLegacyStatData = Boolean(stats.Id || stats.Qi);
@@ -457,6 +467,8 @@ export class DataManager {
                 // Backward compatibility
                 if (newState.xpEarned === undefined) newState.xpEarned = 75;
                 if (newState.storyPoints === undefined) newState.storyPoints = 0;
+                if (newState.storyPointsEarned === undefined) newState.storyPointsEarned = newState.storyPoints;
+                if (newState.storyPointsSpent === undefined) newState.storyPointsSpent = 0;
                 if (newState.hpMax === undefined) newState.hpMax = newState.hp || 10;
                 if (newState.enMax === undefined) newState.enMax = newState.en || 10;
                 if (newState.rxMax === undefined) newState.rxMax = newState.rx || 10;

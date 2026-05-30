@@ -100,8 +100,13 @@ export function init(deps) {
         dataManager.saveState();
         updateXpTracker();
     });
-    els.valStoryPoints.addEventListener('change', (e) => {
-        dataManager.state.storyPoints = parseInt(e.target.value, 10) || 0;
+    els.valStoryPointsSpent.addEventListener('change', (e) => {
+        dataManager.state.storyPointsSpent = parseInt(e.target.value, 10) || 0;
+        dataManager.saveState();
+    });
+    els.valStoryPointsEarned.addEventListener('change', (e) => {
+        dataManager.state.storyPointsEarned = parseInt(e.target.value, 10) || 0;
+        dataManager.state.storyPoints = dataManager.state.storyPointsEarned;
         dataManager.saveState();
     });
 

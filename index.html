@@ -117,7 +117,9 @@
             <div class="pool" style="--pool-color: #ffd166">
                 <label>Story Points</label>
                 <div style="display: flex; align-items: center;">
-                    <input type="number" id="val-story-points" value="0" inputmode="numeric" style="width: 4rem;">
+                    <input type="number" id="val-story-points-spent" value="0" inputmode="numeric" aria-label="Story Points spent" style="width: 4rem;">
+                    <span style="font-weight: bold; margin: 0 0.5rem;">/</span>
+                    <input type="number" id="val-story-points-earned" value="0" inputmode="numeric" aria-label="Story Points earned" style="width: 4rem;">
                 </div>
             </div>
         </div>
@@ -1167,7 +1169,7 @@
 
             <div style="color: var(--text-secondary); line-height: 1.7; font-size: 0.95rem;">
                 <h3 style="color: var(--text-primary); margin-top: 0;">🧑‍🎤 Getting Started</h3>
-                <p>Click your character's name at the top left to rename them. Set your starting <strong>XP</strong> in the header (default is 75 for a new character), and track current <strong>Story Points</strong> beside it.</p>
+                <p>Click your character's name at the top left to rename them. Set your starting <strong>XP</strong> in the header (default is 75 for a new character), and track spent / earned <strong>Story Points</strong> beside it.</p>
 
                 <hr style="border-color: var(--glass-border); margin: 1rem 0;">
 

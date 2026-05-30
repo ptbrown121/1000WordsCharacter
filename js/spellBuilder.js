@@ -2,6 +2,7 @@ import { VALID_DICE } from './data.js';
 import {
     PoolEngine,
     calculateHitchRebateTotal,
+    escapeHtml,
     formatTagLimitStatus,
     getTileBoxes,
     serializeTileBoxes,
@@ -807,7 +808,123 @@ export class SpellBuilder {
         document.getElementById('spell-preview-desc').textContent = desc;
     }
 
-    saveSpell() {
+    resetPendingSpellTagControls() {
+        this.tagSelect.value = '';
+        this.tagCustomInput.value = '';
+        this.tagCustomInput.style.display = 'none';
+        this.tagCustomXp.style.display = 'none';
+        this.tagCustomXp.value = '2';
+        document.getElementById('spell-tag-exempt').checked = false;
+        const hitchValue = document.getElementById('spell-tag-hitch-value');
+        if (hitchValue) {
+            hitchValue.style.display = 'none';
+            hitchValue.value = '3';
+        }
+    }
+
+    getPendingSpellTag() {
+        let val = this.tagSelect.value;
+        if (!val) return null;
+
+        let xp = parseInt(this.tagSelect.options[this.tagSelect.selectedIndex].dataset.xp || 0, 10);
+        let reason = '';
+
+        if (val === 'Custom') {
+            val = this.tagCustomInput.value.trim();
+            xp = parseInt(this.tagCustomXp.value || 0, 10);
+            if (!val) reason = 'Custom needs a tag name.';
+        } else if (val === 'World') {
+            const target = this.tagCustomInput.value.trim();
+            if (target) {
+                val = `World ${target}`;
+                xp = 0;
+            } else {
+                reason = 'World needs a linked tile name.';
+            }
+        } else if (val === 'Hitch') {
+            const rebate = Math.min(6, Math.max(1, parseInt(document.getElementById('spell-tag-hitch-value').value, 10) || 3));
+            val = `Hitch ${rebate}`;
+            xp = -rebate;
+        }
+
+        if (val && document.getElementById('spell-tag-exempt').checked) {
+            val = `${val} (Exempt)`;
+        }
+
+        return {
+            label: this.tagSelect.value,
+            tag: val,
+            xp,
+            canAdd: Boolean(val),
+            reason
+        };
+    }
+
+    addPendingSpellTag({ showAlert = true } = {}) {
+        const pending = this.getPendingSpellTag();
+        if (!pending) return false;
+        if (!pending.canAdd) {
+            if (showAlert) alert(pending.reason || 'Complete the selected tag before adding it.');
+            return false;
+        }
+
+        this.currentFormTags.push({ name: pending.tag, xp: pending.xp });
+        this.resetPendingSpellTagControls();
+        this.renderTags();
+        this.calculateXP();
+        return true;
+    }
+
+    showPendingSpellTagDialog(pending) {
+        return new Promise(resolve => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal active pending-tag-dialog';
+            overlay.innerHTML = `
+                <div class="modal-content glass-panel pending-tag-dialog-content" role="dialog" aria-modal="true" aria-labelledby="pending-spell-tag-title">
+                    <h2 id="pending-spell-tag-title">Add selected tag?</h2>
+                    <p>You selected <strong>${escapeHtml(pending.label)}</strong> for this spell, but it has not been added yet.</p>
+                    ${pending.canAdd
+                        ? `<p class="pending-tag-preview">Pending tag: <strong>${escapeHtml(pending.tag)}</strong></p>`
+                        : `<p class="pending-tag-warning">${escapeHtml(pending.reason || 'Finish the tag details before adding it.')}</p>`}
+                    <div class="pending-tag-actions">
+                        <button type="button" class="btn btn-outline" data-choice="cancel">Cancel</button>
+                        <button type="button" class="btn btn-outline" data-choice="save">Save without tag</button>
+                        ${pending.canAdd ? '<button type="button" class="btn btn-action" data-choice="add">Add tag and save</button>' : ''}
+                    </div>
+                </div>
+            `;
+
+            const close = (choice) => {
+                overlay.remove();
+                resolve(choice);
+            };
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) close('cancel');
+                const button = e.target.closest('button[data-choice]');
+                if (button && overlay.contains(button)) close(button.dataset.choice);
+            });
+            overlay.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') close('cancel');
+            });
+            document.body.appendChild(overlay);
+            overlay.querySelector('button[data-choice="cancel"]')?.focus();
+        });
+    }
+
+    async confirmPendingSpellTagBeforeSave() {
+        const pending = this.getPendingSpellTag();
+        if (!pending) return true;
+
+        const choice = await this.showPendingSpellTagDialog(pending);
+        if (choice === 'cancel') return false;
+        if (choice === 'add') return this.addPendingSpellTag({ showAlert: true });
+        return true;
+    }
+
+    async saveSpell() {
+        if (!await this.confirmPendingSpellTagBeforeSave()) return;
+
         const name = document.getElementById('spell-name').value.trim() || 'Custom Spell';
         const { diceArray, invalidDice } = this.getSpellDiceInfo();
 
