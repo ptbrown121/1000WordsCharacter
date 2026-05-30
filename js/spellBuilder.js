@@ -17,11 +17,40 @@ const SPELL_DEFAULT_BOXES = {
     Augur: [{ type: 'color', color: 'Blue' }, { type: 'color', color: 'Orange' }]
 };
 
-function bindNoFocusButton(button, handler) {
+function isTextEditingElement(element) {
+    if (!element) return false;
+    if (element.tagName === 'TEXTAREA') return true;
+    if (element.tagName !== 'INPUT') return false;
+    return !['button', 'checkbox', 'color', 'file', 'hidden', 'radio', 'range', 'reset', 'submit'].includes(element.type);
+}
+
+function dismissKeyboardPreservingScroll(button) {
+    const active = document.activeElement;
+    if (!isTextEditingElement(active)) return;
+    if (!button.closest('.modal')?.contains(active)) return;
+
+    const modalContent = button.closest('.modal-content');
+    const modalScrollTop = modalContent?.scrollTop ?? 0;
+    const windowScrollX = window.scrollX;
+    const windowScrollY = window.scrollY;
+
+    active.blur();
+
+    const restoreScroll = () => {
+        if (modalContent) modalContent.scrollTop = modalScrollTop;
+        window.scrollTo(windowScrollX, windowScrollY);
+    };
+    requestAnimationFrame(restoreScroll);
+    setTimeout(restoreScroll, 80);
+    setTimeout(restoreScroll, 220);
+}
+
+function bindStableTouchButton(button, handler) {
     let handledPointer = false;
     button.addEventListener('pointerdown', (e) => {
         handledPointer = true;
         e.preventDefault();
+        dismissKeyboardPreservingScroll(button);
         handler(e);
     });
     button.addEventListener('click', (e) => {
@@ -125,7 +154,7 @@ export class SpellBuilder {
             });
         });
         document.querySelectorAll('.spell-box-option').forEach(button => {
-            bindNoFocusButton(button, () => {
+            bindStableTouchButton(button, () => {
                 this.toggleSpellBoxButton(button.dataset.value);
             });
         });
