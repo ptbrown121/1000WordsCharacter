@@ -12,6 +12,9 @@ export const uiState = {
     // Selected GM Call colors. The first two are mirrored into the legacy
     // hidden selects for compatibility with older UI code.
     callColors: [],
+    // Hitched tiles selected as additional called dice. These cost Hitch EN
+    // and add dice, but they are not burn tiles and do not grant +1 Add.
+    hitchCallTiles: [],
     // Tiles being burned for this roll. Array of tile objects.
     burnTiles: [],
     // Chain IDs the user has explicitly disabled for this roll.

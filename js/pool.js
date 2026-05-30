@@ -1023,6 +1023,7 @@ export class PoolEngine {
         const activeCallColors = [...new Set(callColors.filter(Boolean))];
         const disabledChainIds = options.disabledChainIds || new Set();
         const aberrantEffects = options.aberrantEffects || {};
+        const hitchCallTiles = options.hitchCallTiles || [];
         const usedTiles = [];
         const dieStepEffects = [];
         const buildResult = (overrides = {}) => ({
@@ -1220,7 +1221,25 @@ export class PoolEngine {
             if (error) return buildResult({ error });
         }
 
-        // 3. Validate and Add Burn Tiles (Burn tiles do NOT trigger tags)
+        // 3. Validate and Add additional called Hitch tiles. These are called,
+        // not burned: they cost Hitch EN and add dice, but grant no +1 Add.
+        if (hitchCallTiles && hitchCallTiles.length > 0) {
+            if (!callTile) {
+                return buildResult({ error: "Select a Call Tile before adding Hitched called tiles." });
+            }
+
+            const invalidHitchTile = hitchCallTiles.find(tile => !isHitchedTile(tile));
+            if (invalidHitchTile) {
+                return buildResult({ error: `Tile '${invalidHitchTile.name}' is not Hitched and must be burned for an extra Add.` });
+            }
+
+            for (const hitchTile of hitchCallTiles) {
+                resolveTile(hitchTile, true, new Set());
+                if (error) return buildResult({ error });
+            }
+        }
+
+        // 4. Validate and Add Burn Tiles (Burn tiles do NOT trigger tags)
         if (burnTiles && burnTiles.length > 0) {
             if (!callTile) {
                 return buildResult({ error: "Select a Call Tile before adding Burn tiles." });
@@ -1253,7 +1272,7 @@ export class PoolEngine {
         const shadowUse = validateShadowUseForCheck(usedTiles);
         if (!shadowUse.valid) return buildResult({ error: shadowUse.error, shadowUse: shadowUse.kind });
 
-        // 4. Validate and Add Extra Dice
+        // 5. Validate and Add Extra Dice
         if (extraDice && extraDice.length > 0) {
             extraDice.forEach(d => pool.push({ source: `Extra`, die: d }));
         }

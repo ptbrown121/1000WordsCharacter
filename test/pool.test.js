@@ -655,6 +655,57 @@ describe('compilePool', () => {
         assert.match(burnRes.error, /cannot be burned/i);
     });
 
+    it('allows Hitched tiles as extra called dice without granting burn Adds', () => {
+        const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: '' };
+        const hitched = { id: 'h', name: 'Oath', colors: ['Red'], dice: ['d6'], tags: 'Hitch 5' };
+        const res = engine.compilePool(['Red'], stats, callTile, [], [callTile, hitched], [], {
+            hitchCallTiles: [hitched]
+        });
+
+        assert.equal(res.error, null);
+        assert.equal(res.adds, 2);
+        assert.ok(res.dice.some(die => die.source === 'Tile (Sword)' && die.die === 'd8'));
+        assert.ok(res.dice.some(die => die.source === 'Tile (Oath)' && die.die === 'd6'));
+        assert.deepEqual(res.resourceCosts.map(cost => ({
+            resource: cost.resource,
+            amount: cost.amount,
+            sourceTileName: cost.sourceTileName,
+            reason: cost.reason
+        })), [{ resource: 'en', amount: 1, sourceTileName: 'Oath', reason: 'Hitch' }]);
+    });
+
+    it('resolves tags and chains on extra called Hitch tiles', () => {
+        const callTile = { id: '1', name: 'Sword', colors: ['Red'], dice: ['d8'], tags: '' };
+        const hitched = { id: 'h', name: 'Oath', colors: ['Red'], dice: ['d6'], tags: ['Hitch 5', 'Drain', 'Chain Helper'] };
+        const helper = { id: 'helper', name: 'Helper', colors: ['Red'], dice: ['d4'], tags: '' };
+        const res = engine.compilePool(['Red'], stats, callTile, [], [callTile, hitched, helper], [], {
+            hitchCallTiles: [hitched]
+        });
+
+        assert.equal(res.error, null);
+        assert.equal(res.adds, 3);
+        assert.deepEqual(res.dice.map(die => `${die.source}:${die.die}`), [
+            'Stat (BODY):d6',
+            'Tile (Sword):d8',
+            'Tile (Oath):d6',
+            'Tile (Helper):d4'
+        ]);
+        assert.deepEqual(res.resourceCosts.map(cost => ({
+            resource: cost.resource,
+            amount: cost.amount,
+            sourceTileName: cost.sourceTileName,
+            reason: cost.reason
+        })), [
+            { resource: 'en', amount: 1, sourceTileName: 'Oath', reason: 'Hitch' },
+            { resource: 'hp', amount: 1, sourceTileName: 'Oath', reason: 'Drain' }
+        ]);
+        assert.ok(res.chainOptions.some(chain => (
+            chain.sourceTileName === 'Oath'
+            && chain.targetTileName === 'Helper'
+            && chain.status === 'active'
+        )));
+    });
+
     it('reports Arcane sacrifice flaw resource costs by flaw type', () => {
         const spell = { id: 's', name: 'Blood Spell', colors: ['Red'], dice: ['d6'], tags: ['Spell', 'Sap', 'Tire', 'Drain'] };
         const res = engine.compilePool(['Red'], stats, spell, [], [spell], []);

@@ -18,6 +18,7 @@ export function init(deps) {
         els.charRosterSelect.addEventListener('change', (e) => {
             dataManager.switchCharacter(e.target.value);
             uiState.callTile = null;
+            uiState.hitchCallTiles = [];
             uiState.burnTiles = [];
             renderAll();
         });
@@ -28,6 +29,7 @@ export function init(deps) {
             if (confirm("WARNING: Are you sure you want to delete this character permanently?")) {
                 dataManager.deleteCurrentCharacter();
                 uiState.callTile = null;
+                uiState.hitchCallTiles = [];
                 uiState.burnTiles = [];
                 renderAll();
             }
@@ -40,6 +42,7 @@ export function init(deps) {
         if (name) {
             dataManager.createNewCharacter(name);
             uiState.callTile = null;
+            uiState.hitchCallTiles = [];
             uiState.burnTiles = [];
             renderAll();
         }
@@ -55,6 +58,7 @@ export function init(deps) {
             const overwrite = confirm("Do you want to overwrite your current character? (Click 'Cancel' to import as a new character slot)");
             if (dataManager.importState(ev.target.result, overwrite)) {
                 uiState.callTile = null;
+                uiState.hitchCallTiles = [];
                 uiState.burnTiles = [];
                 renderAll();
             } else {

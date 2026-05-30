@@ -63,6 +63,11 @@
     box-shadow: 0 0 15px white;
 }
 
+.tile-card.selected-hitch-call {
+    outline: 3px solid #ffaa00;
+    box-shadow: 0 0 15px #ffaa00;
+}
+
 .tile-card.tile-burnt,
 .tile-card.tile-buried {
     filter: grayscale(100%) opacity(60%);

@@ -190,6 +190,7 @@ function syncExtraDiceChips() {
 export function clearCallSelection() {
     setCallColors([]);
     uiState.callTile = null;
+    uiState.hitchCallTiles = [];
     uiState.burnTiles = [];
     uiState.disabledChainIds.clear();
     uiState.selectedTagBonusIds.clear();
@@ -215,6 +216,7 @@ export function getPoolOptions() {
         getShadowTagCounts(dataManager.state.tiles || [])
     );
     return {
+        hitchCallTiles: [...(uiState.hitchCallTiles || [])],
         disabledChainIds: new Set(uiState.disabledChainIds),
         aberrantEffects: {
             risen: alignmentStates.includes('Risen Aberrant') || Boolean(els.risenAberrantEffect?.checked),
@@ -401,7 +403,14 @@ export function updatePoolPreview() {
     const colors = getSelectedCallColors();
 
     // Update Dropzones visually
-    els.callTileZone.innerHTML = uiState.callTile ? `<div class="badge">${escapeHtml(uiState.callTile.name)} (${escapeHtml(uiState.callTile.dice.join(', '))})</div>` : '';
+    const calledBadges = [];
+    if (uiState.callTile) {
+        calledBadges.push(`<div class="badge">${escapeHtml(uiState.callTile.name)} (${escapeHtml(uiState.callTile.dice.join(', '))})</div>`);
+    }
+    (uiState.hitchCallTiles || []).forEach(tile => {
+        calledBadges.push(`<div class="badge" style="margin:2px">${escapeHtml(tile.name)} (${escapeHtml(tile.dice.join(', '))}; Hitch)</div>`);
+    });
+    els.callTileZone.innerHTML = calledBadges.join('');
     els.burnTilesZone.innerHTML = uiState.burnTiles.map(t => `<div class="badge" style="margin:2px">${escapeHtml(t.name)}</div>`).join('');
 
     const extraDice = getExtraDice();
@@ -559,6 +568,7 @@ export function processBurns() {
             dataManager.updateTile(t);
         });
         uiState.callTile = null;
+        uiState.hitchCallTiles = [];
         uiState.burnTiles = [];
         renderCards();
         updatePoolPreview();

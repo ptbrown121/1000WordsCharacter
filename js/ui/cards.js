@@ -161,6 +161,9 @@ export function handleCardClick(tile) {
     if (uiState.callTile && uiState.callTile.id === tile.id) {
         // Deselect call
         uiState.callTile = null;
+    } else if (uiState.hitchCallTiles.some(t => t.id === tile.id)) {
+        // Deselect additional called Hitch tile
+        uiState.hitchCallTiles = uiState.hitchCallTiles.filter(t => t.id !== tile.id);
     } else if (uiState.burnTiles.some(t => t.id === tile.id)) {
         // Deselect burn
         uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
@@ -169,7 +172,7 @@ export function handleCardClick(tile) {
         if (!uiState.callTile) {
             uiState.callTile = tile;
         } else if (isHitchedTile(tile)) {
-            return;
+            uiState.hitchCallTiles.push(tile);
         } else {
             uiState.burnTiles.push(tile);
         }
@@ -267,6 +270,7 @@ export function renderCards() {
         div.style.border = `1px solid ${c1}88`;
 
         if (uiState.callTile && uiState.callTile.id === tile.id) div.classList.add('selected-call');
+        if (uiState.hitchCallTiles.some(t => t.id === tile.id)) div.classList.add('selected-hitch-call');
         if (uiState.burnTiles.some(t => t.id === tile.id)) div.classList.add('selected-burn');
         if (tile.isBurnt) div.classList.add('tile-burnt');
         if (tile.isBuried) div.classList.add('tile-buried');
@@ -515,6 +519,7 @@ export function renderCards() {
                     e.stopPropagation();
                     tile.isBurnt = true;
                     if (uiState.callTile && uiState.callTile.id === tile.id) uiState.callTile = null;
+                    uiState.hitchCallTiles = uiState.hitchCallTiles.filter(t => t.id !== tile.id);
                     uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
                     dataManager.updateTile(tile);
                     renderCards();
@@ -528,6 +533,7 @@ export function renderCards() {
                 tile.isBuried = true;
                 tile.isBurnt = false;
                 if (uiState.callTile && uiState.callTile.id === tile.id) uiState.callTile = null;
+                uiState.hitchCallTiles = uiState.hitchCallTiles.filter(t => t.id !== tile.id);
                 uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== tile.id);
                 dataManager.updateTile(tile);
                 renderCards();

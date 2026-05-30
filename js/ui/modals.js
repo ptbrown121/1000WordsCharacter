@@ -410,6 +410,7 @@ export function init(deps) {
         if (id) {
             dataManager.deleteTile(id);
             if (uiState.callTile && uiState.callTile.id === id) uiState.callTile = null;
+            uiState.hitchCallTiles = uiState.hitchCallTiles.filter(t => t.id !== id);
             uiState.burnTiles = uiState.burnTiles.filter(t => t.id !== id);
             closeModal();
             renderCards();
@@ -781,6 +782,7 @@ export function saveTileFromForm() {
         dataManager.updateTile(tile);
         // Update pool selections if modified
         if (uiState.callTile && uiState.callTile.id === id) uiState.callTile = tile;
+        uiState.hitchCallTiles = uiState.hitchCallTiles.map(t => t.id === id ? tile : t);
         uiState.burnTiles = uiState.burnTiles.map(t => t.id === id ? tile : t);
     } else {
         dataManager.addTile(tile);
