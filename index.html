@@ -43,20 +43,6 @@
             </div>
         </div>
         <div class="resource-pools">
-            <div class="pool" style="--pool-color: #fff">
-                <label>XP</label>
-                <div style="display: flex; align-items: center;">
-                    <span id="val-xp-spent" style="font-weight: bold; font-size: 1.2rem;">0</span>
-                    <span style="font-weight: bold; margin: 0 0.5rem;">/</span>
-                    <input type="number" id="val-xp-earned" value="75" style="width: 4rem;">
-                </div>
-            </div>
-            <div class="pool" style="--pool-color: #ffd166">
-                <label>Story Points</label>
-                <div style="display: flex; align-items: center;">
-                    <input type="number" id="val-story-points" value="0" inputmode="numeric" style="width: 4rem;">
-                </div>
-            </div>
             <div class="pool" style="--pool-color: var(--color-hp)">
                 <label>Health (HP)</label>
                 <div class="pool-inner">
@@ -112,6 +98,20 @@
                     <button class="btn-edit-vital" data-vital="sh" title="Edit SH Bonuses">⚙️</button>
                 </div>
                 <span id="sh-temp-badge" class="temp-badge" style="display: none;"></span>
+            </div>
+            <div class="pool" style="--pool-color: #fff">
+                <label>XP</label>
+                <div style="display: flex; align-items: center;">
+                    <span id="val-xp-spent" style="font-weight: bold; font-size: 1.2rem;">0</span>
+                    <span style="font-weight: bold; margin: 0 0.5rem;">/</span>
+                    <input type="number" id="val-xp-earned" value="75" style="width: 4rem;">
+                </div>
+            </div>
+            <div class="pool" style="--pool-color: #ffd166">
+                <label>Story Points</label>
+                <div style="display: flex; align-items: center;">
+                    <input type="number" id="val-story-points" value="0" inputmode="numeric" style="width: 4rem;">
+                </div>
             </div>
         </div>
     </header>
